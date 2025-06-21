@@ -161,9 +161,10 @@ const aplicarNovaCor = (novaCor, container) => {
 
   const iniciarMod = () => {
   alert("🚀 Toque no campo onde deseja digitar o texto.");
-  document.addEventListener("click", function handler(e) {
+
+  const cliqueHandler = function(e) {
     e.preventDefault();
-    document.removeEventListener("click", handler, true);
+    document.removeEventListener("click", cliqueHandler, true);
     const el = e.target;
 
     if (
@@ -172,13 +173,15 @@ const aplicarNovaCor = (novaCor, container) => {
       !el.isContentEditable
     ) {
       alert("❌ Esse não é um campo válido.");
+      criarBotaoFlutuante(); // Garante que o botão flutuante volte
       return;
     }
 
     const texto = prompt("✍️ Cole ou digite o texto que deseja colar:");
-    if (!texto) return;
+    if (!texto) return criarBotaoFlutuante();
 
     let i = 0, total = texto.length;
+
     const progresso = document.createElement("div");
     Object.assign(progresso.style, {
       position: "fixed",
@@ -194,9 +197,8 @@ const aplicarNovaCor = (novaCor, container) => {
     });
     document.body.appendChild(progresso);
 
-    // Bloqueia clique enquanto digita
-    const bloquearCliques = e => e.stopPropagation();
-    document.addEventListener("click", bloquearCliques, true);
+    const bloquearClique = e => e.stopPropagation();
+    document.addEventListener("click", bloquearClique, true);
 
     const intervalo = setInterval(() => {
       const c = texto.charAt(i++);
@@ -206,16 +208,16 @@ const aplicarNovaCor = (novaCor, container) => {
       } else {
         el.textContent += c;
       }
+
       progresso.textContent = `${Math.round((i / total) * 100)}%`;
 
       if (i >= total) {
         clearInterval(intervalo);
         progresso.remove();
         el.dispatchEvent(new Event("change", { bubbles: true }));
-        el.blur(); // Fecha automaticamente o campo
+        el.blur();
 
-        // Remove o bloqueio de cliques
-        document.removeEventListener("click", bloquearCliques, true);
+        document.removeEventListener("click", bloquearClique, true);
 
         const final = document.createElement("div");
         final.textContent = "✅ Texto colado com sucesso! Obrigado por usar o mod do Dhonatan.";
@@ -245,9 +247,16 @@ const aplicarNovaCor = (novaCor, container) => {
         closeBtn.onclick = () => final.remove();
         final.appendChild(closeBtn);
         document.body.appendChild(final);
+
+        setTimeout(() => {
+          final.remove();
+          criarBotaoFlutuante();
+        }, 3000);
       }
-    }, 50);
-  }, true);
+    }, 120); // <- digitação mais humana aqui
+  };
+
+  document.addEventListener("click", cliqueHandler, true);
 };
 
   const criarTextoComTema = () => {
