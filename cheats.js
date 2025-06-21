@@ -295,17 +295,41 @@
     };
 
     janela.append(
-      titulo, relogio,
-      btn('✍️ Iniciar Bot de Texto', '#00ffea', () => { fundo.remove(); iniciarMod(); }),
-      btn('📡 Encontrar Resposta (Colar)', '#ffd700', encontrarRespostaColar),
-      btn('✍️ Encontrar Resposta (Digitar)', '#ffa500', encontrarRespostaDigitar),
-      btn('🎯 Marcar Resposta (Colar)', '#00ff90', () => { navigator.clipboard.readText().then(r => marcarResposta(r)); }),
-      btn('✍️ Marcar Resposta (Digitar)', '#8ecaff', () => { const r = prompt("Digite a resposta:"); if (r) marcarResposta(r); }),
-      btn('📄 Criar Texto com Tema', '#f0f', criarTextoComTema),
-      btn('🔁 Reescrever Texto', '#90ee90', abrirReescritor),
-      btn('🔃 Resetar', '#999', () => { fundo.remove(); criarInterface(); }),
-      btn('❌ Fechar Menu', '#ff0033', () => { fundo.remove(); criarBotaoFlutuante(); })
-    );
+  titulo, relogio,
+
+  // 1. Iniciar Bot de Texto
+  btn('✍️ Iniciar Bot de Texto', '#00ffea', () => { fundo.remove(); iniciarMod(); }),
+
+  // 2. Criar Texto com Tema
+  btn('📄 Criar Texto com Tema', '#f0f', criarTextoComTema),
+
+  // 3. Reescrever Texto
+  btn('🔁 Reescrever Texto', '#90ee90', abrirReescritor),
+
+  // 4. Encontrar Resposta (Colar)
+  btn('📡 Encontrar Resposta (Colar)', '#ffd700', encontrarRespostaColar),
+
+  btn('✍️ Encontrar Resposta (Digitar)', '#ffa500', encontrarRespostaDigitar),
+
+  btn('🎯 Marcar Resposta (Colar)', '#00ff90', () => {
+    navigator.clipboard.readText().then(r => marcarResposta(r));
+  }),
+
+  btn('✍️ Marcar Resposta (Digitar)', '#8ecaff', () => {
+    const r = prompt("Digite a resposta:");
+    if (r) marcarResposta(r);
+  }),
+
+  btn('🔃 Resetar', '#999', () => {
+    fundo.remove();
+    criarInterface();
+  }),
+
+  btn('❌ Fechar Menu', '#ff0033', () => {
+    fundo.remove();
+    criarBotaoFlutuante();
+  })
+);
 
     fundo.append(janela);
     document.body.append(fundo);
