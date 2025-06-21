@@ -163,7 +163,10 @@ const aplicarNovaCor = (novaCor, container) => {
   alert("✅ Toque onde deseja colar o texto");
 
   const texto = await navigator.clipboard.readText();
-  if (!texto) return alert("❌ A área de transferência está vazia. Copie um texto antes de iniciar.");
+  if (!texto || texto.trim().length === 0) {
+    alert("❌ Área de transferência está vazia. Copie um texto primeiro.");
+    return criarBotaoFlutuante();
+  }
 
   const handler = (e) => {
     e.preventDefault();
@@ -171,7 +174,7 @@ const aplicarNovaCor = (novaCor, container) => {
 
     const el = e.target;
     if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      alert("❌ Esse não é um campo válido.");
+      alert("❌ Esse não é um campo válido para colar.");
       criarBotaoFlutuante();
       return;
     }
@@ -180,27 +183,27 @@ const aplicarNovaCor = (novaCor, container) => {
 
     let i = 0;
 
-    // Evita qualquer clique fora durante colagem
+    // Bloqueio invisível para impedir clique fora
     const bloqueio = document.createElement('div');
     Object.assign(bloqueio.style, {
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
       zIndex: '999998', background: 'transparent'
     });
-    bloqueio.onclick = e => e.stopPropagation();
     document.body.appendChild(bloqueio);
 
-    // Progresso visual
+    // Progresso
     const progresso = document.createElement('div');
     Object.assign(progresso.style, {
       position: 'fixed', top: '50%', left: '50%',
-      transform: 'translate(-50%,-50%)', background: 'black',
-      color: 'white', padding: '10px', borderRadius: '10px',
-      zIndex: '999999', fontSize: '20px'
+      transform: 'translate(-50%, -50%)', background: '#000',
+      color: '#0f0', padding: '10px 20px', borderRadius: '10px',
+      fontSize: '18px', zIndex: '999999',
+      border: '1px solid #0f0', fontWeight: 'bold'
     });
     document.body.appendChild(progresso);
 
     const intervalo = setInterval(() => {
-      el.focus(); // força foco contínuo
+      el.focus(); // mantém o foco sempre
       const char = texto[i];
       if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
         el.value += char;
@@ -209,7 +212,7 @@ const aplicarNovaCor = (novaCor, container) => {
         el.textContent += char;
       }
 
-      progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
+      progresso.textContent = `⌨️ Digitando... ${Math.floor((i / texto.length) * 100)}%`;
       i++;
 
       if (i >= texto.length) {
@@ -218,23 +221,19 @@ const aplicarNovaCor = (novaCor, container) => {
         bloqueio.remove();
 
         const done = document.createElement('div');
+        done.textContent = '✅ Texto colado com sucesso!';
         Object.assign(done.style, {
           position: 'fixed', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)', background: '#000',
-          padding: '15px 20px', borderRadius: '8px',
-          fontSize: '18px', textAlign: 'center',
-          zIndex: '999999', color: '#fff',
-          border: '1px solid white'
+          transform: 'translate(-50%, -50%)',
+          background: '#111', padding: '15px 20px',
+          color: '#fff', borderRadius: '10px',
+          zIndex: '999999', border: '1px solid #0f0',
+          fontSize: '16px', textAlign: 'center',
         });
-        done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
-        let h = 0;
-        setInterval(() => {
-          done.style.color = `hsl(${h++ % 360},100%,60%)`;
-        }, 30);
         document.body.append(done);
         setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
       }
-    }, 50);
+    }, 50); // pode ajustar a velocidade aqui
   };
 
   document.addEventListener('click', handler, true);
