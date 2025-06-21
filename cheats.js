@@ -165,72 +165,53 @@ const aplicarNovaCor = (novaCor, container) => {
     e.preventDefault();
     document.removeEventListener('click', handler, true);
     const el = e.target;
-
     if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
       alert("❌ Esse não é um campo válido.");
       criarBotaoFlutuante();
       return;
     }
-
-    const texto = prompt("📋 Cole ou digite o texto que será digitado:");
+    const texto = prompt("📋 Cole ou digite o texto:");
     if (!texto) return criarBotaoFlutuante();
 
+    el.focus();
     let i = 0;
     const progresso = document.createElement('div');
     Object.assign(progresso.style, {
       position: 'fixed', top: '50%', left: '50%',
       transform: 'translate(-50%, -50%)',
-      background: 'black', color: 'white',
-      padding: '10px 20px', borderRadius: '10px',
-      zIndex: '999999', fontSize: '20px'
+      background: 'rgba(0,0,0,0.8)', color: '#fff',
+      padding: '10px 20px', borderRadius: '8px',
+      zIndex: 9999999, fontSize: '20px'
     });
     document.body.append(progresso);
 
-    const simulateKey = (char) => {
-      const keyEvent = (type) => new KeyboardEvent(type, {
-        key: char, bubbles: true, cancelable: true
-      });
-
-      el.dispatchEvent(keyEvent('keydown'));
-      el.dispatchEvent(keyEvent('keypress'));
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-        el.value += char;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-      } else {
-        el.textContent += char;
-      }
-      el.dispatchEvent(keyEvent('keyup'));
-    };
-
-    const interval = setInterval(() => {
+    const intervalo = setInterval(() => {
       if (i < texto.length) {
-        simulateKey(texto[i++]);
-        progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
+        const c = texto[i++];
+        document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
+        progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
       } else {
-        clearInterval(interval);
+        clearInterval(intervalo);
         progresso.remove();
-
+        el.blur();  // fechar
         setTimeout(() => {
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
-          el.blur(); // ainda queremos sair do campo
-          
-          const done = document.createElement('div');
-          done.textContent = "✅ Texto digitado com sucesso!";
-          Object.assign(done.style, {
-            position: "fixed", top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "#000", color: "#0f0",
-            padding: "15px", borderRadius: "10px",
-            fontSize: "18px", zIndex: 9999999,
-            fontWeight: "bold", textAlign: "center",
-            border: '1px solid #0f0'
+          const msg = document.createElement('div');
+          msg.textContent = "✅ Texto digitado com sucesso!";
+          Object.assign(msg.style, {
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#000', color: '#0f0',
+            padding: '15px', borderRadius: '10px',
+            fontSize: '18px', zIndex: 9999999,
+            fontWeight: 'bold', textAlign: 'center'
           });
-          document.body.appendChild(done);
-          setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
-        }, 150);
+          document.body.append(msg);
+          setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+        }, 100);
       }
-    }, 120); // ← velocidade de digitação ajustável
+    }, 120);
   };
   document.addEventListener('click', handler, true);
 };
