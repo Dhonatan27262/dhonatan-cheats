@@ -199,24 +199,29 @@ const aplicarNovaCor = (novaCor, container) => {
       } else {
         clearInterval(intervalo);
         progresso.remove();
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        el.blur();
 
-        const msg = document.createElement("div");
-        msg.textContent = "✅ Texto digitado com sucesso!";
-        Object.assign(msg.style, {
-          position: "fixed", top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#000", color: "#0f0",
-          padding: "15px", borderRadius: "10px",
-          fontSize: "18px", zIndex: 9999999,
-          fontWeight: "bold", textAlign: "center",
-          border: '1px solid #0f0'
-        });
-        document.body.appendChild(msg);
-        setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+        // 🔒 Correção: força confirmação e depois fecha
+        setTimeout(() => {
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.blur();
+
+          const msg = document.createElement("div");
+          msg.textContent = "✅ Texto digitado com sucesso!";
+          Object.assign(msg.style, {
+            position: "fixed", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "#000", color: "#0f0",
+            padding: "15px", borderRadius: "10px",
+            fontSize: "18px", zIndex: 9999999,
+            fontWeight: "bold", textAlign: "center",
+            border: '1px solid #0f0'
+          });
+          document.body.appendChild(msg);
+          setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+        }, 100); // pequeno delay para garantir que texto permaneça
       }
-    }, 80); // ← Velocidade da digitação
+    }, 80); // ← velocidade de digitação
   };
   document.addEventListener('click', handler, true);
 };
