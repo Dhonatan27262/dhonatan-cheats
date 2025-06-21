@@ -170,10 +170,8 @@ const aplicarNovaCor = (novaCor, container) => {
         criarBotaoFlutuante();
         return;
       }
-
       const texto = prompt("Cole ou digite o texto desejado:");
       if (!texto) return criarBotaoFlutuante();
-
       let i = 0;
       const progresso = document.createElement('div');
       Object.assign(progresso.style, {
@@ -183,7 +181,6 @@ const aplicarNovaCor = (novaCor, container) => {
         zIndex: '999999', fontSize: '20px'
       });
       document.body.append(progresso);
-
       const intervalo = setInterval(() => {
         const char = texto[i];
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
@@ -197,23 +194,21 @@ const aplicarNovaCor = (novaCor, container) => {
         if (i >= texto.length) {
           clearInterval(intervalo);
           progresso.remove();
-
           const done = document.createElement('div');
           Object.assign(done.style, {
             position: 'fixed', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)', background: '#fff',
+            transform: 'translate(-50%, -50%)', background: '#000',
             padding: '15px 20px', borderRadius: '8px',
             fontSize: '18px', textAlign: 'center',
-            zIndex: '999999'
+            zIndex: '999999', color: '#fff',
+            border: '1px solid white'
           });
           done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
-
           let h = 0;
           setInterval(() => {
             done.style.color = `hsl(${h},100%,60%)`;
             h = (h + 2) % 360;
           }, 30);
-
           document.body.append(done);
           setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
         }
