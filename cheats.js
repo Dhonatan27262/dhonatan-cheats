@@ -1,5 +1,3 @@
-Novo
-
 (function () {
   let fundo, janela, nome, relogio;
   let senhaLiberada = false;
