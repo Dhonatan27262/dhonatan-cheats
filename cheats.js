@@ -233,7 +233,7 @@
     });
 
     const erro = document.createElement('div');
-    erro.textContent = '❌ Senha incorreta. Fale com Dhonatan.';
+    erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
     Object.assign(erro.style, {
       display: 'none',
       color: 'red',
@@ -267,7 +267,7 @@
     });
 
     const titulo = document.createElement('div');
-    titulo.textContent = 'DHONATAN MODDER';
+    titulo.textContent = 'DHONATAN MODDER 🔥';
     Object.assign(titulo.style, {
       fontSize: '20px', fontWeight: 'bold', marginBottom: '15px'
     });
