@@ -159,62 +159,67 @@ const aplicarNovaCor = (novaCor, container) => {
     alert(marcada ? '✅ Resposta marcada!' : '❌ Nenhuma correspondente encontrada.');
   };
 
-  const iniciarBotDeTexto = () => {
-    fundo?.remove();
-    alert("✍️ Toque no campo onde deseja digitar o texto.");
-    document.addEventListener("click", function handler(e) {
-      document.removeEventListener("click", handler, true);
-      const el = e.target;
+  const iniciarMod = () => {
+  alert("✍️ Toque no campo onde deseja digitar o texto.");
+  const handler = (e) => {
+    e.preventDefault();
+    document.removeEventListener('click', handler, true);
+    const el = e.target;
 
-      if (!el.isContentEditable && !(el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
-        alert("❌ Esse não é um campo válido.");
-        return;
-      }
+    if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      alert("❌ Esse não é um campo válido.");
+      criarBotaoFlutuante();
+      return;
+    }
 
-      const texto = prompt("Cole o texto que deseja digitar:");
-      if (!texto) return;
+    const texto = prompt("📋 Cole ou digite o texto desejado:");
+    if (!texto) return criarBotaoFlutuante();
 
-      let i = 0;
-      const progresso = document.createElement("div");
-      Object.assign(progresso.style, {
-        position: "fixed", top: "50%", left: "50%",
-        transform: "translate(-50%, -50%)",
-        background: "#000", color: "#fff", padding: "10px 20px",
-        borderRadius: "10px", fontSize: "22px", zIndex: 9999999
-      });
-      document.body.append(progresso);
+    let i = 0;
+    const progresso = document.createElement('div');
+    Object.assign(progresso.style, {
+      position: 'fixed', top: '50%', left: '50%',
+      transform: 'translate(-50%,-50%)',
+      background: 'black', color: 'white',
+      padding: '10px 20px', borderRadius: '10px',
+      zIndex: '999999', fontSize: '20px'
+    });
+    document.body.append(progresso);
 
-      const intervalo = setInterval(() => {
-        if (i < texto.length) {
-          const c = texto[i++];
-          if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-            el.value += c;
-            el.dispatchEvent(new Event("input", { bubbles: true }));
-          } else {
-            el.textContent += c;
-          }
-          progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
+    const intervalo = setInterval(() => {
+      if (i < texto.length) {
+        const char = texto[i++];
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.value += char;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
         } else {
-          clearInterval(intervalo);
-          progresso.remove();
-          el.dispatchEvent(new Event("change", { bubbles: true }));
-          el.blur(); // tira o foco
-
-          const msg = document.createElement("div");
-          msg.textContent = "✅ Texto digitado com sucesso!";
-          Object.assign(msg.style, {
-            position: "fixed", top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "#fff", color: "#000", padding: "15px",
-            borderRadius: "10px", fontSize: "18px",
-            zIndex: 9999999, fontWeight: "bold", textAlign: "center"
-          });
-          document.body.appendChild(msg);
-          setTimeout(() => msg.remove(), 3000);
+          el.textContent += char;
         }
-      }, 80); // ← aqui você controla a velocidade da digitação (mais alto = mais lento)
-    }, true);
+        progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
+      } else {
+        clearInterval(intervalo);
+        progresso.remove();
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.blur();
+
+        const msg = document.createElement("div");
+        msg.textContent = "✅ Texto digitado com sucesso!";
+        Object.assign(msg.style, {
+          position: "fixed", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#000", color: "#0f0",
+          padding: "15px", borderRadius: "10px",
+          fontSize: "18px", zIndex: 9999999,
+          fontWeight: "bold", textAlign: "center",
+          border: '1px solid #0f0'
+        });
+        document.body.appendChild(msg);
+        setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+      }
+    }, 80); // ← Velocidade da digitação
   };
+  document.addEventListener('click', handler, true);
+};
 
   const criarTextoComTema = () => {
     const tema = prompt("Qual tema deseja?");
