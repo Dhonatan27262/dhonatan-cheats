@@ -160,11 +160,12 @@ const aplicarNovaCor = (novaCor, container) => {
   };
 
   const iniciarMod = () => {
-  alert("🚀 Bora! Toque no campo onde deseja digitar.");
+  alert("🚀 Toque no campo onde deseja digitar o texto.");
   document.addEventListener("click", function handler(e) {
     e.preventDefault();
     document.removeEventListener("click", handler, true);
     const el = e.target;
+
     if (
       el.tagName !== "TEXTAREA" &&
       (el.tagName !== "INPUT" || el.type !== "text") &&
@@ -174,17 +175,10 @@ const aplicarNovaCor = (novaCor, container) => {
       return;
     }
 
-    const senha = prompt("🔒 Insira a senha:");
-    if (senha !== "soucliente") {
-      alert("❌ Senha incorreta! Entre em contato com o Dhonatan.");
-      return;
-    }
-
-    const texto = prompt("✍️ Agora cole o texto que deseja digitar:");
+    const texto = prompt("✍️ Cole ou digite o texto que deseja colar:");
     if (!texto) return;
 
-    let i = 0,
-      total = texto.length;
+    let i = 0, total = texto.length;
     const progresso = document.createElement("div");
     Object.assign(progresso.style, {
       position: "fixed",
@@ -196,11 +190,15 @@ const aplicarNovaCor = (novaCor, container) => {
       padding: "10px 20px",
       borderRadius: "8px",
       fontSize: "22px",
-      zIndex: 9999999,
+      zIndex: 9999999
     });
-    document.body.append(progresso);
+    document.body.appendChild(progresso);
 
-    const interval = setInterval(() => {
+    // Bloqueia clique enquanto digita
+    const bloquearCliques = e => e.stopPropagation();
+    document.addEventListener("click", bloquearCliques, true);
+
+    const intervalo = setInterval(() => {
       const c = texto.charAt(i++);
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
         el.value += c;
@@ -211,14 +209,16 @@ const aplicarNovaCor = (novaCor, container) => {
       progresso.textContent = `${Math.round((i / total) * 100)}%`;
 
       if (i >= total) {
-        clearInterval(interval);
+        clearInterval(intervalo);
         progresso.remove();
         el.dispatchEvent(new Event("change", { bubbles: true }));
-        el.blur();
+        el.blur(); // Fecha automaticamente o campo
+
+        // Remove o bloqueio de cliques
+        document.removeEventListener("click", bloquearCliques, true);
 
         const final = document.createElement("div");
-        final.textContent =
-          "✅ Texto concluído! Obrigado por usar o mod do Dhonatan aquele gostosinho";
+        final.textContent = "✅ Texto colado com sucesso! Obrigado por usar o mod do Dhonatan.";
         Object.assign(final.style, {
           position: "fixed",
           top: "50%",
@@ -230,7 +230,7 @@ const aplicarNovaCor = (novaCor, container) => {
           borderRadius: "8px",
           fontSize: "18px",
           textAlign: "center",
-          zIndex: 9999999,
+          zIndex: 9999999
         });
 
         const closeBtn = document.createElement("span");
@@ -240,7 +240,7 @@ const aplicarNovaCor = (novaCor, container) => {
           top: "5px",
           right: "10px",
           cursor: "pointer",
-          fontSize: "18px",
+          fontSize: "18px"
         });
         closeBtn.onclick = () => final.remove();
         final.appendChild(closeBtn);
