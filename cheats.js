@@ -213,8 +213,9 @@ const aplicarNovaCor = (novaCor, container) => {
           border: '1px solid white'
         });
         done.textContent = '✅ Texto colado com sucesso!';
-        document.body.append(done);
-        setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
+document.body.append(done);
+el.blur(); // <- REMOVE O FOCO DO CAMPO → FECHA O TECLADO
+setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
       }
     }, 20); // velocidade da digitação
   };
