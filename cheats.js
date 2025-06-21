@@ -172,43 +172,52 @@ const aplicarNovaCor = (novaCor, container) => {
       return;
     }
 
-    const texto = prompt("📋 Cole ou digite o texto desejado:");
+    const texto = prompt("📋 Cole ou digite o texto que será digitado:");
     if (!texto) return criarBotaoFlutuante();
 
     let i = 0;
     const progresso = document.createElement('div');
     Object.assign(progresso.style, {
       position: 'fixed', top: '50%', left: '50%',
-      transform: 'translate(-50%,-50%)',
+      transform: 'translate(-50%, -50%)',
       background: 'black', color: 'white',
       padding: '10px 20px', borderRadius: '10px',
       zIndex: '999999', fontSize: '20px'
     });
     document.body.append(progresso);
 
-    const intervalo = setInterval(() => {
+    const simulateKey = (char) => {
+      const keyEvent = (type) => new KeyboardEvent(type, {
+        key: char, bubbles: true, cancelable: true
+      });
+
+      el.dispatchEvent(keyEvent('keydown'));
+      el.dispatchEvent(keyEvent('keypress'));
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.value += char;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        el.textContent += char;
+      }
+      el.dispatchEvent(keyEvent('keyup'));
+    };
+
+    const interval = setInterval(() => {
       if (i < texto.length) {
-        const char = texto[i++];
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-          el.value += char;
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-          el.textContent += char;
-        }
+        simulateKey(texto[i++]);
         progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
       } else {
-        clearInterval(intervalo);
+        clearInterval(interval);
         progresso.remove();
 
-        // 🔒 Correção: força confirmação e depois fecha
         setTimeout(() => {
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
-          el.blur();
-
-          const msg = document.createElement("div");
-          msg.textContent = "✅ Texto digitado com sucesso!";
-          Object.assign(msg.style, {
+          el.blur(); // ainda queremos sair do campo
+          
+          const done = document.createElement('div');
+          done.textContent = "✅ Texto digitado com sucesso!";
+          Object.assign(done.style, {
             position: "fixed", top: "50%", left: "50%",
             transform: "translate(-50%, -50%)",
             background: "#000", color: "#0f0",
@@ -217,11 +226,11 @@ const aplicarNovaCor = (novaCor, container) => {
             fontWeight: "bold", textAlign: "center",
             border: '1px solid #0f0'
           });
-          document.body.appendChild(msg);
-          setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
-        }, 100); // pequeno delay para garantir que texto permaneça
+          document.body.appendChild(done);
+          setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
+        }, 150);
       }
-    }, 80); // ← velocidade de digitação
+    }, 120); // ← velocidade de digitação ajustável
   };
   document.addEventListener('click', handler, true);
 };
