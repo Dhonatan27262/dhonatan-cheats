@@ -159,11 +159,16 @@ const aplicarNovaCor = (novaCor, container) => {
     alert(marcada ? '✅ Resposta marcada!' : '❌ Nenhuma correspondente encontrada.');
   };
 
-  const iniciarMod = () => {
+  const iniciarMod = async () => {
   alert("✅ Toque onde deseja colar o texto");
+
+  const texto = await navigator.clipboard.readText();
+  if (!texto) return alert("❌ A área de transferência está vazia. Copie um texto antes de iniciar.");
+
   const handler = (e) => {
     e.preventDefault();
     document.removeEventListener('click', handler, true);
+
     const el = e.target;
     if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
       alert("❌ Esse não é um campo válido.");
@@ -171,26 +176,20 @@ const aplicarNovaCor = (novaCor, container) => {
       return;
     }
 
-    const texto = prompt("Cole ou digite o texto desejado:");
-    if (!texto) return criarBotaoFlutuante();
+    el.focus();
 
-    el.focus(); // foco inicial
     let i = 0;
-    let cancelado = false;
 
-    // Bloquear interações externas
+    // Evita qualquer clique fora durante colagem
     const bloqueio = document.createElement('div');
     Object.assign(bloqueio.style, {
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      backgroundColor: 'transparent', zIndex: '999998'
+      zIndex: '999998', background: 'transparent'
     });
-    bloqueio.addEventListener('click', e => {
-      e.stopPropagation();
-      e.preventDefault();
-    }, true);
+    bloqueio.onclick = e => e.stopPropagation();
     document.body.appendChild(bloqueio);
 
-    // Barra de progresso
+    // Progresso visual
     const progresso = document.createElement('div');
     Object.assign(progresso.style, {
       position: 'fixed', top: '50%', left: '50%',
@@ -198,12 +197,10 @@ const aplicarNovaCor = (novaCor, container) => {
       color: 'white', padding: '10px', borderRadius: '10px',
       zIndex: '999999', fontSize: '20px'
     });
-    document.body.append(progresso);
+    document.body.appendChild(progresso);
 
     const intervalo = setInterval(() => {
-      if (cancelado) return;
-
-      el.focus(); // força foco a cada caractere
+      el.focus(); // força foco contínuo
       const char = texto[i];
       if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
         el.value += char;
@@ -211,6 +208,7 @@ const aplicarNovaCor = (novaCor, container) => {
       } else {
         el.textContent += char;
       }
+
       progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
       i++;
 
@@ -231,14 +229,14 @@ const aplicarNovaCor = (novaCor, container) => {
         done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
         let h = 0;
         setInterval(() => {
-          done.style.color = `hsl(${h},100%,60%)`;
-          h = (h + 2) % 360;
+          done.style.color = `hsl(${h++ % 360},100%,60%)`;
         }, 30);
         document.body.append(done);
         setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
       }
     }, 50);
   };
+
   document.addEventListener('click', handler, true);
 };
 
