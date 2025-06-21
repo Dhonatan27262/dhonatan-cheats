@@ -162,69 +162,63 @@ const aplicarNovaCor = (novaCor, container) => {
   const iniciarMod = () => {
     alert("✅ Toque onde deseja colar o texto");
     const handler = (e) => {
-  e.preventDefault();
-  document.removeEventListener('click', handler, true);
-  const el = e.target;
+      e.preventDefault();
+      document.removeEventListener('click', handler, true);
+      const el = e.target;
+      if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        alert("❌ Esse não é um campo válido.");
+        criarBotaoFlutuante();
+        return;
+      }
+      const texto = prompt("Cole ou digite o texto desejado:");
+      if (!texto) return criarBotaoFlutuante();
 
-  if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-    alert("❌ Esse não é um campo válido.");
-    criarBotaoFlutuante();
-    return;
-  }
+      el.focus(); // 👈 CORRIGIDO AQUI: força o foco antes de digitar
 
-  const texto = prompt("Cole ou digite o texto desejado:");
-  if (!texto) return criarBotaoFlutuante();
-
-  el.focus(); // <-- MANTÉM O FOCO NO CAMPO
-  let i = 0;
-
-  const progresso = document.createElement('div');
-  Object.assign(progresso.style, {
-    position: 'fixed', top: '50%', left: '50%',
-    transform: 'translate(-50%,-50%)', background: 'black',
-    color: 'white', padding: '10px', borderRadius: '10px',
-    zIndex: '999999', fontSize: '20px'
-  });
-  document.body.append(progresso);
-
-  const intervalo = setInterval(() => {
-    const char = texto[i];
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      el.value += char;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      el.textContent += char;
-    }
-
-    progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
-    i++;
-
-    if (i >= texto.length) {
-      clearInterval(intervalo);
-      progresso.remove();
-
-      const done = document.createElement('div');
-      Object.assign(done.style, {
+      let i = 0;
+      const progresso = document.createElement('div');
+      Object.assign(progresso.style, {
         position: 'fixed', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)', background: '#000',
-        padding: '15px 20px', borderRadius: '8px',
-        fontSize: '18px', textAlign: 'center',
-        zIndex: '999999', color: '#fff',
-        border: '1px solid white'
+        transform: 'translate(-50%,-50%)', background: 'black',
+        color: 'white', padding: '10px', borderRadius: '10px',
+        zIndex: '999999', fontSize: '20px'
       });
-      done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
-
-      let h = 0;
-      setInterval(() => {
-        done.style.color = `hsl(${h},100%,60%)`;
-        h = (h + 2) % 360;
-      }, 30);
-
-      document.body.append(done);
-      setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
-    }
-  }, 50);
-};
+      document.body.append(progresso);
+      const intervalo = setInterval(() => {
+        const char = texto[i];
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.value += char;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          el.textContent += char;
+        }
+        progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
+        i++;
+        if (i >= texto.length) {
+          clearInterval(intervalo);
+          progresso.remove();
+          const done = document.createElement('div');
+          Object.assign(done.style, {
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)', background: '#000',
+            padding: '15px 20px', borderRadius: '8px',
+            fontSize: '18px', textAlign: 'center',
+            zIndex: '999999', color: '#fff',
+            border: '1px solid white'
+          });
+          done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
+          let h = 0;
+          setInterval(() => {
+            done.style.color = `hsl(${h},100%,60%)`;
+            h = (h + 2) % 360;
+          }, 30);
+          document.body.append(done);
+          setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
+        }
+      }, 50);
+    };
+    document.addEventListener('click', handler, true);
+  };
 
   const criarTextoComTema = () => {
     const tema = prompt("Qual tema deseja?");
