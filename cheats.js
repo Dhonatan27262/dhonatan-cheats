@@ -211,7 +211,7 @@ const aplicarNovaCor = (novaCor, container) => {
           setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
         }, 100);
       }
-    }, 60);
+    }, 30);
   };
   document.addEventListener('click', handler, true);
 };
