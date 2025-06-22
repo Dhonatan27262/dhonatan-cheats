@@ -160,61 +160,62 @@ const aplicarNovaCor = (novaCor, container) => {
   };
 
   const iniciarMod = () => {
-  alert("✍️ Toque no campo onde deseja digitar o texto.");
-  const handler = (e) => {
-    e.preventDefault();
-    document.removeEventListener('click', handler, true);
-    const el = e.target;
-    if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-      alert("❌ Esse não é um campo válido.");
-      criarBotaoFlutuante();
-      return;
-    }
-    const texto = prompt("📋 Cole ou digite o texto:");
-    if (!texto) return criarBotaoFlutuante();
-
-    el.focus();
-    let i = 0;
-    const progresso = document.createElement('div');
-    Object.assign(progresso.style, {
-      position: 'fixed', top: '50%', left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: 'rgba(0,0,0,0.8)', color: '#fff',
-      padding: '10px 20px', borderRadius: '8px',
-      zIndex: 9999999, fontSize: '20px'
-    });
-    document.body.append(progresso);
-
-    const intervalo = setInterval(() => {
-      if (i < texto.length) {
-        const c = texto[i++];
-        document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
-        progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
-      } else {
-        clearInterval(intervalo);
-        progresso.remove();
-        el.blur();  // fechar
-        setTimeout(() => {
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-          const msg = document.createElement('div');
-          msg.textContent = "✅ Texto digitado com sucesso!";
-          Object.assign(msg.style, {
-            position: 'fixed', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: '#000', color: '#0f0',
-            padding: '15px', borderRadius: '10px',
-            fontSize: '18px', zIndex: 9999999,
-            fontWeight: 'bold', textAlign: 'center'
-          });
-          document.body.append(msg);
-          setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
-        }, 100);
+    alert("✅ Toque onde deseja colar o texto");
+    const handler = (e) => {
+      e.preventDefault();
+      document.removeEventListener('click', handler, true);
+      const el = e.target;
+      if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        alert("❌ Esse não é um campo válido.");
+        criarBotaoFlutuante();
+        return;
       }
-    }, 30);
+      const texto = prompt("Cole ou digite o texto desejado:");
+      if (!texto) return criarBotaoFlutuante();
+      let i = 0;
+      const progresso = document.createElement('div');
+      Object.assign(progresso.style, {
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%,-50%)', background: 'black',
+        color: 'white', padding: '10px', borderRadius: '10px',
+        zIndex: '999999', fontSize: '20px'
+      });
+      document.body.append(progresso);
+      const intervalo = setInterval(() => {
+        const char = texto[i];
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+          el.value += char;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          el.textContent += char;
+        }
+        progresso.textContent = `${Math.floor((i / texto.length) * 100)}%`;
+        i++;
+        if (i >= texto.length) {
+          clearInterval(intervalo);
+          progresso.remove();
+          const done = document.createElement('div');
+          Object.assign(done.style, {
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)', background: '#000',
+            padding: '15px 20px', borderRadius: '8px',
+            fontSize: '18px', textAlign: 'center',
+            zIndex: '999999', color: '#fff',
+            border: '1px solid white'
+          });
+          done.textContent = '✅ Texto colado! Obrigado por usar o Mod do Dhonatan, aquele gostoso';
+          let h = 0;
+          setInterval(() => {
+            done.style.color = `hsl(${h},100%,60%)`;
+            h = (h + 2) % 360;
+          }, 30);
+          document.body.append(done);
+          setTimeout(() => { done.remove(); criarBotaoFlutuante(); }, 3000);
+        }
+      }, 50);
+    };
+    document.addEventListener('click', handler, true);
   };
-  document.addEventListener('click', handler, true);
-};
 
   const criarTextoComTema = () => {
     const tema = prompt("Qual tema deseja?");
@@ -239,29 +240,40 @@ const aplicarNovaCor = (novaCor, container) => {
   }},
 
 { nome: 'Script Khan Academy', func: () => {
-    const texto = `javascript:fetch("https://raw.githubusercontent.com/Niximkk/Khanware/refs/heads/main/Khanware.js").then(t=>t.text()).then(eval); `;
-    navigator.clipboard.writeText(texto).then(() => {
-      const aviso = document.createElement('div');
-      aviso.textContent = '✅ Texto copiado com sucesso!';
-      Object.assign(aviso.style, {
-        position: 'fixed',
-        top: '20%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: '#000',
-        color: '#0f0',
-        padding: '12px 20px',
-        borderRadius: '10px',
-        fontSize: '16px',
-        zIndex: '999999',
-        border: '1px solid #0f0',
-        fontWeight: 'bold',
-        textAlign: 'center'
+    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
+    
+    fetch(scriptURL)
+      .then(response => response.text())
+      .then(scriptContent => {
+        const script = document.createElement('script');
+        script.textContent = scriptContent;
+        document.head.appendChild(script);
+        
+        const aviso = document.createElement('div');
+        aviso.textContent = '✅ Script Khan Academy carregado!';
+        Object.assign(aviso.style, {
+          position: 'fixed',
+          top: '20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#000',
+          color: '#0f0',
+          padding: '12px 20px',
+          borderRadius: '10px',
+          fontSize: '16px',
+          zIndex: '999999',
+          border: '1px solid #0f0',
+          fontWeight: 'bold',
+          textAlign: 'center'
+        });
+        document.body.appendChild(aviso);
+        setTimeout(() => aviso.remove(), 3000);
+      })
+      .catch(error => {
+        console.error('Erro ao carregar script:', error);
+        alert('❌ Erro ao carregar script. Verifique o console.');
       });
-      document.body.appendChild(aviso);
-      setTimeout(() => aviso.remove(), 2000);
-    });
-}},
+}}
 
 ],
       textos: [
