@@ -90,6 +90,7 @@ function createFloatingMenu() {
     right: 20px;
     z-index: 10000;
     transition: transform 0.3s ease, opacity 0.3s ease;
+    user-select: none;
   `;
 
   // Botão principal
@@ -113,6 +114,7 @@ function createFloatingMenu() {
     font-size: 14px;
     min-width: 130px;
     outline: none;
+    user-select: none;
   `;
   
   // Menu de opções (inicialmente oculto)
@@ -130,6 +132,7 @@ function createFloatingMenu() {
     gap: 10px;
     width: 180px;
     border: 1px solid rgba(255,255,255,0.1);
+    user-select: none;
   `;
   
   // Opção de tema
@@ -145,6 +148,7 @@ function createFloatingMenu() {
     transition: background 0.2s;
     color: white;
     font-size: 14px;
+    user-select: none;
   `;
   themeOption.innerHTML = `
     <span>Tema</span>
@@ -181,6 +185,7 @@ function createFloatingMenu() {
     padding: 10px;
     border-top: 1px solid rgba(255,255,255,0.1);
     margin-top: 10px;
+    user-select: none;
   `;
   futureOptions.textContent = 'Mais opções em breve...';
   optionsMenu.appendChild(futureOptions);
@@ -219,64 +224,78 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
+  // Estado do menu
+  let isMenuOpen = false;
+  
   // Abrir/fechar menu
+  function toggleMenu() {
+    isMenuOpen = !isMenuOpen;
+    optionsMenu.style.display = isMenuOpen ? 'flex' : 'none';
+    mainButton.style.boxShadow = isMenuOpen ? 
+      '0 4px 15px rgba(255, 138, 0, 0.5)' : 
+      '0 4px 15px rgba(0,0,0,0.2)';
+  }
+  
   mainButton.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isOpen = optionsMenu.style.display === 'flex';
-    optionsMenu.style.display = isOpen ? 'none' : 'flex';
-    mainButton.style.boxShadow = isOpen ? 
-      '0 4px 15px rgba(0,0,0,0.2)' : 
-      '0 4px 15px rgba(255, 138, 0, 0.5)';
+    toggleMenu();
   });
   
   // Fechar menu ao clicar fora
   document.addEventListener('click', (e) => {
-    if (!container.contains(e.target)) {
-      optionsMenu.style.display = 'none';
-      mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    if (!container.contains(e.target) && isMenuOpen) {
+      toggleMenu();
     }
   });
   
-  // Implementação do arrastar
+  // Implementação do arrastar com threshold
   let isDragging = false;
-  let currentX, currentY, initialX, initialY;
+  let startX, startY;
+  let initialX, initialY;
   let xOffset = 0, yOffset = 0;
+  const DRAG_THRESHOLD = 5; // pixels de movimento para considerar arrasto
   
-  mainButton.addEventListener('mousedown', dragStart);
-  mainButton.addEventListener('touchstart', dragStart, { passive: false });
+  mainButton.addEventListener('mousedown', startDrag);
+  mainButton.addEventListener('touchstart', startDrag, { passive: false });
   
-  function dragStart(e) {
-    e.preventDefault();
+  function startDrag(e) {
+    e.stopPropagation();
     
-    if (e.type === "touchstart") {
-      initialX = e.touches[0].clientX - xOffset;
-      initialY = e.touches[0].clientY - yOffset;
-    } else {
-      initialX = e.clientX - xOffset;
-      initialY = e.clientY - yOffset;
-    }
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
     
-    isDragging = true;
+    startX = clientX;
+    startY = clientY;
+    initialX = clientX - xOffset;
+    initialY = clientY - yOffset;
     
-    // Fechar menu durante o arrasto
-    optionsMenu.style.display = 'none';
-    mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    isDragging = false; // Ainda não é arrasto
     
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('touchmove', drag, { passive: false });
-    document.addEventListener('mouseup', dragEnd);
-    document.addEventListener('touchend', dragEnd);
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('mouseleave', endDrag);
   }
   
-  function drag(e) {
+  function handleDragMove(e) {
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Verificar se o movimento excedeu o threshold
+    if (!isDragging && distance > DRAG_THRESHOLD) {
+      isDragging = true;
+      // Fechar menu durante o arrasto
+      if (isMenuOpen) toggleMenu();
+    }
+    
     if (isDragging) {
-      if (e.type === "touchmove") {
-        currentX = e.touches[0].clientX - initialX;
-        currentY = e.touches[0].clientY - initialY;
-      } else {
-        currentX = e.clientX - initialX;
-        currentY = e.clientY - initialY;
-      }
+      const currentX = clientX - initialX;
+      const currentY = clientY - initialY;
       
       xOffset = currentX;
       yOffset = currentY;
@@ -285,19 +304,25 @@ function createFloatingMenu() {
     }
   }
   
-  function dragEnd() {
+  function endDrag(e) {
+    // Se estava arrastando, não faz nada além de limpar
+    if (isDragging) {
+      // Salvar posição no localStorage
+      localStorage.setItem('santosMenuPosition', JSON.stringify({
+        x: xOffset,
+        y: yOffset
+      }));
+    }
+    
+    // Limpar eventos
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('touchmove', handleDragMove);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchend', endDrag);
+    document.removeEventListener('mouseleave', endDrag);
+    
+    // Resetar estado
     isDragging = false;
-    
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('touchmove', drag);
-    document.removeEventListener('mouseup', dragEnd);
-    document.removeEventListener('touchend', dragEnd);
-    
-    // Salvar posição no localStorage
-    localStorage.setItem('santosMenuPosition', JSON.stringify({
-      x: currentX,
-      y: currentY
-    }));
   }
   
   function setTranslate(xPos, yPos, el) {
@@ -315,18 +340,14 @@ function createFloatingMenu() {
   
   // Efeito hover
   mainButton.addEventListener('mouseenter', () => {
-    if (!isDragging) {
-      mainButton.style.transform = 'scale(1.05)';
-      mainButton.style.boxShadow = '0 6px 20px rgba(255, 138, 0, 0.4)';
-    }
+    mainButton.style.transform = 'scale(1.05)';
+    mainButton.style.boxShadow = '0 6px 20px rgba(255, 138, 0, 0.4)';
   });
   
   mainButton.addEventListener('mouseleave', () => {
-    if (!isDragging) {
-      mainButton.style.transform = 'scale(1)';
-      if (optionsMenu.style.display !== 'flex') {
-        mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-      }
+    mainButton.style.transform = 'scale(1)';
+    if (!isMenuOpen) {
+      mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     }
   });
   
