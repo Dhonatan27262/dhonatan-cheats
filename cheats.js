@@ -160,132 +160,60 @@ const aplicarNovaCor = (novaCor, container) => {
   };
 
   const iniciarMod = () => {
-    alert("✅ Toque onde deseja colar o texto");
-    const handler = (e) => {
-        e.preventDefault();
-        document.removeEventListener('click', handler, true);
-        const el = e.target;
-        if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-            alert("❌ Esse não é um campo válido.");
-            criarBotaoFlutuante();
-            return;
-        }
-        const texto = prompt("Cole ou digite o texto desejado:");
-        if (!texto) return criarBotaoFlutuante();
-        
-        // Focar no elemento e manter o foco
-        el.focus();
-        const preventBlur = () => el.focus();
-        el.addEventListener('blur', preventBlur);
-        
-        let i = 0;
-        const progresso = document.createElement('div');
-        Object.assign(progresso.style, {
-            position: 'fixed', 
-            top: '50%', 
-            left: '50%',
-            transform: 'translate(-50%,-50%)', 
-            background: 'rgba(0, 0, 0, 0.85)',
-            color: '#00ffea',
-            padding: '10px 20px',
-            borderRadius: '30px',
-            zIndex: '999999',
-            fontSize: '16px',
-            border: '1px solid #00ffea',
-            boxShadow: '0 0 15px rgba(0, 255, 234, 0.5)',
-            fontWeight: 'bold'
-        });
-        progresso.textContent = 'Digitando: 0%';
-        document.body.append(progresso);
-        
-        const digitarCaractere = () => {
-            if (i >= texto.length) {
-                // Final da digitação
-                clearInterval(intervalo);
-                progresso.remove();
-                el.removeEventListener('blur', preventBlur);
-                
-                // Verificar se o texto foi mantido
-                setTimeout(() => {
-                    if (el.value !== texto && !el.textContent.includes(texto)) {
-                        // Se o site limpou o campo, tentar novamente
-                        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                            el.value = texto;
-                        } else {
-                            el.textContent = texto;
-                        }
-                        const event = new Event('input', { bubbles: true });
-                        el.dispatchEvent(event);
-                    }
-                    
-                    const done = document.createElement('div');
-                    Object.assign(done.style, {
-                        position: 'fixed', 
-                        top: '50%', 
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)', 
-                        background: 'rgba(0, 0, 0, 0.9)',
-                        padding: '20px 30px',
-                        borderRadius: '15px',
-                        fontSize: '18px', 
-                        textAlign: 'center',
-                        zIndex: '999999', 
-                        color: '#00ffea',
-                        border: '1px solid #00ffea',
-                        boxShadow: '0 0 20px rgba(0, 255, 234, 0.5)',
-                        fontWeight: 'bold'
-                    });
-                    done.textContent = '✅ Texto colado com sucesso!\nObrigado por usar o Mod do Dhonatan 🔥';
-                    document.body.append(done);
-                    
-                    setTimeout(() => {
-                        done.remove();
-                        criarBotaoFlutuante();
-                    }, 3000);
-                }, 500);
-                
-                return;
-            }
-            
-            const char = texto[i];
-            
-            // Simulação realista de digitação
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                // Para campos de entrada
-                const startPos = el.selectionStart;
-                el.value = el.value.substring(0, startPos) + char + el.value.substring(el.selectionEnd);
-                el.selectionStart = el.selectionEnd = startPos + 1;
-            } else {
-                // Para elementos contenteditable
-                const selection = window.getSelection();
-                const range = selection.getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(document.createTextNode(char));
-                range.collapse(false);
-            }
-            
-            // Disparar eventos de entrada
-            const inputEvent = new Event('input', { bubbles: true });
-            el.dispatchEvent(inputEvent);
-            
-            const keyEvent = new KeyboardEvent('keydown', {
-                key: char,
-                bubbles: true,
-                cancelable: true
-            });
-            el.dispatchEvent(keyEvent);
-            
-            // Atualizar progresso
-            const percent = Math.floor((i / texto.length) * 100);
-            progresso.textContent = `Digitando: ${percent}%`;
-            
-            i++;
-        };
-        
-        // Intervalo com variação aleatória para parecer humano
-        const intervalo = setInterval(digitarCaractere, 50 + Math.random() * 50);
-    };
-    document.addEventListener('click', handler, true);
+  alert("✍️ Toque no campo onde deseja digitar o texto.");
+  const handler = (e) => {
+    e.preventDefault();
+    document.removeEventListener('click', handler, true);
+    const el = e.target;
+    if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      alert("❌ Esse não é um campo válido.");
+      criarBotaoFlutuante();
+      return;
+    }
+    const texto = prompt("📋 Cole ou digite o texto:");
+    if (!texto) return criarBotaoFlutuante();
+
+    el.focus();
+    let i = 0;
+    const progresso = document.createElement('div');
+    Object.assign(progresso.style, {
+      position: 'fixed', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: 'rgba(0,0,0,0.8)', color: '#fff',
+      padding: '10px 20px', borderRadius: '8px',
+      zIndex: 9999999, fontSize: '20px'
+    });
+    document.body.append(progresso);
+
+    const intervalo = setInterval(() => {
+      if (i < texto.length) {
+        const c = texto[i++];
+        document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
+        progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
+      } else {
+        clearInterval(intervalo);
+        progresso.remove();
+        el.blur();  // fechar
+        setTimeout(() => {
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          const msg = document.createElement('div');
+          msg.textContent = "✅ Texto digitado com sucesso!";
+          Object.assign(msg.style, {
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#000', color: '#0f0',
+            padding: '15px', borderRadius: '10px',
+            fontSize: '18px', zIndex: 9999999,
+            fontWeight: 'bold', textAlign: 'center'
+          });
+          document.body.append(msg);
+          setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+        }, 100);
+      }
+    }, 120);
+  };
+  document.addEventListener('click', handler, true);
 };
 
   const criarTextoComTema = () => {
