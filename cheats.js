@@ -240,40 +240,29 @@ const aplicarNovaCor = (novaCor, container) => {
   }},
 
 { nome: 'Script Khan Academy', func: () => {
-    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
-    
-    fetch(scriptURL)
-      .then(response => response.text())
-      .then(scriptContent => {
-        const script = document.createElement('script');
-        script.textContent = scriptContent;
-        document.head.appendChild(script);
-        
-        const aviso = document.createElement('div');
-        aviso.textContent = '✅ Script Khan Academy carregado!';
-        Object.assign(aviso.style, {
-          position: 'fixed',
-          top: '20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#000',
-          color: '#0f0',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          fontSize: '16px',
-          zIndex: '999999',
-          border: '1px solid #0f0',
-          fontWeight: 'bold',
-          textAlign: 'center'
-        });
-        document.body.appendChild(aviso);
-        setTimeout(() => aviso.remove(), 3000);
-      })
-      .catch(error => {
-        console.error('Erro ao carregar script:', error);
-        alert('❌ Erro ao carregar script. Verifique o console.');
+    const texto = `javascript:fetch("https://raw.githubusercontent.com/Niximkk/Khanware/refs/heads/main/Khanware.js").then(t=>t.text()).then(eval); `;
+    navigator.clipboard.writeText(texto).then(() => {
+      const aviso = document.createElement('div');
+      aviso.textContent = '✅ Texto copiado com sucesso!';
+      Object.assign(aviso.style, {
+        position: 'fixed',
+        top: '20%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: '#000',
+        color: '#0f0',
+        padding: '12px 20px',
+        borderRadius: '10px',
+        fontSize: '16px',
+        zIndex: '999999',
+        border: '1px solid #0f0',
+        fontWeight: 'bold',
+        textAlign: 'center'
       });
-}}
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 2000);
+    });
+}},
 
 ],
       textos: [
