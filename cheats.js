@@ -6,115 +6,132 @@
   let posY = localStorage.getItem("dhonatanY") || "20px";
   let corBotao = localStorage.getItem("corBotaoDhonatan") || "#00ffea";
 
+  // Estilo moderno para todos os botões
+  const aplicarEstiloBotao = (elemento, gradiente = false) => {
+    Object.assign(elemento.style, {
+      padding: '10px 15px',
+      background: gradiente ? 'linear-gradient(135deg, #ff8a00, #e52e71)' : '#222',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '30px',
+      cursor: 'pointer',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+      fontWeight: 'bold',
+      transition: 'all 0.3s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '14px',
+      outline: 'none',
+      userSelect: 'none',
+      margin: '8px 0'
+    });
+  };
+
+  // Estilo para elementos de texto
+  const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
+    Object.assign(elemento.style, {
+      color: '#fff',
+      fontSize: tamanho,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      margin: '10px 0',
+      userSelect: 'none'
+    });
+  };
+
+  // Estilo para container
+  const aplicarEstiloContainer = (elemento) => {
+    Object.assign(elemento.style, {
+      background: 'rgba(0, 0, 0, 0.85)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '15px',
+      padding: '20px',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      maxWidth: '350px',
+      width: '90%',
+      textAlign: 'center'
+    });
+  };
+
   const mostrarInfoDono = () => {
-    alert("👑 Mod criado por Dhonatan\n📱 Instagram: @santos.mec996\n💻 Mod exclusivo e protegido.");
+    const container = document.createElement('div');
+    aplicarEstiloContainer(container);
+    
+    const titulo = document.createElement('div');
+    titulo.textContent = '👑 Mod criado por Dhonatan';
+    aplicarEstiloTexto(titulo, '20px');
+    
+    const insta = document.createElement('div');
+    insta.textContent = '📱 Instagram: @santos.mec996';
+    aplicarEstiloTexto(insta);
+    
+    const info = document.createElement('div');
+    info.textContent = '💻 Mod exclusivo e protegido';
+    aplicarEstiloTexto(info);
+    
+    const btnFechar = document.createElement('button');
+    btnFechar.textContent = 'Fechar';
+    aplicarEstiloBotao(btnFechar);
+    btnFechar.onclick = () => container.remove();
+    
+    container.append(titulo, insta, info, btnFechar);
+    document.body.appendChild(container);
   };
 
   const trocarCorBotao = () => {
-  let novaCorTemp = corBotao;
+    let novaCorTemp = corBotao;
 
-  const container = document.createElement('div');
-  Object.assign(container.style, {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    background: '#111',
-    padding: '20px',
-    borderRadius: '10px',
-    zIndex: '999999',
-    textAlign: 'center',
-    border: '1px solid #0f0'
-  });
+    const container = document.createElement('div');
+    aplicarEstiloContainer(container);
+    
+    const titulo = document.createElement('div');
+    titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
+    aplicarEstiloTexto(titulo, '18px');
 
-  const titulo = document.createElement('div');
-  titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
-  Object.assign(titulo.style, {
-    color: '#fff',
-    marginBottom: '10px',
-    fontWeight: 'bold'
-  });
+    const seletor = document.createElement("input");
+    seletor.type = "color";
+    seletor.value = corBotao;
+    Object.assign(seletor.style, {
+      width: "100px",
+      height: "100px",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      margin: '15px 0'
+    });
 
-  const seletor = document.createElement("input");
-  seletor.type = "color";
-  seletor.value = corBotao;
-  Object.assign(seletor.style, {
-    width: "100px",
-    height: "100px",
-    border: "none",
-    background: "transparent",
-    cursor: "pointer"
-  });
+    const btnContainer = document.createElement('div');
+    Object.assign(btnContainer.style, {
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '10px',
+      marginTop: '15px'
+    });
 
-  seletor.addEventListener("input", () => {
-    novaCorTemp = seletor.value;
-    // (Não aplica ainda)
-  });
+    const btnAplicar = document.createElement('button');
+    btnAplicar.textContent = '✅ Aplicar';
+    aplicarEstiloBotao(btnAplicar, true);
+    btnAplicar.onclick = () => {
+      if (!novaCorTemp || novaCorTemp === corBotao) return;
+      corBotao = novaCorTemp;
+      localStorage.setItem("corBotaoDhonatan", corBotao);
+      document.querySelectorAll("#dhonatanBotao").forEach(btn => {
+        btn.style.background = corBotao;
+      });
+      container.remove();
+    };
 
-  seletor.addEventListener("blur", () => {
-    // Aplicar só ao fechar o seletor
-    aplicarNovaCor(novaCorTemp, container);
-  });
-
-  const btnCancelar = document.createElement('button');
-  btnCancelar.textContent = '❌ Cancelar';
-  Object.assign(btnCancelar.style, {
-    marginTop: '15px',
-    padding: '8px 16px',
-    background: '#900',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer'
-  });
-  btnCancelar.onclick = () => container.remove();
-
-  container.appendChild(titulo);
-  container.appendChild(seletor);
-  container.appendChild(btnCancelar);
-  document.body.appendChild(container);
-
-  // Força o foco e clique com atraso mínimo para funcionar no iOS
-  setTimeout(() => {
-    seletor.focus();
-    seletor.click();
-  }, 50);
-};
-
-const aplicarNovaCor = (novaCor, container) => {
-  if (!novaCor || novaCor === corBotao) {
-    container.remove();
-    return;
-  }
-
-  corBotao = novaCor;
-  localStorage.setItem("corBotaoDhonatan", corBotao);
-  document.querySelectorAll("#dhonatanBotao").forEach(btn => {
-    btn.style.background = corBotao;
-  });
-
-  container.remove();
-
-  const aviso = document.createElement('div');
-  aviso.textContent = '✅ Cor alterada com sucesso!';
-  Object.assign(aviso.style, {
-    position: 'fixed',
-    top: '20%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#000',
-    color: '#0f0',
-    padding: '12px 20px',
-    borderRadius: '10px',
-    fontSize: '16px',
-    zIndex: '999999',
-    border: '1px solid #0f0',
-    fontWeight: 'bold',
-    textAlign: 'center'
-  });
-  document.body.appendChild(aviso);
-  setTimeout(() => aviso.remove(), 2000);
-};
+    const btnCancelar = document.createElement('button');
+    btnCancelar.textContent = '❌ Cancelar';
+    aplicarEstiloBotao(btnCancelar);
+    btnCancelar.onclick = () => container.remove();
+    
+    btnContainer.append(btnAplicar, btnCancelar);
+    container.append(titulo, seletor, btnContainer);
+    document.body.appendChild(container);
+  };
 
   const coletarPerguntaEAlternativas = () => {
     const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
@@ -234,48 +251,38 @@ const aplicarNovaCor = (novaCor, container) => {
   const criarAbas = () => {
     const botoes = {
       scripts: [
-// ✅ BOTÃO 1: abrir uma URL personalizada
-  { nome: 'Ingles Pr', func: () => {
-  window.open('https://speakify.cupiditys.lol', '_blank');
-  }},
-
-{ nome: 'Script Khan Academy', func: () => {
-    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
-    
-    fetch(scriptURL)
-      .then(response => response.text())
-      .then(scriptContent => {
-        const script = document.createElement('script');
-        script.textContent = scriptContent;
-        document.head.appendChild(script);
-        
-        const aviso = document.createElement('div');
-        aviso.textContent = '✅ Script Khan Academy carregado!';
-        Object.assign(aviso.style, {
-          position: 'fixed',
-          top: '20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#000',
-          color: '#0f0',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          fontSize: '16px',
-          zIndex: '999999',
-          border: '1px solid #0f0',
-          fontWeight: 'bold',
-          textAlign: 'center'
-        });
-        document.body.appendChild(aviso);
-        setTimeout(() => aviso.remove(), 3000);
-      })
-      .catch(error => {
-        console.error('Erro ao carregar script:', error);
-        alert('❌ Erro ao carregar script. Verifique o console.');
-      });
-}}
-
-],
+        { nome: 'Ingles Pr', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
+        { nome: 'Script Khan Academy', func: () => {
+          const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
+          fetch(scriptURL)
+            .then(response => response.text())
+            .then(scriptContent => {
+              const script = document.createElement('script');
+              script.textContent = scriptContent;
+              document.head.appendChild(script);
+              
+              const aviso = document.createElement('div');
+              aviso.textContent = '✅ Script Khan Academy carregado!';
+              aplicarEstiloTexto(aviso, '16px');
+              Object.assign(aviso.style, {
+                position: 'fixed',
+                top: '20%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                padding: '12px 20px',
+                borderRadius: '10px',
+                zIndex: '999999',
+                border: '1px solid #0f0',
+              });
+              document.body.appendChild(aviso);
+              setTimeout(() => aviso.remove(), 3000);
+            })
+            .catch(error => {
+              console.error('Erro ao carregar script:', error);
+              alert('❌ Erro ao carregar script. Verifique o console.');
+            });
+        }}
+      ],
       textos: [
         { nome: '✍️ Iniciar Bot de Texto', func: () => { fundo.remove(); iniciarMod(); } },
         { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
@@ -284,9 +291,7 @@ const aplicarNovaCor = (novaCor, container) => {
       respostas: [
         { nome: '📡 Encontrar Resposta (Colar)', func: encontrarRespostaColar },
         { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
-        { nome: '🎯 Marcar Resposta (Colar)', func: () => {
-          navigator.clipboard.readText().then(r => marcarResposta(r));
-        }},
+        { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
         { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
           const r = prompt("Digite a resposta:");
           if (r) marcarResposta(r);
@@ -300,20 +305,18 @@ const aplicarNovaCor = (novaCor, container) => {
     };
 
     const botoesAbas = document.createElement('div');
-    botoesAbas.style.marginBottom = '10px';
+    Object.assign(botoesAbas.style, {
+      display: 'flex',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: '5px',
+      marginBottom: '15px'
+    });
 
     ['scripts', 'textos', 'respostas', 'config'].forEach(id => {
       const botaoAba = document.createElement('button');
       botaoAba.textContent = id.toUpperCase();
-      Object.assign(botaoAba.style, {
-        padding: '5px 10px', margin: '2px',
-        border: '1px solid white', borderRadius: '5px',
-        cursor: 'pointer',
-        color: abaAtiva === id ? '#000' : '#fff',
-        background: abaAtiva === id ? 'linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet)' : '#333',
-        backgroundSize: '400% 400%',
-        animation: abaAtiva === id ? 'rainbowBtn 3s linear infinite' : 'none'
-      });
+      aplicarEstiloBotao(botaoAba, abaAtiva === id);
       botaoAba.onclick = () => {
         abaAtiva = id;
         fundo.remove();
@@ -324,42 +327,35 @@ const aplicarNovaCor = (novaCor, container) => {
 
     janela.appendChild(botoesAbas);
 
+    const containerBotoes = document.createElement('div');
+    Object.assign(containerBotoes.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '10px'
+    });
+
     if (botoes[abaAtiva]) {
       botoes[abaAtiva].forEach(b => {
         const btn = document.createElement('button');
         btn.textContent = b.nome;
-        Object.assign(btn.style, {
-          padding: '10px', margin: '5px', width: '90%',
-          background: '#000', color: '#fff',
-          border: '1px solid white', borderRadius: '5px'
-        });
+        aplicarEstiloBotao(btn);
         btn.onclick = b.func;
-        janela.appendChild(btn);
+        containerBotoes.appendChild(btn);
       });
     }
 
+    janela.appendChild(containerBotoes);
+
     const btnFechar = document.createElement('button');
     btnFechar.textContent = '❌ Fechar Menu';
-    Object.assign(btnFechar.style, {
-      marginTop: '15px', padding: '10px', width: '90%',
-      background: '#000', color: '#fff',
-      border: '1px solid white', borderRadius: '5px'
-    });
+    aplicarEstiloBotao(btnFechar);
     btnFechar.onclick = () => {
       fundo.remove();
       criarBotaoFlutuante();
     };
     janela.appendChild(btnFechar);
   };
-
-  const estiloRGB = document.createElement('style');
-  estiloRGB.innerHTML = `
-  @keyframes rainbowBtn {
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
-  }`;
-  document.head.appendChild(estiloRGB);
 
   const criarMenu = () => {
     fundo = document.createElement('div');
@@ -370,16 +366,11 @@ const aplicarNovaCor = (novaCor, container) => {
     });
 
     janela = document.createElement('div');
-    Object.assign(janela.style, {
-      background: '#111', padding: '20px', borderRadius: '10px',
-      width: '90%', maxWidth: '350px', textAlign: 'center'
-    });
+    aplicarEstiloContainer(janela);
 
     const titulo = document.createElement('div');
     titulo.textContent = 'DHONATAN MODDER 🔥';
-    Object.assign(titulo.style, {
-      fontSize: '20px', fontWeight: 'bold', marginBottom: '15px'
-    });
+    aplicarEstiloTexto(titulo, '20px');
 
     let h = 0;
     setInterval(() => {
@@ -387,7 +378,8 @@ const aplicarNovaCor = (novaCor, container) => {
     }, 30);
 
     relogio = document.createElement('div');
-    relogio.style.color = '#ccc';
+    relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    aplicarEstiloTexto(relogio, '16px');
     setInterval(() => {
       relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     }, 1000);
@@ -407,16 +399,11 @@ const aplicarNovaCor = (novaCor, container) => {
     });
 
     janela = document.createElement('div');
-    Object.assign(janela.style, {
-      background: '#111', padding: '20px', borderRadius: '10px',
-      width: '90%', maxWidth: '350px', textAlign: 'center'
-    });
+    aplicarEstiloContainer(janela);
 
     nome = document.createElement('div');
     nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
-    Object.assign(nome.style, {
-      fontSize: '18px', fontWeight: 'bold', marginBottom: '15px'
-    });
+    aplicarEstiloTexto(nome, '18px');
 
     let hue = 0;
     setInterval(() => {
@@ -424,23 +411,31 @@ const aplicarNovaCor = (novaCor, container) => {
     }, 30);
 
     const input = document.createElement('input');
+    Object.assign(input.style, {
+      padding: '12px',
+      width: '80%',
+      margin: '15px 0',
+      background: '#222',
+      color: '#fff',
+      border: '1px solid #444',
+      borderRadius: '30px',
+      textAlign: 'center',
+      fontSize: '16px'
+    });
     input.type = 'password';
     input.placeholder = 'Digite a senha';
-    Object.assign(input.style, {
-      padding: '8px', width: '80%', marginBottom: '10px'
-    });
 
     const botao = document.createElement('button');
     botao.textContent = 'Acessar';
-    Object.assign(botao.style, {
-      padding: '8px 15px', background: '#00ffea',
-      borderRadius: '5px', border: 'none'
-    });
+    aplicarEstiloBotao(botao, true);
 
     const erro = document.createElement('div');
     erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
     Object.assign(erro.style, {
-      display: 'none', color: 'red', marginTop: '10px'
+      display: 'none', 
+      color: '#ff5555', 
+      marginTop: '15px',
+      fontSize: '14px'
     });
 
     botao.onclick = () => {
@@ -460,50 +455,93 @@ const aplicarNovaCor = (novaCor, container) => {
     b.id = "dhonatanBotao";
     b.textContent = "💻 Dhonatan Cheats";
     Object.assign(b.style, {
-      position: 'fixed', left: posX, top: posY,
-      background: corBotao, padding: '10px 15px',
-      borderRadius: '8px', cursor: 'grab',
-      zIndex: '999999', fontWeight: 'bold',
-      userSelect: 'none', color: '#000'
+      position: 'fixed',
+      left: posX,
+      top: posY,
+      background: corBotao,
+      padding: '12px 20px',
+      borderRadius: '30px',
+      cursor: 'grab',
+      zIndex: '999999',
+      fontWeight: 'bold',
+      userSelect: 'none',
+      color: '#000',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+      transition: 'all 0.3s ease'
     });
 
-    let offsetX, offsetY, startTime, moved = false, dragging = false;
+    let isDragging = false;
+    let startX, startY;
+    let initialX, initialY;
+    let xOffset = 0, yOffset = 0;
+    const DRAG_THRESHOLD = 5;
 
-    b.addEventListener('touchstart', e => {
-      dragging = true;
-      startTime = Date.now();
-      moved = false;
-      offsetX = e.touches[0].clientX - b.getBoundingClientRect().left;
-      offsetY = e.touches[0].clientY - b.getBoundingClientRect().top;
-      e.preventDefault();
-    }, { passive: false });
+    b.addEventListener('mousedown', startDrag);
+    b.addEventListener('touchstart', startDrag, { passive: false });
 
-    b.addEventListener('touchmove', e => {
-      if (!dragging) return;
-      moved = true;
-      const x = e.touches[0].clientX - offsetX;
-      const y = e.touches[0].clientY - offsetY;
-      b.style.left = `${x}px`;
-      b.style.top = `${y}px`;
-      b.style.bottom = 'unset';
-      b.style.right = 'unset';
-      e.preventDefault();
-    }, { passive: false });
+    function startDrag(e) {
+      const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+      const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+      
+      startX = clientX;
+      startY = clientY;
+      initialX = clientX - (parseFloat(b.style.left) || 0);
+      initialY = clientY - (parseFloat(b.style.top) || 0);
+      
+      isDragging = false;
+      
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('touchmove', handleDragMove, { passive: false });
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+    }
 
-    b.addEventListener('touchend', () => {
-      dragging = false;
-      posX = b.style.left;
-      posY = b.style.top;
-      localStorage.setItem("dhonatanX", posX);
-      localStorage.setItem("dhonatanY", posY);
-      if (Date.now() - startTime < 200 && !moved) {
+    function handleDragMove(e) {
+      const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+      const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+      
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (!isDragging && distance > DRAG_THRESHOLD) {
+        isDragging = true;
+      }
+      
+      if (isDragging) {
+        const currentX = clientX - initialX;
+        const currentY = clientY - initialY;
+        
+        b.style.left = `${currentX}px`;
+        b.style.top = `${currentY}px`;
+        b.style.cursor = 'grabbing';
+      }
+    }
+
+    function endDrag() {
+      if (isDragging) {
+        posX = b.style.left;
+        posY = b.style.top;
+        localStorage.setItem("dhonatanX", posX);
+        localStorage.setItem("dhonatanY", posY);
+      } else {
+        // Se não estava arrastando, é um clique
         b.remove();
         senhaLiberada ? criarMenu() : criarInterface();
       }
-    });
+      
+      b.style.cursor = 'grab';
+      isDragging = false;
+      
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('touchmove', handleDragMove);
+      document.removeEventListener('mouseup', endDrag);
+      document.removeEventListener('touchend', endDrag);
+    }
 
     document.body.append(b);
   };
 
-  criarInterface();
+  // Iniciar o botão flutuante
+  criarBotaoFlutuante();
 })();
