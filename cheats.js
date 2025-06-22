@@ -102,6 +102,11 @@
       margin: '15px 0'
     });
 
+    // CORREÇÃO: Atualizar a cor temporária quando o seletor muda
+    seletor.addEventListener("input", (e) => {
+      novaCorTemp = e.target.value;
+    });
+
     const btnContainer = document.createElement('div');
     Object.assign(btnContainer.style, {
       display: 'flex',
@@ -121,6 +126,24 @@
         btn.style.background = corBotao;
       });
       container.remove();
+      
+      // Adicionar feedback visual
+      const aviso = document.createElement('div');
+      aviso.textContent = '✅ Cor alterada com sucesso!';
+      aplicarEstiloTexto(aviso, '16px');
+      Object.assign(aviso.style, {
+        position: 'fixed',
+        top: '20%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        padding: '12px 20px',
+        borderRadius: '10px',
+        zIndex: '999999',
+        border: '1px solid #0f0',
+        background: 'rgba(0,0,0,0.9)'
+      });
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 2000);
     };
 
     const btnCancelar = document.createElement('button');
@@ -273,6 +296,7 @@
                 borderRadius: '10px',
                 zIndex: '999999',
                 border: '1px solid #0f0',
+                background: 'rgba(0,0,0,0.9)'
               });
               document.body.appendChild(aviso);
               setTimeout(() => aviso.remove(), 3000);
@@ -327,6 +351,15 @@
 
     janela.appendChild(botoesAbas);
 
+    // Linha de separação entre abas e funções
+    const separador = document.createElement('hr');
+    Object.assign(separador.style, {
+      width: '100%',
+      border: '1px solid rgba(255,255,255,0.1)',
+      margin: '10px 0'
+    });
+    janela.appendChild(separador);
+
     const containerBotoes = document.createElement('div');
     Object.assign(containerBotoes.style, {
       display: 'flex',
@@ -347,6 +380,25 @@
 
     janela.appendChild(containerBotoes);
 
+    // Botões de ação no final
+    const botoesAcao = document.createElement('div');
+    Object.assign(botoesAcao.style, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: '10px',
+      marginTop: '15px',
+      width: '100%'
+    });
+
+    const btnEsconder = document.createElement('button');
+    btnEsconder.textContent = '👁️ Esconder Mod';
+    aplicarEstiloBotao(btnEsconder);
+    btnEsconder.onclick = () => {
+      fundo.remove();
+      const botaoFlutuante = document.getElementById('dhonatanBotao');
+      if (botaoFlutuante) botaoFlutuante.remove();
+    };
+
     const btnFechar = document.createElement('button');
     btnFechar.textContent = '❌ Fechar Menu';
     aplicarEstiloBotao(btnFechar);
@@ -354,7 +406,9 @@
       fundo.remove();
       criarBotaoFlutuante();
     };
-    janela.appendChild(btnFechar);
+
+    botoesAcao.append(btnEsconder, btnFechar);
+    janela.appendChild(botoesAcao);
   };
 
   const criarMenu = () => {
