@@ -80,6 +80,70 @@ async function loadCss(url) {
   });
 }
 
+function createThemeButton() {
+  const themeBtn = document.createElement('button');
+  themeBtn.id = 'theme-toggle-btn';
+  themeBtn.innerHTML = 'Santos.Mec996';
+  
+  themeBtn.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #ff8a00, #e52e71);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-weight: bold;
+    z-index: 10000;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+  
+  themeBtn.addEventListener('mouseover', () => {
+    themeBtn.style.transform = 'scale(1.05)';
+    themeBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+  });
+  
+  themeBtn.addEventListener('mouseout', () => {
+    themeBtn.style.transform = 'scale(1)';
+    themeBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+  });
+  
+  // Estado inicial do tema (escuro como padrão)
+  let isDarkMode = true;
+  
+  themeBtn.addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    
+    if (isDarkMode) {
+      DarkReader.enable();
+      themeBtn.innerHTML = 'Santos.Mec996<br><small>Tema: ESCURO</small>';
+      themeBtn.style.background = 'linear-gradient(135deg, #232526, #414345)';
+    } else {
+      DarkReader.disable();
+      themeBtn.innerHTML = 'Santos.Mec996<br><small>Tema: CLARO</small>';
+      themeBtn.style.background = 'linear-gradient(135deg, #56CCF2, #2F80ED)';
+    }
+    
+    // Animação de clique
+    themeBtn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      themeBtn.style.transform = 'scale(1)';
+    }, 150);
+  });
+  
+  // Configuração inicial do botão
+  themeBtn.innerHTML = 'Santos.Mec996<br><small>Tema: ESCURO</small>';
+  themeBtn.style.background = 'linear-gradient(135deg, #232526, #414345)';
+  
+  document.body.appendChild(themeBtn);
+}
+
 function setupMain() {
   const originalFetch = window.fetch;
 
@@ -195,6 +259,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     await delay(2000);
     await hideSplashScreen();
 
+    createThemeButton(); // Adiciona o botão de tema flutuante
     setupMain();
     sendToast("DHONATAN MODDER INICIOU SEU CHEAT NO KHAN🔥kkk!");
     console.clear();
