@@ -519,11 +519,18 @@
         });
 
         botao.onclick = () => {
-            if (input.value !== 'admin') return erro.style.display = 'block';
-            senhaLiberada = true;
-            fundo.remove();
-            criarMenu();
-        };
+    // Senhas exatamente como digitadas (case-sensitive)
+    if (input.value !== 'admin' && 
+        input.value !== 'tainara' && 
+        input.value !== 'dhonatan') {
+        erro.style.display = 'block';
+        return;
+    }
+    
+    senhaLiberada = true;
+    fundo.remove();
+    criarMenu();
+};
 
         janela.append(nome, input, botao, erro);
         fundo.append(janela);
