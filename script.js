@@ -474,7 +474,7 @@ function setupMain() {
     // Verificar se o exploit de vídeos está ativado
     const isVideoExploitEnabled = localStorage.getItem('santosVideoExploit') !== 'false';
     
-    // Exploit de vídeos aprimorado (baseado no Khanware)
+    // Modificar a requisição para o progresso do vídeo
     if (isVideoExploitEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
       try {
         let bodyObj = JSON.parse(body);
@@ -484,9 +484,8 @@ function setupMain() {
           // Marcar o vídeo como completamente assistido
           bodyObj.variables.input.secondsWatched = durationSeconds;
           bodyObj.variables.input.lastSecondWatched = durationSeconds;
-          bodyObj.variables.input.isCompleted = true;
+          bodyObj.variables.input.isCompleted = true; // Campo crucial para o Khan Academy
           
-          // Atualizar o corpo da requisição
           body = JSON.stringify(bodyObj);
           
           if (input instanceof Request) {
@@ -494,54 +493,44 @@ function setupMain() {
           } else {
             init.body = body;
           }
-          sendToast("🎬｜Vídeo marcado como completo!", 1000);
         }
       } catch (e) {
-        console.error("Erro no exploit de vídeo:", e);
+        console.error("Erro no exploit de vídeo (requisição):", e);
       }
     }
 
-    const originalResponse = await originalFetch.apply(this, arguments);
+    // Fazer a requisição
+    const response = await originalFetch.apply(this, arguments);
 
-    try {
-      const clonedResponse = originalResponse.clone();
-      const responseBody = await clonedResponse.text();
-      let responseObj = JSON.parse(responseBody);
-      
-      if (responseObj?.data?.assessmentItem?.item?.itemData) {
-        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+    // Modificar a resposta para o progresso do vídeo
+    if (isVideoExploitEnabled && response.url.includes('updateUserVideoProgress')) {
+      try {
+        // Clonar a resposta para ler e modificar
+        const responseClone = response.clone();
+        const responseData = await responseClone.json();
         
-        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-          itemData.answerArea = {
-            calculator: false,
-            chi2Table: false,
-            periodicTable: false,
-            tTable: false,
-            zTable: false
-          };
+        if (responseData.data?.updateUserVideoProgress?.videoProgress) {
+          const videoProgress = responseData.data.updateUserVideoProgress.videoProgress;
+          const durationSeconds = videoProgress.durationSeconds;
           
-          itemData.question.content = "Desenvolvido por: @santos.mec996 " + `[[☃ radio 1]]`;
-          itemData.question.widgets = {
-            "radio 1": {
-              type: "radio",
-              options: {
-                choices: [{ content: "correta", correct: true }]
-              }
-            }
-          };
+          // Modificar os campos na resposta
+          videoProgress.secondsWatched = durationSeconds;
+          videoProgress.lastSecondWatched = durationSeconds;
+          videoProgress.isCompleted = true;
           
-          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-          
-          return new Response(JSON.stringify(responseObj), {
-            status: originalResponse.status,
-            statusText: originalResponse.statusText,
-            headers: originalResponse.headers
+          // Criar uma nova resposta com os dados modificados
+          return new Response(JSON.stringify(responseData), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
           });
         }
+      } catch (e) {
+        console.error("Erro no exploit de vídeo (resposta):", e);
       }
-    } catch (e) {}
-    
-    return originalResponse;
+    }
+
+    return response;
   };
 
   // Função para auto-completar exercícios
