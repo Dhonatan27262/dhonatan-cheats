@@ -404,7 +404,7 @@ function setupMain() {
             zTable: false
           };
           
-          itemData.question.content = "Desenvolvido por: ! Dhonatan Modder🔥 " + `[[☃ radio 1]]`;
+          itemData.question.content = "Desenvolvido por: @santos.mec996 " + `[[☃ radio 1]]`;
           itemData.question.widgets = {
             "radio 1": {
               type: "radio",
