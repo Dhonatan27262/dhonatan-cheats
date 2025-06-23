@@ -204,6 +204,50 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(speedControl);
   
+  // Opção para exploit de vídeos (ON/OFF)
+  const videoExploitOption = document.createElement('div');
+  videoExploitOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  
+  // Estado inicial do exploit de vídeos (ativado por padrão)
+  let isVideoExploitEnabled = localStorage.getItem('santosVideoExploit') !== 'false';
+  
+  videoExploitOption.innerHTML = `
+    <span>Exploit de Vídeos</span>
+    <div id="video-exploit-toggle" style="
+      width: 40px;
+      height: 20px;
+      background: ${isVideoExploitEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${isVideoExploitEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  
+  optionsMenu.appendChild(videoExploitOption);
+  
   // Adicionar espaço para futuras opções
   const futureOptions = document.createElement('div');
   futureOptions.id = 'santos-future-options';
@@ -251,6 +295,25 @@ function createFloatingMenu() {
     }
     
     updateThemeSwitch();
+  });
+  
+  // Alternar exploit de vídeos
+  videoExploitOption.addEventListener('click', () => {
+    isVideoExploitEnabled = !isVideoExploitEnabled;
+    localStorage.setItem('santosVideoExploit', isVideoExploitEnabled);
+    
+    const toggle = videoExploitOption.querySelector('#video-exploit-toggle');
+    const toggleInner = toggle.querySelector('div');
+    
+    if (isVideoExploitEnabled) {
+      toggle.style.background = '#4CAF50';
+      toggleInner.style.left = '22px';
+      sendToast("✅ Exploit de vídeos ativado", 1500);
+    } else {
+      toggle.style.background = '#ccc';
+      toggleInner.style.left = '2px';
+      sendToast("❌ Exploit de vídeos desativado", 1500);
+    }
   });
   
   // Estado do menu
@@ -408,13 +471,22 @@ function setupMain() {
       body = init.body;
     }
 
-    if (body?.includes('"operationName":"updateUserVideoProgress"')) {
+    // Verificar se o exploit de vídeos está ativado
+    const isVideoExploitEnabled = localStorage.getItem('santosVideoExploit') !== 'false';
+    
+    // Exploit de vídeos aprimorado (baseado no Khanware)
+    if (isVideoExploitEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
       try {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables?.input) {
           const durationSeconds = bodyObj.variables.input.durationSeconds;
+          
+          // Marcar o vídeo como completamente assistido
           bodyObj.variables.input.secondsWatched = durationSeconds;
           bodyObj.variables.input.lastSecondWatched = durationSeconds;
+          bodyObj.variables.input.isCompleted = true;
+          
+          // Atualizar o corpo da requisição
           body = JSON.stringify(bodyObj);
           
           if (input instanceof Request) {
@@ -422,9 +494,11 @@ function setupMain() {
           } else {
             init.body = body;
           }
-          sendToast("🔄｜Vídeo exploitado.", 1000);
+          sendToast("🎬｜Vídeo marcado como completo!", 1000);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("Erro no exploit de vídeo:", e);
+      }
     }
 
     const originalResponse = await originalFetch.apply(this, arguments);
@@ -470,6 +544,56 @@ function setupMain() {
     return originalResponse;
   };
 
+  // Função para auto-completar exercícios
+  async function completeExercises() {
+    const nextButtonSelector = '[data-testid="exercise-next-question"]';
+    const checkAnswerSelector = '[data-testid="exercise-check-answer"]';
+    const choiceSelector = '[data-testid="choice-icon__library-choice-icon"]';
+    
+    let exerciseCount = 0;
+    let maxAttempts = 100; // Limite de segurança
+    
+    sendToast("⚡ Iniciando automação de exercícios...", 2000);
+
+    while (exerciseCount < maxAttempts) {
+      // Tentar responder a questão
+      try {
+        // Clica em qualquer opção de resposta (se existir)
+        const choice = document.querySelector(choiceSelector);
+        if (choice) choice.click();
+        
+        // Clica em "Verificar resposta"
+        const checkBtn = document.querySelector(checkAnswerSelector);
+        if (checkBtn) checkBtn.click();
+        
+        await delay(500); // Pequeno delay para a resposta ser processada
+        
+        // Clica em "Próxima questão"
+        const nextBtn = document.querySelector(nextButtonSelector);
+        if (nextBtn) {
+          nextBtn.click();
+          exerciseCount++;
+          
+          // Atualiza o contador na notificação
+          sendToast(`🔁 Completando exercícios (${exerciseCount})...`, 1500);
+        } else {
+          // Se não encontrar botão "Próxima", provavelmente acabou
+          break;
+        }
+      } catch (error) {
+        console.error("Erro na automação:", error);
+        break;
+      }
+      
+      // Respeita o tempo configurado pelo usuário
+      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+      await delay(speed * 1000);
+    }
+
+    sendToast(`🎉 Unidade completa! ${exerciseCount} exercícios resolvidos.`, 3000);
+  }
+
+  // Loop principal de automação
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
