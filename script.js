@@ -175,7 +175,7 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(themeOption);
   
-  // Opção de controle de velocidade
+  // Opção de controle de velocidade (MÍNIMO DE 1 SEGUNDO)
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -192,12 +192,13 @@ function createFloatingMenu() {
   // Recuperar velocidade salva ou usar 1.5s como padrão
   const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
   
+  // SLIDER COM MÍNIMO DE 1 SEGUNDO
   speedControl.innerHTML = `
     <div style="display: flex; justify-content: space-between;">
       <span>Velocidade</span>
       <span id="speed-value">${savedSpeed}s</span>
     </div>
-    <input type="range" min="0.2" max="5" step="0.1" value="${savedSpeed}" 
+    <input type="range" min="1" max="5" step="0.1" value="${savedSpeed}" 
            id="speed-slider" style="width: 100%;">
   `;
   
