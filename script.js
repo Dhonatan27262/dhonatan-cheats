@@ -175,6 +175,34 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(themeOption);
   
+  // Opção de controle de velocidade
+  const speedControl = document.createElement('div');
+  speedControl.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  
+  // Recuperar velocidade salva ou usar 1.5s como padrão
+  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
+  
+  speedControl.innerHTML = `
+    <div style="display: flex; justify-content: space-between;">
+      <span>Velocidade</span>
+      <span id="speed-value">${savedSpeed}s</span>
+    </div>
+    <input type="range" min="0.2" max="5" step="0.1" value="${savedSpeed}" 
+           id="speed-slider" style="width: 100%;">
+  `;
+  
+  optionsMenu.appendChild(speedControl);
+  
   // Adicionar espaço para futuras opções
   const futureOptions = document.createElement('div');
   futureOptions.id = 'santos-future-options';
@@ -351,6 +379,19 @@ function createFloatingMenu() {
     }
   });
   
+  // Controle de velocidade
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  
+  if (speedSlider && speedValue) {
+    speedSlider.addEventListener('input', () => {
+      const value = speedSlider.value;
+      speedValue.textContent = value + 's';
+      localStorage.setItem('santosSpeed', value);
+      sendToast(`⚡｜Velocidade: ${value}s`, 1500);
+    });
+  }
+  
   // Atualizar o switch inicial
   updateThemeSwitch();
 }
@@ -447,7 +488,10 @@ function setupMain() {
           sendToast("🎉｜Exercício concluído!", 3000);
         }
       }
-      await delay(1500); 
+      
+      // Usar velocidade configurada ou padrão de 1.5 segundos
+      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+      await delay(speed * 1000); 
     }
   })();
 }
