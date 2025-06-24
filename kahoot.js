@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name         KaHack! Auto (Corrigido)
-// @version      1.0.28
+// @name         KaHack! Ultra
+// @version      2.0.0
 // @namespace    https://github.com/jokeri2222
-// @description  Hack para Kahoot online/offline
+// @description  Hack avançado para Kahoot online/offline
 // @author       jokeri2222
 // @match        https://kahoot.it/*
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
 
-var Version = '1.0.28';
+var Version = '2.0.0';
 var questions = [];
 var info = {
     numQuestions: 0,
@@ -23,22 +23,37 @@ var Answered_PPT = 950;
 var autoAnswer = false;
 var showAnswers = false;
 var inputLag = 100;
+var quizLoaded = false;
 
-// Função para encontrar elementos por atributo
-function FindByAttributeValue(attribute, value, element_type) {
-    element_type = element_type || "*";
-    var All = document.getElementsByTagName(element_type);
-    for (var i = 0; i < All.length; i++) {
-        if (All[i].getAttribute(attribute) == value) { 
-            return All[i]; 
-        }
-    }
-    return null;
+// Função para encontrar elementos por atributo (com timeout)
+function FindByAttributeValue(attribute, value, element_type, timeout = 3000) {
+    return new Promise((resolve) => {
+        element_type = element_type || "*";
+        const startTime = Date.now();
+        
+        const check = () => {
+            const elements = document.getElementsByTagName(element_type);
+            for (let i = 0; i < elements.length; i++) {
+                if (elements[i].getAttribute(attribute) === value) {
+                    resolve(elements[i]);
+                    return;
+                }
+            }
+            
+            if (Date.now() - startTime < timeout) {
+                setTimeout(check, 100);
+            } else {
+                resolve(null);
+            }
+        };
+        
+        check();
+    });
 }
 
 // Criação da interface
 const uiElement = document.createElement('div');
-uiElement.className = 'floating-ui';
+uiElement.id = 'kahack-ultra-ui';
 uiElement.style.position = 'fixed';
 uiElement.style.top = '20px';
 uiElement.style.left = '20px';
@@ -54,7 +69,7 @@ uiElement.style.boxSizing = 'border-box';
 
 // Cabeçalho
 const header = document.createElement('h2');
-header.textContent = 'KaHack! Auto ' + Version;
+header.textContent = `KaHack! Ultra ${Version}`;
 header.style.marginTop = '0';
 header.style.textAlign = 'center';
 uiElement.appendChild(header);
@@ -180,44 +195,123 @@ closeBtn.addEventListener('click', () => {
     document.body.removeChild(uiElement);
 });
 
-// Função principal para capturar dados do quiz
-function captureQuizData() {
-    try {
-        // Tenta encontrar os dados em scripts
+// Sistema de captura de dados aprimorado
+async function captureQuizData() {
+    // Tenta métodos diferentes até conseguir
+    const methods = [
+        captureFromWindowObject,
+        captureFromVueStore,
+        captureFromScriptTags,
+        captureFromBlob
+    ];
+
+    for (const method of methods) {
+        try {
+            const data = await method();
+            if (data) {
+                return data;
+            }
+        } catch (e) {
+            console.warn(`Método ${method.name} falhou:`, e);
+        }
+    }
+    return null;
+}
+
+// Método 1: Captura do objeto window
+async function captureFromWindowObject() {
+    return new Promise((resolve) => {
+        if (window.kahoot?.game?.quiz?.questions) {
+            resolve({
+                questions: window.kahoot.game.quiz.questions,
+                kahootId: window.kahoot.game.quiz.kahootId
+            });
+        } else {
+            resolve(null);
+        }
+    });
+}
+
+// Método 2: Captura do Vue Store
+async function captureFromVueStore() {
+    return new Promise((resolve) => {
+        const rootElement = document.getElementById('root');
+        if (rootElement && rootElement.__vue_app__) {
+            const store = rootElement.__vue_app__._context.provides.$store;
+            if (store?.state?.quiz?.questions) {
+                resolve({
+                    questions: store.state.quiz.questions,
+                    kahootId: store.state.quiz.kahootId
+                });
+            }
+        }
+        resolve(null);
+    });
+}
+
+// Método 3: Captura de script tags
+async function captureFromScriptTags() {
+    return new Promise((resolve) => {
         const scripts = Array.from(document.querySelectorAll('script'));
         for (const script of scripts) {
             if (script.textContent.includes('window.Kahoot')) {
                 const regex = /window\.Kahoot\.startGame\s*\(\s*({.*?})\s*\)/s;
                 const match = script.textContent.match(regex);
                 if (match && match[1]) {
-                    return JSON.parse(match[1]);
+                    try {
+                        resolve(JSON.parse(match[1]));
+                    } catch (e) {
+                        console.error('Erro no parse JSON:', e);
+                    }
                 }
             }
         }
+        resolve(null);
+    });
+}
+
+// Método 4: Captura de blob (novo método Kahoot 2024)
+async function captureFromBlob() {
+    return new Promise((resolve) => {
+        const scripts = Array.from(document.querySelectorAll('script[src^="blob:"]'));
+        if (scripts.length === 0) resolve(null);
         
-        // Tenta acessar diretamente o objeto do jogo
-        if (window.kahoot?.game?.quiz) {
-            return {
-                questions: window.kahoot.game.quiz.questions,
-                kahootId: window.kahoot.game.quiz.kahootId
-            };
-        }
-        
-        // Método alternativo para captura
-        const appData = document.getElementById('root')?.__vue_app__;
-        if (appData) {
-            const vueData = appData._context.provides.$store.state;
-            if (vueData?.quiz?.questions) {
-                return {
-                    questions: vueData.quiz.questions,
-                    kahootId: vueData.quiz.kahootId
-                };
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeName === 'SCRIPT' && node.src.startsWith('blob:')) {
+                        const content = node.textContent;
+                        if (content.includes('quiz:')) {
+                            const regex = /quiz:\s*({.*?}),/s;
+                            const match = content.match(regex);
+                            if (match && match[1]) {
+                                try {
+                                    const quizData = JSON.parse(match[1]);
+                                    resolve({
+                                        questions: quizData.questions,
+                                        kahootId: quizData.kahootId
+                                    });
+                                } catch (e) {
+                                    console.error('Erro no parse blob:', e);
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        }
-    } catch (e) {
-        console.error('Erro ao capturar dados:', e);
-    }
-    return null;
+        });
+        
+        observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+        
+        // Timeout para não ficar esperando para sempre
+        setTimeout(() => {
+            observer.disconnect();
+            resolve(null);
+        }, 5000);
+    });
 }
 
 // Processa as perguntas
@@ -246,54 +340,61 @@ function processQuestions(rawQuestions) {
 }
 
 // Destaca respostas na tela
-function highlightAnswers(question) {
+async function highlightAnswers(question) {
     if (!question) return;
     
-    question.answers.forEach(index => {
-        const btn = FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
-        if (btn) btn.style.backgroundColor = '#00ff00';
-    });
+    for (const index of question.answers) {
+        const btn = await FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
+        if (btn) {
+            btn.style.backgroundColor = '#00ff00';
+            btn.style.borderColor = '#00ff00';
+        }
+    }
     
     if (question.incorrectAnswers) {
-        question.incorrectAnswers.forEach(index => {
-            const btn = FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
-            if (btn) btn.style.backgroundColor = '#ff0000';
-        });
+        for (const index of question.incorrectAnswers) {
+            const btn = await FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
+            if (btn) {
+                btn.style.backgroundColor = '#ff0000';
+                btn.style.borderColor = '#ff0000';
+            }
+        }
     }
 }
 
 // Responde automaticamente
-function autoAnswerQuestion(question) {
+async function autoAnswerQuestion(question) {
     if (!question || !autoAnswer) return;
     
     const answerTime = Math.max(500, question.time * 0.8 - inputLag);
     
-    setTimeout(() => {
+    setTimeout(async () => {
         if (question.type === 'quiz' && question.answers.length > 0) {
             const key = (question.answers[0] + 1).toString();
             window.dispatchEvent(new KeyboardEvent('keydown', { key }));
         }
         else if (question.type === 'multiple_select_quiz') {
-            question.answers.forEach(answer => {
+            for (const answer of question.answers) {
                 const key = (answer + 1).toString();
                 window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-            });
+            }
             
-            setTimeout(() => {
-                const submitBtn = FindByAttributeValue("data-functional-selector", "multi-select-submit-button", "button");
+            setTimeout(async () => {
+                const submitBtn = await FindByAttributeValue("data-functional-selector", "multi-select-submit-button", "button");
                 if (submitBtn) submitBtn.click();
             }, 100);
         }
     }, answerTime);
 }
 
-// Monitoramento do estado do jogo
-function monitorGameState() {
+// Sistema de monitoramento de estado
+async function monitorGameState() {
     try {
-        // Atualiza informações da pergunta
-        const counter = FindByAttributeValue("data-functional-selector", "question-index-counter", "div");
+        // Atualiza contador de perguntas
+        const counter = await FindByAttributeValue("data-functional-selector", "question-index-counter", "div");
         if (counter) {
-            const match = counter.textContent.match(/(\d+)\s*\/\s*(\d+)/);
+            const text = counter.innerText || counter.textContent;
+            const match = text.match(/(\d+)\s*\/\s*(\d+)/);
             if (match) {
                 info.questionNum = parseInt(match[1]) - 1;
                 info.numQuestions = parseInt(match[2]);
@@ -301,13 +402,16 @@ function monitorGameState() {
             }
         }
         
-        // Carrega as perguntas se necessário
-        if (questions.length === 0) {
-            const quizData = captureQuizData();
+        // Carrega o quiz se ainda não carregado
+        if (!quizLoaded && questions.length === 0) {
+            quizInfo.textContent = 'Quiz: Carregando...';
+            const quizData = await captureQuizData();
+            
             if (quizData?.questions) {
                 questions = processQuestions(quizData.questions);
                 quizInfo.textContent = `Quiz: Carregado (${questions.length} perguntas)`;
                 quizInfo.style.color = '#00ff00';
+                quizLoaded = true;
             } else {
                 quizInfo.textContent = 'Quiz: Não encontrado';
                 quizInfo.style.color = '#ff0000';
@@ -315,7 +419,7 @@ function monitorGameState() {
         }
         
         // Detecta nova pergunta
-        const answerBtn = FindByAttributeValue("data-functional-selector", "answer-0", "button");
+        const answerBtn = await FindByAttributeValue("data-functional-selector", "answer-0", "button");
         if (answerBtn && info.lastAnsweredQuestion !== info.questionNum) {
             info.lastAnsweredQuestion = info.questionNum;
             
@@ -330,15 +434,15 @@ function monitorGameState() {
             }
         }
         
-        // Atualiza informações de latência
+        // Atualiza latência
         lagInfo.textContent = `Latência: ${inputLag}ms`;
         
     } catch (e) {
-        console.error('Erro no monitoramento:', e);
+        console.error('Erro no monitorGameState:', e);
+    } finally {
+        setTimeout(monitorGameState, 500);
     }
-    
-    setTimeout(monitorGameState, 100);
 }
 
 // Inicia o monitoramento
-setTimeout(monitorGameState, 3000);
+monitorGameState();
