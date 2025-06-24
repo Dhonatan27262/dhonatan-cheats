@@ -339,7 +339,7 @@
                 }
             },
             {
-                nome: 'Kahoot Script',
+                nome: 'Kahoot Script teste',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/kahoot.js?" + Date.now();
                     fetch(scriptURL)
