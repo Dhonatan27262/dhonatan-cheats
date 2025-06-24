@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name         KaHack! Auto
-// @version      1.0.26
+// @name         KaHack! Auto (Corrigido)
+// @version      1.0.28
 // @namespace    https://github.com/jokeri2222
-// @description  A hack for kahoot.it!
-// @author       jokeri2222; https://github.com/jokeri2222
+// @description  Hack para Kahoot online/offline
+// @author       jokeri2222
 // @match        https://kahoot.it/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=kahoot.it
 // @grant        none
+// @run-at       document-end
 // ==/UserScript==
 
-var Version = '1.0.26'
+var Version = '1.0.28';
 var questions = [];
 var info = {
     numQuestions: 0,
@@ -24,448 +24,168 @@ var autoAnswer = false;
 var showAnswers = false;
 var inputLag = 100;
 
+// Função para encontrar elementos por atributo
 function FindByAttributeValue(attribute, value, element_type) {
     element_type = element_type || "*";
     var All = document.getElementsByTagName(element_type);
     for (var i = 0; i < All.length; i++) {
-        if (All[i].getAttribute(attribute) == value) { return All[i]; }
+        if (All[i].getAttribute(attribute) == value) { 
+            return All[i]; 
+        }
     }
+    return null;
 }
 
+// Criação da interface
 const uiElement = document.createElement('div');
 uiElement.className = 'floating-ui';
-uiElement.style.position = 'absolute';
-uiElement.style.top = '5%';
-uiElement.style.left = '5%';
-uiElement.style.width = '33vw';
-uiElement.style.height = 'auto';
+uiElement.style.position = 'fixed';
+uiElement.style.top = '20px';
+uiElement.style.left = '20px';
+uiElement.style.width = '300px';
 uiElement.style.backgroundColor = '#381272';
-uiElement.style.borderRadius = '1vw';
-uiElement.style.boxShadow = '0px 0px 10px 0px rgba(0, 0, 0, 0.5)';
+uiElement.style.borderRadius = '10px';
+uiElement.style.boxShadow = '0px 0px 10px 0px rgba(0,0,0,0.5)';
 uiElement.style.zIndex = '9999';
+uiElement.style.fontFamily = 'Arial, sans-serif';
+uiElement.style.color = 'white';
+uiElement.style.padding = '15px';
+uiElement.style.boxSizing = 'border-box';
 
-const handle = document.createElement('div');
-handle.className = 'handle';
-handle.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-handle.style.fontSize = '1.5vw';
-handle.textContent = 'KaHack! Auto';
-handle.style.color = 'white';
-handle.style.width = '97.5%';
-handle.style.height = '2.5vw';
-handle.style.backgroundColor = '#321066';
-handle.style.borderRadius = '1vw 1vw 0 0';
-handle.style.cursor = 'grab';
-handle.style.textAlign = 'left';
-handle.style.paddingLeft = '2.5%';
-handle.style.lineHeight = '2vw';
-uiElement.appendChild(handle);
+// Cabeçalho
+const header = document.createElement('h2');
+header.textContent = 'KaHack! Auto ' + Version;
+header.style.marginTop = '0';
+header.style.textAlign = 'center';
+uiElement.appendChild(header);
 
-const closeButton = document.createElement('div');
-closeButton.className = 'close-button';
-closeButton.textContent = '✕';
-closeButton.style.position = 'absolute';
-closeButton.style.top = '0';
-closeButton.style.right = '0';
-closeButton.style.width = '12.5%';
-closeButton.style.height = '2.5vw';
-closeButton.style.backgroundColor = 'red';
-closeButton.style.color = 'white';
-closeButton.style.borderRadius = '0 1vw 0 0';
-closeButton.style.display = 'flex';
-closeButton.style.justifyContent = 'center';
-closeButton.style.alignItems = 'center';
-closeButton.style.cursor = 'pointer';
-handle.appendChild(closeButton);
+// Controles de Pontos
+const pointsContainer = document.createElement('div');
+pointsContainer.style.marginBottom = '15px';
 
-const minimizeButton = document.createElement('div');
-minimizeButton.className = 'minimize-button';
-minimizeButton.textContent = '─';
-minimizeButton.style.color = 'white';
-minimizeButton.style.position = 'absolute';
-minimizeButton.style.top = '0';
-minimizeButton.style.right = '12.5%';
-minimizeButton.style.width = '12.5%';
-minimizeButton.style.height = '2.5vw';
-minimizeButton.style.backgroundColor = 'gray';
-minimizeButton.style.borderRadius = '0 0 0 0';
-minimizeButton.style.display = 'flex';
-minimizeButton.style.justifyContent = 'center';
-minimizeButton.style.alignItems = 'center';
-minimizeButton.style.cursor = 'pointer';
-handle.appendChild(minimizeButton);
-
-const header2 = document.createElement('h2');
-header2.textContent = 'POINTS PER QUESTION';
-header2.style.display = 'block';
-header2.style.margin = '1vw';
-header2.style.textAlign = 'center';
-header2.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-header2.style.fontSize = '2vw';
-header2.style.color = 'white';
-header2.style.textShadow = `
-  -1px -1px 0 rgb(47, 47, 47),
-  1px -1px 0 rgb(47, 47, 47),
-  -1px 1px 0 rgb(47, 47, 47),
-  1px 1px 0 rgb(47, 47, 47)
-`;
-uiElement.appendChild(header2);
-
-const sliderContainer = document.createElement('div');
-sliderContainer.style.width = '80%';
-sliderContainer.style.margin = '1vw auto';
-sliderContainer.style.display = 'flex';
-sliderContainer.style.alignItems = 'center';
-sliderContainer.style.justifyContent = 'center';
-
-const pointsLabel = document.createElement('span');
-pointsLabel.textContent = 'Points per Question: 950';
-pointsLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-pointsLabel.style.fontSize = '1.5vw';
-pointsLabel.style.margin = '1vw';
-pointsLabel.style.marginLeft = '1vw';
-pointsLabel.style.marginRight = '1vw';
-pointsLabel.style.color = 'white';
-sliderContainer.appendChild(pointsLabel);
+const pointsLabel = document.createElement('label');
+pointsLabel.textContent = 'Pontos por pergunta:';
+pointsLabel.style.display = 'block';
+pointsLabel.style.marginBottom = '5px';
+pointsContainer.appendChild(pointsLabel);
 
 const pointsSlider = document.createElement('input');
 pointsSlider.type = 'range';
 pointsSlider.min = '500';
 pointsSlider.max = '1000';
 pointsSlider.value = '950';
-pointsSlider.style.width = '70%';
-pointsSlider.style.marginLeft = '1vw';
-pointsSlider.style.marginRight = '1vw';
-pointsSlider.style.border = 'none';
-pointsSlider.style.outline = 'none';
-pointsSlider.style.cursor = 'ew-resize';
-pointsSlider.className = 'custom-slider';
-sliderContainer.appendChild(pointsSlider);
-uiElement.appendChild(sliderContainer);
+pointsSlider.style.width = '100%';
+pointsSlider.style.marginBottom = '10px';
+pointsContainer.appendChild(pointsSlider);
 
-pointsSlider.addEventListener('input', () => {
-    const points = +pointsSlider.value;
-    PPT = points;
-    pointsLabel.textContent = 'Points per Question: ' + points;
-});
+const pointsValue = document.createElement('div');
+pointsValue.textContent = 'Valor: 950';
+pointsValue.style.textAlign = 'center';
+pointsValue.style.fontSize = '14px';
+pointsContainer.appendChild(pointsValue);
 
-const header3 = document.createElement('h2');
-header3.textContent = 'ANSWERING';
-header3.style.display = 'block';
-header3.style.margin = '1vw';
-header3.style.textAlign = 'center';
-header3.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-header3.style.fontSize = '2vw';
-header3.style.color = 'white';
-header3.style.textShadow = `
-  -1px -1px 0 rgb(47, 47, 47),
-  1px -1px 0 rgb(47, 47, 47),
-  -1px 1px 0 rgb(47, 47, 47),
-  1px 1px 0 rgb(47, 47, 47)
-`;
-uiElement.appendChild(header3);
+uiElement.appendChild(pointsContainer);
 
-const autoAnswerSwitchContainer = document.createElement('div');
-autoAnswerSwitchContainer.className = 'switch-container';
-autoAnswerSwitchContainer.style.display = 'flex';
-autoAnswerSwitchContainer.style.alignItems = 'center';
-autoAnswerSwitchContainer.style.justifyContent = 'center';
-uiElement.appendChild(autoAnswerSwitchContainer);
+// Controles de Resposta Automática
+const autoContainer = document.createElement('div');
+autoContainer.style.marginBottom = '15px';
+autoContainer.style.display = 'flex';
+autoContainer.style.justifyContent = 'space-between';
+autoContainer.style.alignItems = 'center';
 
-const autoAnswerLabel = document.createElement('span');
-autoAnswerLabel.textContent = 'Auto Answer';
-autoAnswerLabel.className = 'switch-label';
-autoAnswerLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-autoAnswerLabel.style.fontSize = '1.5vw';
-autoAnswerLabel.style.color = 'white';
-autoAnswerLabel.style.margin = '2.5vw'
-autoAnswerSwitchContainer.appendChild(autoAnswerLabel);
+const autoLabel = document.createElement('label');
+autoLabel.textContent = 'Resposta Automática:';
+autoLabel.style.marginRight = '10px';
+autoContainer.appendChild(autoLabel);
 
-const autoAnswerSwitch = document.createElement('label');
-autoAnswerSwitch.className = 'switch';
-autoAnswerSwitchContainer.appendChild(autoAnswerSwitch);
+const autoToggle = document.createElement('input');
+autoToggle.type = 'checkbox';
+autoToggle.style.transform = 'scale(1.5)';
+autoContainer.appendChild(autoToggle);
 
-const autoAnswerInput = document.createElement('input');
-autoAnswerInput.type = 'checkbox';
-autoAnswerInput.addEventListener('change', function() {
-    autoAnswer = this.checked;
-    info.ILSetQuestion = info.questionNum
-});
-autoAnswerSwitch.appendChild(autoAnswerInput);
+uiElement.appendChild(autoContainer);
 
-const autoAnswerSlider = document.createElement('span');
-autoAnswerSlider.className = 'slider';
-autoAnswerSwitch.appendChild(autoAnswerSlider);
+// Controles de Mostrar Respostas
+const showContainer = document.createElement('div');
+showContainer.style.marginBottom = '15px';
+showContainer.style.display = 'flex';
+showContainer.style.justifyContent = 'space-between';
+showContainer.style.alignItems = 'center';
 
-const showAnswersSwitchContainer = document.createElement('div');
-showAnswersSwitchContainer.className = 'switch-container';
-showAnswersSwitchContainer.style.display = 'flex';
-showAnswersSwitchContainer.style.alignItems = 'center';
-showAnswersSwitchContainer.style.justifyContent = 'center';
-uiElement.appendChild(showAnswersSwitchContainer);
+const showLabel = document.createElement('label');
+showLabel.textContent = 'Mostrar Respostas:';
+showLabel.style.marginRight = '10px';
+showContainer.appendChild(showLabel);
 
-const showAnswersLabel = document.createElement('span');
-showAnswersLabel.textContent = 'Show Answers';
-showAnswersLabel.className = 'switch-label';
-showAnswersLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-showAnswersLabel.style.fontSize = '1.5vw';
-showAnswersLabel.style.color = 'white';
-showAnswersLabel.style.margin = '2.5vw'
-showAnswersSwitchContainer.appendChild(showAnswersLabel);
+const showToggle = document.createElement('input');
+showToggle.type = 'checkbox';
+showToggle.style.transform = 'scale(1.5)';
+showContainer.appendChild(showToggle);
 
-const showAnswersSwitch = document.createElement('label');
-showAnswersSwitch.className = 'switch';
-showAnswersSwitchContainer.appendChild(showAnswersSwitch);
+uiElement.appendChild(showContainer);
 
-const showAnswersInput = document.createElement('input');
-showAnswersInput.type = 'checkbox';
-showAnswersInput.addEventListener('change', function() {
-    showAnswers = this.checked;
-});
-showAnswersSwitch.appendChild(showAnswersInput);
+// Informações do Quiz
+const infoContainer = document.createElement('div');
+infoContainer.style.borderTop = '1px solid #555';
+infoContainer.style.paddingTop = '15px';
 
-const showAnswersSlider = document.createElement('span');
-showAnswersSlider.className = 'slider';
-showAnswersSwitch.appendChild(showAnswersSlider);
+const quizInfo = document.createElement('div');
+quizInfo.textContent = 'Quiz: Aguardando...';
+quizInfo.style.marginBottom = '10px';
+quizInfo.style.color = 'yellow';
+infoContainer.appendChild(quizInfo);
 
-const style = document.createElement('style');
-style.textContent = `
-.custom-slider {
-    background: white
-    border: none;
-    outline: none;
-    cursor: ew-resize;
-    appearance: none;
-    height: 0;
-}
+const questionInfo = document.createElement('div');
+questionInfo.textContent = 'Pergunta: 0/0';
+questionInfo.style.marginBottom = '5px';
+infoContainer.appendChild(questionInfo);
 
-.custom-slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 1.75vw;
-    height: 1.75vw;
-    background-color: rgb(47, 47, 47);
-    border-radius: 50%;
-    cursor: ew-resize;
-    margin-top: -0.5vw;
-}
+const lagInfo = document.createElement('div');
+lagInfo.textContent = 'Latência: 100ms';
+infoContainer.appendChild(lagInfo);
 
-.custom-slider::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 0.75vw;
-    background-color: white;
-    cursor: ew-resize;
-    border-radius: 1vw;
-    background: linear-gradient(to right, red, yellow, limegreen);
-}
+uiElement.appendChild(infoContainer);
 
-:root {
-  --switch-width: 5.9vw;
-  --switch-height: 3.3vw;
-  --slider-size: 2.5vw;
-  --slider-thumb-size: 1.3vw;
-}
+// Botão de fechar
+const closeBtn = document.createElement('button');
+closeBtn.textContent = 'Fechar';
+closeBtn.style.display = 'block';
+closeBtn.style.margin = '15px auto 0';
+closeBtn.style.padding = '5px 15px';
+closeBtn.style.backgroundColor = '#ff4444';
+closeBtn.style.border = 'none';
+closeBtn.style.borderRadius = '5px';
+closeBtn.style.color = 'white';
+closeBtn.style.cursor = 'pointer';
+uiElement.appendChild(closeBtn);
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: var(--switch-width);
-  height: var(--switch-height);
-  margin: 2.5vw;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: red;
-  transition: 0.8s;
-  border-radius: .5vw
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: var(--slider-size);
-  width: var(--slider-size);
-  left: calc(var(--slider-thumb-size) / 3);
-  bottom: calc(var(--slider-thumb-size) / 3);
-  background-color: rgb(43, 43, 43);
-  transition: 0.8s;
-  border-radius: .5vw
-}
-
-input:checked + .slider {
-  background-color: green;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px green;
-}
-
-input:checked + .slider:before {
-  transform: translateX(calc(var(--slider-size)));
-}
-`;
-document.head.appendChild(style);
-
-const header4 = document.createElement('h2');
-header4.textContent = 'INFO';
-header4.style.display = 'block';
-header4.style.margin = '1vw';
-header4.style.textAlign = 'center';
-header4.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-header4.style.fontSize = '2vw';
-header4.style.color = 'white';
-header4.style.textShadow = `
-  -1px -1px 0 rgb(47, 47, 47),
-  1px -1px 0 rgb(47, 47, 47),
-  -1px 1px 0 rgb(47, 47, 47),
-  1px 1px 0 rgb(47, 47, 47)
-`;
-uiElement.appendChild(header4)
-
-const questionsLabel = document.createElement('span');
-questionsLabel.textContent = 'Question 0 / 0';
-questionsLabel.style.display = 'block';
-questionsLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-questionsLabel.style.fontSize = '1.5vw';
-questionsLabel.style.textAlign = 'center';
-questionsLabel.style.margin = '1vw';
-questionsLabel.style.marginLeft = '1vw';
-questionsLabel.style.marginRight = '1vw';
-questionsLabel.style.color = 'white';
-uiElement.appendChild(questionsLabel);
-
-const quizStatus = document.createElement('span');
-quizStatus.textContent = 'Quiz: Waiting...';
-quizStatus.style.display = 'block';
-quizStatus.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-quizStatus.style.fontSize = '1.5vw';
-quizStatus.style.textAlign = 'center';
-quizStatus.style.margin = '1vw';
-quizStatus.style.color = 'yellow';
-uiElement.appendChild(quizStatus);
-
-const inputLagLabel = document.createElement('span');
-inputLagLabel.textContent = 'Input lag : 125 ms';
-inputLagLabel.style.display = 'block';
-inputLagLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-inputLagLabel.style.fontSize = '1.5vw';
-inputLagLabel.style.textAlign = 'center';
-inputLagLabel.style.margin = '1vw';
-inputLagLabel.style.marginLeft = '1vw';
-inputLagLabel.style.marginRight = '1vw';
-inputLagLabel.style.color = 'white';
-uiElement.appendChild(inputLagLabel);
-
-const versionLabel = document.createElement('h1');
-versionLabel.textContent = 'KaHack! Auto V'+Version;
-versionLabel.style.fontFamily = '"Montserrat", "Noto Sans Arabic", "Helvetica Neue", Helvetica, Arial, sans-serif;';
-versionLabel.style.fontSize = '2.5vw';
-versionLabel.style.display = 'block';
-versionLabel.style.textAlign = 'center';
-versionLabel.style.marginTop = '3.5vw';
-versionLabel.style.marginLeft = '1vw';
-versionLabel.style.marginRight = '1vw';
-versionLabel.style.color = 'white';
-uiElement.appendChild(versionLabel);
-
+// Adiciona ao documento
 document.body.appendChild(uiElement);
 
-let isDragging = false;
-let offsetX, offsetY;
-
-handle.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    offsetX = e.clientX - uiElement.getBoundingClientRect().left;
-    offsetY = e.clientY - uiElement.getBoundingClientRect().top;
+// Event Listeners
+pointsSlider.addEventListener('input', () => {
+    PPT = +pointsSlider.value;
+    pointsValue.textContent = `Valor: ${PPT}`;
 });
 
-document.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-        const x = e.clientX - offsetX;
-        const y = e.clientY - offsetY;
-        uiElement.style.left = x + 'px';
-        uiElement.style.top = y + 'px';
-    }
+autoToggle.addEventListener('change', () => {
+    autoAnswer = autoToggle.checked;
 });
 
-document.addEventListener('mouseup', () => {
-    isDragging = false;
+showToggle.addEventListener('change', () => {
+    showAnswers = showToggle.checked;
 });
 
-closeButton.addEventListener('click', () => {
+closeBtn.addEventListener('click', () => {
     document.body.removeChild(uiElement);
-    autoAnswer = false;
-    showAnswers = false;
 });
 
-let isMinimized = false;
-minimizeButton.addEventListener('click', () => {
-    isMinimized = !isMinimized;
-    const elementsToToggle = [
-        header2, header3, header4, 
-        sliderContainer, 
-        autoAnswerSwitchContainer, 
-        showAnswersSwitchContainer,
-        questionsLabel,
-        quizStatus,
-        inputLagLabel,
-        versionLabel
-    ];
-
-    elementsToToggle.forEach(el => {
-        el.style.display = isMinimized ? 'none' : 'block';
-    });
-
-    uiElement.style.height = isMinimized ? '2.5vw' : 'auto';
-    handle.style.height = isMinimized ? '100%' : '2.5vw';
-    closeButton.style.height = isMinimized ? '100%' : '2.5vw';
-    minimizeButton.style.height = isMinimized ? '100%' : '2.5vw';
-});
-
-function parseQuestions(questionsJson){
-    let questions = []
-    questionsJson.forEach(function (question){
-        let q = {type:question.type, time:question.time}
-        if (['quiz', 'multiple_select_quiz'].includes(question.type)){
-            var i=0
-            q.answers = []
-            q.incorrectAnswers = []
-            question.choices.forEach(function(choise){
-                if (choise.correct) {
-                    q.answers.push(i)
-                }
-                else{
-                    q.incorrectAnswers.push(i)
-                }
-                i++
-            })
-        }
-        if (question.type == 'open_ended')
-        {
-            q.answers = []
-            question.choices.forEach(function(choise){
-                q.answers.push(choise.answer)
-            })
-        }
-        questions.push(q)
-    })
-    return questions
-}
-
-function getQuizData() {
+// Função principal para capturar dados do quiz
+function captureQuizData() {
     try {
-        const scripts = document.querySelectorAll('script');
-        for (let script of scripts) {
+        // Tenta encontrar os dados em scripts
+        const scripts = Array.from(document.querySelectorAll('script'));
+        for (const script of scripts) {
             if (script.textContent.includes('window.Kahoot')) {
                 const regex = /window\.Kahoot\.startGame\s*\(\s*({.*?})\s*\)/s;
                 const match = script.textContent.match(regex);
@@ -475,142 +195,150 @@ function getQuizData() {
             }
         }
         
-        // Tentativa alternativa para jogos offline
-        const gameState = window.kahoot?.game?.quiz;
-        if (gameState) {
+        // Tenta acessar diretamente o objeto do jogo
+        if (window.kahoot?.game?.quiz) {
             return {
-                questions: gameState.questions,
-                kahootId: gameState.kahootId
+                questions: window.kahoot.game.quiz.questions,
+                kahootId: window.kahoot.game.quiz.kahootId
             };
         }
+        
+        // Método alternativo para captura
+        const appData = document.getElementById('root')?.__vue_app__;
+        if (appData) {
+            const vueData = appData._context.provides.$store.state;
+            if (vueData?.quiz?.questions) {
+                return {
+                    questions: vueData.quiz.questions,
+                    kahootId: vueData.quiz.kahootId
+                };
+            }
+        }
     } catch (e) {
-        console.error("Error parsing quiz data:", e);
+        console.error('Erro ao capturar dados:', e);
     }
     return null;
 }
 
-function highlightAnswers(question){
+// Processa as perguntas
+function processQuestions(rawQuestions) {
+    return rawQuestions.map(question => {
+        const processed = {
+            type: question.type,
+            time: question.time
+        };
+        
+        if (['quiz', 'multiple_select_quiz'].includes(question.type)) {
+            processed.answers = [];
+            processed.incorrectAnswers = [];
+            
+            question.choices.forEach((choice, index) => {
+                if (choice.correct) {
+                    processed.answers.push(index);
+                } else {
+                    processed.incorrectAnswers.push(index);
+                }
+            });
+        }
+        
+        return processed;
+    });
+}
+
+// Destaca respostas na tela
+function highlightAnswers(question) {
     if (!question) return;
     
-    question.answers.forEach(function (answer) {
-        setTimeout(function() {
-            const btn = FindByAttributeValue("data-functional-selector", 'answer-'+answer, "button");
-            if (btn) btn.style.backgroundColor = 'rgb(0, 255, 0)';
-        }, 0)
-    })
+    question.answers.forEach(index => {
+        const btn = FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
+        if (btn) btn.style.backgroundColor = '#00ff00';
+    });
     
     if (question.incorrectAnswers) {
-        question.incorrectAnswers.forEach(function (answer) {
-            setTimeout(function() {
-                const btn = FindByAttributeValue("data-functional-selector", 'answer-'+answer, "button");
-                if (btn) btn.style.backgroundColor = 'rgb(255, 0, 0)';
-            }, 0)
-        })
+        question.incorrectAnswers.forEach(index => {
+            const btn = FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
+            if (btn) btn.style.backgroundColor = '#ff0000';
+        });
     }
 }
 
-function answer(question, time) {
-    if (!question) return;
+// Responde automaticamente
+function autoAnswerQuestion(question) {
+    if (!question || !autoAnswer) return;
     
-    Answered_PPT = PPT;
-    var delay = question.type === 'multiple_select_quiz' ? 60 : 0;
+    const answerTime = Math.max(500, question.time * 0.8 - inputLag);
     
-    setTimeout(function() {
-        if (question.type === 'quiz') {
-            const key = (+question.answers[0] + 1).toString();
+    setTimeout(() => {
+        if (question.type === 'quiz' && question.answers.length > 0) {
+            const key = (question.answers[0] + 1).toString();
             window.dispatchEvent(new KeyboardEvent('keydown', { key }));
         }
         else if (question.type === 'multiple_select_quiz') {
-            question.answers.forEach(function (answer) {
-                setTimeout(function() {
-                    const key = (+answer + 1).toString();
-                    window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-                }, 0)
-            })
-            setTimeout(function() {
-                const btn = FindByAttributeValue("data-functional-selector", 'multi-select-submit-button', "button");
-                if (btn) btn.click();
-            }, 0)
+            question.answers.forEach(answer => {
+                const key = (answer + 1).toString();
+                window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+            });
+            
+            setTimeout(() => {
+                const submitBtn = FindByAttributeValue("data-functional-selector", "multi-select-submit-button", "button");
+                if (submitBtn) submitBtn.click();
+            }, 100);
         }
-    }, time - delay)
+    }, answerTime);
 }
 
-function onQuestionStart(){
-    if (info.questionNum >= 0 && info.questionNum < questions.length) {
-        const question = questions[info.questionNum];
-        if (showAnswers) highlightAnswers(question);
-        if (autoAnswer) answer(question, (question.time - question.time / (500/(PPT-500))) - inputLag);
-    }
-}
-
-let isHidden = false;
-document.addEventListener('keydown', (event)=> {
-    if (event.key === "h" && event.altKey) isHidden = !isHidden;
-    if (event.key === "x" && event.altKey) {
-        if (uiElement.parentNode) document.body.removeChild(uiElement);
-        autoAnswer = false;
-        showAnswers = false;
-    }
-    uiElement.style.display = isHidden ? 'none' : 'block';
-});
-
-// Monitoramento do estado do quiz
-setInterval(function () {
+// Monitoramento do estado do jogo
+function monitorGameState() {
     try {
-        // Atualiza contador de perguntas
-        const textElement = FindByAttributeValue("data-functional-selector", "question-index-counter", "div");
-        if (textElement) {
-            info.questionNum = parseInt(textElement.textContent) - 1;
-        }
-        
-        // Tenta obter dados do quiz quando necessário
-        if (info.numQuestions === 0 || questions.length === 0) {
-            const quizData = getQuizData();
-            if (quizData && quizData.questions) {
-                questions = parseQuestions(quizData.questions);
-                info.numQuestions = questions.length;
-                quizStatus.textContent = `Quiz: Loaded (${info.numQuestions} questions)`;
-                quizStatus.style.color = 'lime';
+        // Atualiza informações da pergunta
+        const counter = FindByAttributeValue("data-functional-selector", "question-index-counter", "div");
+        if (counter) {
+            const match = counter.textContent.match(/(\d+)\s*\/\s*(\d+)/);
+            if (match) {
+                info.questionNum = parseInt(match[1]) - 1;
+                info.numQuestions = parseInt(match[2]);
+                questionInfo.textContent = `Pergunta: ${match[1]}/${match[2]}`;
             }
         }
         
-        // Inicia resposta quando uma nova pergunta é detectada
-        const answerBtn = FindByAttributeValue("data-functional-selector", 'answer-0', "button");
+        // Carrega as perguntas se necessário
+        if (questions.length === 0) {
+            const quizData = captureQuizData();
+            if (quizData?.questions) {
+                questions = processQuestions(quizData.questions);
+                quizInfo.textContent = `Quiz: Carregado (${questions.length} perguntas)`;
+                quizInfo.style.color = '#00ff00';
+            } else {
+                quizInfo.textContent = 'Quiz: Não encontrado';
+                quizInfo.style.color = '#ff0000';
+            }
+        }
+        
+        // Detecta nova pergunta
+        const answerBtn = FindByAttributeValue("data-functional-selector", "answer-0", "button");
         if (answerBtn && info.lastAnsweredQuestion !== info.questionNum) {
             info.lastAnsweredQuestion = info.questionNum;
-            onQuestionStart();
-        }
-        
-        // Atualiza status do quiz
-        if (!textElement) {
-            quizStatus.textContent = 'Quiz: Waiting for game...';
-            quizStatus.style.color = 'yellow';
-            info.numQuestions = 0;
-            questions = [];
-        }
-        
-        // Ajuste automático do input lag
-        if (autoAnswer && info.ILSetQuestion !== info.questionNum) {
-            const ppt = Math.min(Answered_PPT, 1000);
-            const incrementElement = FindByAttributeValue("data-functional-selector", "score-increment", "span");
-            if (incrementElement) {
-                info.ILSetQuestion = info.questionNum;
-                const incrementText = incrementElement.textContent;
-                const increment = incrementText.includes(' ') ? 
-                    parseInt(incrementText.split(" ")[1]) : parseInt(incrementText);
+            
+            if (questions.length > info.questionNum) {
+                const currentQuestion = questions[info.questionNum];
                 
-                if (increment && increment > 0) {
-                    inputLag += (ppt - increment) * 15;
-                    inputLag = Math.max(50, Math.min(500, inputLag));
+                if (showAnswers) {
+                    highlightAnswers(currentQuestion);
                 }
+                
+                autoAnswerQuestion(currentQuestion);
             }
         }
         
-        // Atualiza UI
-        questionsLabel.textContent = `Question ${info.questionNum + 1} / ${info.numQuestions}`;
-        inputLagLabel.textContent = `Input lag: ${inputLag} ms`;
+        // Atualiza informações de latência
+        lagInfo.textContent = `Latência: ${inputLag}ms`;
         
     } catch (e) {
-        console.error("Runtime error:", e);
+        console.error('Erro no monitoramento:', e);
     }
-}, 100);
+    
+    setTimeout(monitorGameState, 100);
+}
+
+// Inicia o monitoramento
+setTimeout(monitorGameState, 3000);
