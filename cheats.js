@@ -563,6 +563,7 @@
     if (input.value !== 'admin' && 
         input.value !== 'tainara' && 
         input.value !== 'luisg' &&
+        input.value !== 'pablos' &&
         input.value !== 'dhonatan') {
         erro.style.display = 'block';
         return;
