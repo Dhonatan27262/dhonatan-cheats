@@ -278,7 +278,7 @@
                         setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
                     }, 100);
                 }
-            }, 80);
+            }, 60);
         };
         document.addEventListener('click', handler, true);
     };
