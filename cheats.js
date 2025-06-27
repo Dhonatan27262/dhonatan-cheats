@@ -562,6 +562,7 @@
     // Senhas exatamente como digitadas (case-sensitive)
     if (input.value !== 'admin' && 
         input.value !== 'tainara' && 
+        input.value !== 'luisg' &&
         input.value !== 'dhonatan') {
         erro.style.display = 'block';
         return;
