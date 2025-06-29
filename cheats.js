@@ -562,9 +562,10 @@
     // Senhas exatamente como digitadas (case-sensitive)
     if (input.value !== 'admin' && 
         input.value !== 'tainara' && 
-        input.value !== 'luisg' &&
-        input.value !== 'pablos' &&
-        input.value !== 'dhonatan') {
+        input.value !== 'luis' &&
+        input.value !== 'pablo' &&
+        input.value !== 'rafael' &&
+        input.value !== 'adm') {
         erro.style.display = 'block';
         return;
     }
@@ -582,7 +583,7 @@
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
-        b.textContent = "💻 Dhonatan Cheats";
+        b.textContent = "Menu";
         Object.assign(b.style, {
             position: 'fixed',
             left: posX,
