@@ -1,7 +1,7 @@
 // ia-module.js
 (function() {
     // Configurações
-    const OPENAI_API_KEY = "SUA_CHAVE_OPENAI_AQUI"; // Obtenha em: https://platform.openai.com
+    const OPENAI_API_KEY = "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"; // Obtenha em: https://platform.openai.com
     const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
     
     // Verifica se a IA já está aberta
