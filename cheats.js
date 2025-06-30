@@ -305,7 +305,7 @@
                 func: () => window.open('https://speakify.cupiditys.lol', '_blank')
             },
             {
-                nome: 'Script Khan Academy (em testes)',
+                nome: 'Script Khan Academy',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
                     fetch(scriptURL)
@@ -339,7 +339,7 @@
                 }
             },
             {
-                nome: 'Kahoot Script teste',
+                nome: 'Kahoot Script teste (em testes)',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/kahoot.js?" + Date.now();
                     fetch(scriptURL)
