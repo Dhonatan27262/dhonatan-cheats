@@ -339,9 +339,9 @@
                 }
             },
             {
-                nome: 'ia',
+                nome: 'Futura script',
                 func: () => {
-                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/iaintegrada.js?" + Date.now();
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/nome.js?" + Date.now();
                     fetch(scriptURL)
                         .then(response => response.text())
                         .then(scriptContent => {
@@ -350,7 +350,7 @@
                             document.head.appendChild(script);
 
                             const aviso = document.createElement('div');
-                            aviso.textContent = '✅ ia integrada ativada!';
+                            aviso.textContent = '❌nada ativo pois nao exite script neste repositório!';
                             aplicarEstiloTexto(aviso, '16px');
                             Object.assign(aviso.style, {
                                 position: 'fixed',
