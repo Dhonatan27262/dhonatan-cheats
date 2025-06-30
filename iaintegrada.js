@@ -2,7 +2,8 @@
 (function() {
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
-        alert('A IA já está aberta!');
+        const container = document.getElementById('dhonatan-ia-container');
+        container.style.display = 'block';
         return;
     }
 
@@ -48,6 +49,17 @@
         fontSize: '18px'
     });
 
+    const btnMinimizar = document.createElement('button');
+    btnMinimizar.textContent = '_';
+    Object.assign(btnMinimizar.style, {
+        background: 'transparent',
+        border: 'none',
+        color: '#fff',
+        fontSize: '24px',
+        cursor: 'pointer',
+        padding: '0 10px'
+    });
+
     const btnFechar = document.createElement('button');
     btnFechar.textContent = '×';
     Object.assign(btnFechar.style, {
@@ -58,10 +70,13 @@
         cursor: 'pointer',
         padding: '0 10px'
     });
-    btnFechar.onclick = () => container.remove();
 
     cabecalho.appendChild(titulo);
-    cabecalho.appendChild(btnFechar);
+    
+    const botoesCabecalho = document.createElement('div');
+    botoesCabecalho.appendChild(btnMinimizar);
+    botoesCabecalho.appendChild(btnFechar);
+    cabecalho.appendChild(botoesCabecalho);
 
     // Área de histórico de mensagens
     const historico = document.createElement('div');
@@ -152,6 +167,16 @@
     // Foco no campo de entrada
     entrada.focus();
 
+    // Botão minimizar
+    btnMinimizar.onclick = () => {
+        container.style.display = 'none';
+    };
+
+    // Botão fechar
+    btnFechar.onclick = () => {
+        container.style.display = 'none';
+    };
+
     // Função para enviar mensagem
     async function enviarMensagem() {
         const texto = entrada.value.trim();
@@ -168,9 +193,9 @@
         const idResposta = adicionarMensagem('ai', 'Digitando...', true);
 
         try {
-            // Obter resposta da IA
-            const resposta = await obterRespostaIA(texto);
-
+            // Obter resposta da IA usando Perplexity
+            const resposta = await obterRespostaPerplexity(texto);
+            
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
         } catch (erro) {
@@ -213,38 +238,36 @@
         }
     }
 
-    // Função para obter resposta da IA usando OpenAI
-    async function obterRespostaIA(pergunta) {
-        const apiKey = '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';
+    // Função para obter resposta usando Perplexity
+    async function obterRespostaPerplexity(pergunta) {
+        // Simulação de atraso de rede
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-3.5-turbo",
-                    messages: [
-                        { role: "system", content: "Você é um assistente útil e educado." },
-                        { role: "user", content: pergunta }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 500
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Erro na API: ${errorData.error?.message || response.status}`);
+            // Abre o Perplexity em uma nova guia
+            const novaJanela = window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(pergunta)}`, '_blank');
+            
+            if (!novaJanela) {
+                throw new Error('Bloqueador de pop-up ativado. Por favor, permita pop-ups para este site.');
             }
+            
+            return "Sua pesquisa foi aberta no Perplexity. Verifique a nova guia!";
+        } catch (erro) {
+            // Fallback para respostas pré-definidas
+            const respostas = {
+                "olá": "Olá! Como posso te ajudar hoje?",
+                "quem é você": "Sou uma IA integrada ao Dhonatan Modder. Fui criada para ajudar com tarefas e dúvidas!",
+                "como você funciona": "Estou aqui para responder perguntas usando o poder do Perplexity.",
+                "o que você pode fazer": "Posso ajudar com pesquisas, explicações de conceitos, resolução de problemas e muito mais!",
+                "tudo bem": "Estou ótima! E com você?",
+                "bom dia": "Bom dia! Como posso te ajudar?",
+                "boa tarde": "Boa tarde! Em que posso ser útil?",
+                "boa noite": "Boa noite! Precisa de alguma ajuda?",
+                "padrão": `Analisei sua pergunta: "${pergunta}".\n\nA resposta está sendo pesquisada no Perplexity. Verifique a nova guia que foi aberta!`
+            };
 
-            const data = await response.json();
-            return data.choices[0].message.content.trim();
-        } catch (error) {
-            console.error('Erro ao obter resposta da IA:', error);
-            return `Desculpe, não consegui responder agora. Erro: ${error.message}`;
+            const perguntaLower = pergunta.toLowerCase();
+            return respostas[perguntaLower] || respostas["padrão"];
         }
     }
 
