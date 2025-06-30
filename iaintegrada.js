@@ -1,5 +1,9 @@
 // ia-module.js
 (function() {
+    // Configurações
+    const OPENAI_API_KEY = "SUA_CHAVE_OPENAI_AQUI"; // Obtenha em: https://platform.openai.com
+    const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+    
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
         document.getElementById('dhonatan-ia-container').style.display = 'flex';
@@ -41,7 +45,7 @@
     });
 
     const titulo = document.createElement('div');
-    titulo.textContent = '🤖 IA Premium - DeepSeek';
+    titulo.textContent = '🤖 IA Premium - ChatGPT';
     Object.assign(titulo.style, {
         color: '#fff',
         fontWeight: 'bold',
@@ -92,7 +96,7 @@
 
     // Mensagem inicial da IA
     const msgInicial = document.createElement('div');
-    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA poderosa que usa tecnologia DeepSeek-R1. Posso responder qualquer pergunta em tempo real!';
+    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA com tecnologia ChatGPT. Posso responder qualquer pergunta em tempo real!';
     Object.assign(msgInicial.style, {
         padding: '12px 15px',
         background: 'rgba(60,60,60,0.7)',
@@ -240,11 +244,11 @@
         adicionarMensagem('user', texto);
 
         // Adicionar "digitando..." da IA
-        const idResposta = adicionarMensagem('ai', 'Pesquisando resposta online...', true);
+        const idResposta = adicionarMensagem('ai', 'Digitando...', true);
 
         try {
             // Obter resposta da IA
-            const resposta = await obterRespostaOnline(texto);
+            const resposta = await obterRespostaOpenAI(texto);
             
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
@@ -309,18 +313,17 @@
         }
     }
 
-    // Função para obter resposta online usando DeepSeek-R1
-    async function obterRespostaOnline(pergunta) {
+    // Função para obter resposta da OpenAI
+    async function obterRespostaOpenAI(pergunta) {
         try {
-            // Usa a API pública do DeepSeek-R1
-            const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-                method: "POST",
+            const response = await fetch(OPENAI_API_URL, {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer sk-0b7d9c51d99d4d1d8b0c5b3e3c6b9a5d" // Chave pública funcional
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: "deepseek-chat",
+                    model: "gpt-3.5-turbo",
                     messages: [
                         {
                             role: "system",
@@ -337,19 +340,20 @@
             });
 
             if (!response.ok) {
-                throw new Error(`Erro na API: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `Erro na API: ${response.status}`);
             }
 
             const data = await response.json();
             
-            // Extrai a resposta do JSON
+            // Verifica se a resposta tem a estrutura esperada
             if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-                return data.choices[0].message.content;
+                return data.choices[0].message.content.trim();
             } else {
-                throw new Error("Resposta em formato inesperado");
+                throw new Error('Resposta da API em formato inesperado');
             }
         } catch (erro) {
-            console.error("Erro na API:", erro);
+            console.error('Erro completo:', erro);
             
             // Fallback para respostas locais se a API falhar
             return obterRespostaLocal(pergunta);
@@ -368,13 +372,15 @@
             "boa noite": "Boa noite! Precisa de alguma assistência?",
             "quem é você": "Sou a IA do Dhonatan Modder, criada para ajudar você com qualquer dúvida!",
             "o que você faz": "Posso responder perguntas, explicar conceitos, ajudar com estudos e muito mais!",
-            "github é gratuito": "Sim, o GitHub oferece planos gratuitos com repositórios públicos ilimitados. Para recursos avançados, há planos pagos.",
+            "github é gratuito": "Sim, o GitHub oferece planos gratuitos com repositórios públicos ilimitados.",
             "como criar uma conta github": "1. Acesse github.com\n2. Clique em 'Sign up'\n3. Preencha seus dados\n4. Verifique seu email\n5. Comece a usar!",
-            "o que é html": "HTML é a linguagem de marcação padrão para criar páginas web. É a estrutura básica de todo site.",
-            "o que é css": "CSS é uma linguagem de estilo usada para descrever a apresentação de documentos HTML.",
-            "o que é javascript": "JavaScript é uma linguagem de programação que permite implementar funcionalidades complexas em páginas web.",
+            "o que é html": "HTML é a linguagem de marcação padrão para criar páginas web.",
+            "o que é css": "CSS é uma linguagem de estilo usada para estilizar elementos HTML.",
+            "o que é javascript": "JavaScript é uma linguagem de programação para adicionar interatividade a páginas web.",
             "quanto é 2 mais 2": "2 + 2 = 4",
-            "padrão": `Sua pergunta: "${pergunta}"\n\nEstou processando sua consulta. Enquanto isso, que tal explorar:\n- Conceitos básicos\n- Exemplos práticos\n- Aplicações no mundo real\n\nSe preferir, posso pesquisar mais detalhes!`
+            "quanto é 5 vezes 3": "5 × 3 = 15",
+            "raiz quadrada de 16": "√16 = 4",
+            "padrão": `Sua pergunta: "${pergunta}"\n\nEstou sem conexão com a API. Recursos úteis:\n- Documentação oficial\n- Tutoriais online\n- Comunidades de suporte`
         };
 
         // Busca por correspondência exata
@@ -384,16 +390,16 @@
         
         // Busca por palavras-chave
         const palavrasChave = {
-            "github": "GitHub é uma plataforma de hospedagem de código para controle de versão e colaboração.",
-            "html": "HTML (HyperText Markup Language) é a base de toda página web, definindo sua estrutura.",
-            "css": "CSS (Cascading Style Sheets) controla a apresentação visual de elementos HTML.",
-            "javascript": "JavaScript é a linguagem de programação da web, responsável por comportamentos dinâmicos.",
-            "programação": "Programação é o processo de escrever instruções para computadores executarem tarefas específicas.",
-            "python": "Python é uma linguagem de programação popular para web, dados e automação.",
-            "site": "Para criar um site você precisa de HTML (estrutura), CSS (estilo) e JavaScript (comportamento).",
-            "aplicativo": "Aplicativos podem ser nativos (Android/iOS) ou híbridos (React Native/Flutter).",
+            "github": "GitHub é uma plataforma para hospedagem de código e colaboração.",
+            "html": "HTML define a estrutura das páginas web.",
+            "css": "CSS controla a aparência visual dos elementos HTML.",
+            "javascript": "JavaScript permite criar comportamentos dinâmicos em páginas web.",
+            "programação": "Programação envolve escrever instruções para computadores executarem tarefas.",
+            "python": "Python é uma linguagem de programação popular para diversos usos.",
+            "site": "Para criar um site são necessários HTML, CSS e JavaScript.",
+            "aplicativo": "Aplicativos podem ser desenvolvidos para diversas plataformas.",
             "soma": "Para somar números, basta adicioná-los. Exemplo: 2 + 2 = 4",
-            "multiplicação": "Multiplicação é uma operação de adição repetida. Exemplo: 3 × 4 = 12"
+            "multiplicação": "Multiplicação é uma operação matemática de adição repetida."
         };
 
         // Verifica por palavras-chave
