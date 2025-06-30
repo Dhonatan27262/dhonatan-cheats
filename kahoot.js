@@ -1,448 +1,312 @@
 // ==UserScript==
-// @name         KaHack! Ultra
-// @version      2.0.0
-// @namespace    https://github.com/jokeri2222
-// @description  Hack avançado para Kahoot online/offline
-// @author       jokeri2222
+// @name         Kahoot Autoplayer
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Responde automaticamente as perguntas no Kahoot
+// @author       Santos.Mec996
 // @match        https://kahoot.it/*
-// @grant        none
-// @run-at       document-end
+// @grant        GM_addStyle
 // ==/UserScript==
 
-var Version = '2.0.0';
-var questions = [];
-var info = {
-    numQuestions: 0,
-    questionNum: -1,
-    lastAnsweredQuestion: -1,
-    defaultIL: true,
-    ILSetQuestion: -1,
-};
-var PPT = 950;
-var Answered_PPT = 950;
-var autoAnswer = false;
-var showAnswers = false;
-var inputLag = 100;
-var quizLoaded = false;
-
-// Função para encontrar elementos por atributo (com timeout)
-function FindByAttributeValue(attribute, value, element_type, timeout = 3000) {
-    return new Promise((resolve) => {
-        element_type = element_type || "*";
-        const startTime = Date.now();
+(function() {
+    'use strict';
+    
+    // Configurações
+    const config = {
+        autoAnswer: true,
+        delay: 1500,
+        theme: 'dark'
+    };
+    
+    // Elementos da UI
+    let floatingMenu;
+    let statusIndicator;
+    
+    // Criar menu flutuante
+    function createFloatingMenu() {
+        floatingMenu = document.createElement('div');
+        floatingMenu.id = 'kahoot-autoplayer-menu';
+        floatingMenu.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: ${config.theme === 'dark' ? 'rgba(0, 0, 0, 0.85)' : 'rgba(255, 255, 255, 0.9)'};
+            border: 2px solid #ff5500;
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 9999;
+            color: ${config.theme === 'dark' ? 'white' : '#333'};
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, opacity 0.3s;
+        `;
         
-        const check = () => {
-            const elements = document.getElementsByTagName(element_type);
-            for (let i = 0; i < elements.length; i++) {
-                if (elements[i].getAttribute(attribute) === value) {
-                    resolve(elements[i]);
-                    return;
-                }
-            }
-            
-            if (Date.now() - startTime < timeout) {
-                setTimeout(check, 100);
-            } else {
-                resolve(null);
-            }
-        };
+        // Título
+        const title = document.createElement('div');
+        title.textContent = 'Kahoot Autoplayer';
+        title.style.cssText = `
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #ff9900;
+        `;
+        floatingMenu.appendChild(title);
         
-        check();
-    });
-}
-
-// Criação da interface
-const uiElement = document.createElement('div');
-uiElement.id = 'kahack-ultra-ui';
-uiElement.style.position = 'fixed';
-uiElement.style.top = '20px';
-uiElement.style.left = '20px';
-uiElement.style.width = '300px';
-uiElement.style.backgroundColor = '#381272';
-uiElement.style.borderRadius = '10px';
-uiElement.style.boxShadow = '0px 0px 10px 0px rgba(0,0,0,0.5)';
-uiElement.style.zIndex = '9999';
-uiElement.style.fontFamily = 'Arial, sans-serif';
-uiElement.style.color = 'white';
-uiElement.style.padding = '15px';
-uiElement.style.boxSizing = 'border-box';
-
-// Cabeçalho
-const header = document.createElement('h2');
-header.textContent = `KaHack! Ultra ${Version}`;
-header.style.marginTop = '0';
-header.style.textAlign = 'center';
-uiElement.appendChild(header);
-
-// Controles de Pontos
-const pointsContainer = document.createElement('div');
-pointsContainer.style.marginBottom = '15px';
-
-const pointsLabel = document.createElement('label');
-pointsLabel.textContent = 'Pontos por pergunta:';
-pointsLabel.style.display = 'block';
-pointsLabel.style.marginBottom = '5px';
-pointsContainer.appendChild(pointsLabel);
-
-const pointsSlider = document.createElement('input');
-pointsSlider.type = 'range';
-pointsSlider.min = '500';
-pointsSlider.max = '1000';
-pointsSlider.value = '950';
-pointsSlider.style.width = '100%';
-pointsSlider.style.marginBottom = '10px';
-pointsContainer.appendChild(pointsSlider);
-
-const pointsValue = document.createElement('div');
-pointsValue.textContent = 'Valor: 950';
-pointsValue.style.textAlign = 'center';
-pointsValue.style.fontSize = '14px';
-pointsContainer.appendChild(pointsValue);
-
-uiElement.appendChild(pointsContainer);
-
-// Controles de Resposta Automática
-const autoContainer = document.createElement('div');
-autoContainer.style.marginBottom = '15px';
-autoContainer.style.display = 'flex';
-autoContainer.style.justifyContent = 'space-between';
-autoContainer.style.alignItems = 'center';
-
-const autoLabel = document.createElement('label');
-autoLabel.textContent = 'Resposta Automática:';
-autoLabel.style.marginRight = '10px';
-autoContainer.appendChild(autoLabel);
-
-const autoToggle = document.createElement('input');
-autoToggle.type = 'checkbox';
-autoToggle.style.transform = 'scale(1.5)';
-autoContainer.appendChild(autoToggle);
-
-uiElement.appendChild(autoContainer);
-
-// Controles de Mostrar Respostas
-const showContainer = document.createElement('div');
-showContainer.style.marginBottom = '15px';
-showContainer.style.display = 'flex';
-showContainer.style.justifyContent = 'space-between';
-showContainer.style.alignItems = 'center';
-
-const showLabel = document.createElement('label');
-showLabel.textContent = 'Mostrar Respostas:';
-showLabel.style.marginRight = '10px';
-showContainer.appendChild(showLabel);
-
-const showToggle = document.createElement('input');
-showToggle.type = 'checkbox';
-showToggle.style.transform = 'scale(1.5)';
-showContainer.appendChild(showToggle);
-
-uiElement.appendChild(showContainer);
-
-// Informações do Quiz
-const infoContainer = document.createElement('div');
-infoContainer.style.borderTop = '1px solid #555';
-infoContainer.style.paddingTop = '15px';
-
-const quizInfo = document.createElement('div');
-quizInfo.textContent = 'Quiz: Aguardando...';
-quizInfo.style.marginBottom = '10px';
-quizInfo.style.color = 'yellow';
-infoContainer.appendChild(quizInfo);
-
-const questionInfo = document.createElement('div');
-questionInfo.textContent = 'Pergunta: 0/0';
-questionInfo.style.marginBottom = '5px';
-infoContainer.appendChild(questionInfo);
-
-const lagInfo = document.createElement('div');
-lagInfo.textContent = 'Latência: 100ms';
-infoContainer.appendChild(lagInfo);
-
-uiElement.appendChild(infoContainer);
-
-// Botão de fechar
-const closeBtn = document.createElement('button');
-closeBtn.textContent = 'Fechar';
-closeBtn.style.display = 'block';
-closeBtn.style.margin = '15px auto 0';
-closeBtn.style.padding = '5px 15px';
-closeBtn.style.backgroundColor = '#ff4444';
-closeBtn.style.border = 'none';
-closeBtn.style.borderRadius = '5px';
-closeBtn.style.color = 'white';
-closeBtn.style.cursor = 'pointer';
-uiElement.appendChild(closeBtn);
-
-// Adiciona ao documento
-document.body.appendChild(uiElement);
-
-// Event Listeners
-pointsSlider.addEventListener('input', () => {
-    PPT = +pointsSlider.value;
-    pointsValue.textContent = `Valor: ${PPT}`;
-});
-
-autoToggle.addEventListener('change', () => {
-    autoAnswer = autoToggle.checked;
-});
-
-showToggle.addEventListener('change', () => {
-    showAnswers = showToggle.checked;
-});
-
-closeBtn.addEventListener('click', () => {
-    document.body.removeChild(uiElement);
-});
-
-// Sistema de captura de dados aprimorado
-async function captureQuizData() {
-    // Tenta métodos diferentes até conseguir
-    const methods = [
-        captureFromWindowObject,
-        captureFromVueStore,
-        captureFromScriptTags,
-        captureFromBlob
-    ];
-
-    for (const method of methods) {
-        try {
-            const data = await method();
-            if (data) {
-                return data;
-            }
-        } catch (e) {
-            console.warn(`Método ${method.name} falhou:`, e);
-        }
-    }
-    return null;
-}
-
-// Método 1: Captura do objeto window
-async function captureFromWindowObject() {
-    return new Promise((resolve) => {
-        if (window.kahoot?.game?.quiz?.questions) {
-            resolve({
-                questions: window.kahoot.game.quiz.questions,
-                kahootId: window.kahoot.game.quiz.kahootId
-            });
-        } else {
-            resolve(null);
-        }
-    });
-}
-
-// Método 2: Captura do Vue Store
-async function captureFromVueStore() {
-    return new Promise((resolve) => {
-        const rootElement = document.getElementById('root');
-        if (rootElement && rootElement.__vue_app__) {
-            const store = rootElement.__vue_app__._context.provides.$store;
-            if (store?.state?.quiz?.questions) {
-                resolve({
-                    questions: store.state.quiz.questions,
-                    kahootId: store.state.quiz.kahootId
-                });
-            }
-        }
-        resolve(null);
-    });
-}
-
-// Método 3: Captura de script tags
-async function captureFromScriptTags() {
-    return new Promise((resolve) => {
-        const scripts = Array.from(document.querySelectorAll('script'));
-        for (const script of scripts) {
-            if (script.textContent.includes('window.Kahoot')) {
-                const regex = /window\.Kahoot\.startGame\s*\(\s*({.*?})\s*\)/s;
-                const match = script.textContent.match(regex);
-                if (match && match[1]) {
-                    try {
-                        resolve(JSON.parse(match[1]));
-                    } catch (e) {
-                        console.error('Erro no parse JSON:', e);
-                    }
-                }
-            }
-        }
-        resolve(null);
-    });
-}
-
-// Método 4: Captura de blob (novo método Kahoot 2024)
-async function captureFromBlob() {
-    return new Promise((resolve) => {
-        const scripts = Array.from(document.querySelectorAll('script[src^="blob:"]'));
-        if (scripts.length === 0) resolve(null);
+        // Status
+        const statusContainer = document.createElement('div');
+        statusContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        `;
         
-        const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeName === 'SCRIPT' && node.src.startsWith('blob:')) {
-                        const content = node.textContent;
-                        if (content.includes('quiz:')) {
-                            const regex = /quiz:\s*({.*?}),/s;
-                            const match = content.match(regex);
-                            if (match && match[1]) {
-                                try {
-                                    const quizData = JSON.parse(match[1]);
-                                    resolve({
-                                        questions: quizData.questions,
-                                        kahootId: quizData.kahootId
-                                    });
-                                } catch (e) {
-                                    console.error('Erro no parse blob:', e);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        const statusLabel = document.createElement('span');
+        statusLabel.textContent = 'Status: ';
+        statusLabel.style.marginRight = '10px';
+        
+        statusIndicator = document.createElement('span');
+        statusIndicator.textContent = config.autoAnswer ? 'Ativo' : 'Inativo';
+        statusIndicator.style.color = config.autoAnswer ? '#4CAF50' : '#F44336';
+        statusIndicator.style.fontWeight = 'bold';
+        
+        statusContainer.appendChild(statusLabel);
+        statusContainer.appendChild(statusIndicator);
+        floatingMenu.appendChild(statusContainer);
+        
+        // Botão de toggle
+        const toggleButton = document.createElement('button');
+        toggleButton.textContent = config.autoAnswer ? 'Desativar' : 'Ativar';
+        toggleButton.style.cssText = `
+            background: ${config.autoAnswer ? '#f44336' : '#4CAF50'};
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s;
+        `;
+        toggleButton.addEventListener('click', toggleAutoAnswer);
+        floatingMenu.appendChild(toggleButton);
+        
+        // Configurações avançadas
+        const advancedSettings = document.createElement('div');
+        advancedSettings.style.marginTop = '15px';
+        
+        const delayLabel = document.createElement('label');
+        delayLabel.textContent = 'Atraso (ms): ';
+        delayLabel.style.display = 'block';
+        delayLabel.style.marginBottom = '5px';
+        
+        const delayInput = document.createElement('input');
+        delayInput.type = 'number';
+        delayInput.value = config.delay;
+        delayInput.min = 500;
+        delayInput.max = 5000;
+        delayInput.style.cssText = `
+            width: 100%;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: ${config.theme === 'dark' ? '#333' : '#fff'};
+            color: ${config.theme === 'dark' ? 'white' : '#333'};
+        `;
+        delayInput.addEventListener('change', (e) => {
+            config.delay = parseInt(e.target.value);
         });
         
-        observer.observe(document.documentElement, {
+        advancedSettings.appendChild(delayLabel);
+        advancedSettings.appendChild(delayInput);
+        floatingMenu.appendChild(advancedSettings);
+        
+        // Créditos
+        const credits = document.createElement('div');
+        credits.innerHTML = 'Desenvolvido por <b>Santos.Mec996</b>';
+        credits.style.cssText = `
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            opacity: 0.7;
+        `;
+        floatingMenu.appendChild(credits);
+        
+        document.body.appendChild(floatingMenu);
+        
+        // Efeitos de arrastar
+        makeDraggable(floatingMenu);
+    }
+    
+    // Função para alternar o modo de resposta automática
+    function toggleAutoAnswer() {
+        config.autoAnswer = !config.autoAnswer;
+        statusIndicator.textContent = config.autoAnswer ? 'Ativo' : 'Inativo';
+        statusIndicator.style.color = config.autoAnswer ? '#4CAF50' : '#F44336';
+        this.textContent = config.autoAnswer ? 'Desativar' : 'Ativar';
+        this.style.background = config.autoAnswer ? '#f44336' : '#4CAF50';
+        
+        if (config.autoAnswer) {
+            // Se ativou, tenta responder a pergunta atual imediatamente
+            setTimeout(() => tryAnswerQuestion(), 100);
+        }
+    }
+    
+    // Função para detectar e responder perguntas
+    function tryAnswerQuestion() {
+        if (!config.autoAnswer) return;
+        
+        // Aguarda um pouco para garantir que a pergunta foi carregada
+        setTimeout(() => {
+            // Encontra o container das respostas
+            const choicesContainer = document.querySelector('main div.choices-container');
+            if (!choicesContainer) return;
+            
+            // Procura pela resposta correta (elemento com a borda verde)
+            const choices = choicesContainer.querySelectorAll('button.choice');
+            let correctChoice = null;
+            
+            choices.forEach(choice => {
+                // Verifica o estilo (a resposta correta tem uma borda verde)
+                if (choice.style.borderColor === 'rgb(79, 227, 74)') {
+                    correctChoice = choice;
+                }
+            });
+            
+            // Se encontrou, clica
+            if (correctChoice) {
+                correctChoice.click();
+                showSuccessMessage();
+            } else {
+                // Se não encontrou, tenta novamente depois de um tempo
+                setTimeout(tryAnswerQuestion, 500);
+            }
+        }, config.delay);
+    }
+    
+    // Mostrar mensagem de sucesso
+    function showSuccessMessage() {
+        const existingMessage = document.querySelector('.kahoot-autoplayer-message');
+        if (existingMessage) existingMessage.remove();
+        
+        const message = document.createElement('div');
+        message.textContent = '✓ Resposta selecionada!';
+        message.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            z-index: 10000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: fadeInOut 3s forwards;
+        `;
+        
+        document.body.appendChild(message);
+        
+        // Remover após 3 segundos
+        setTimeout(() => {
+            message.style.animation = 'fadeOut 0.5s forwards';
+            setTimeout(() => message.remove(), 500);
+        }, 2500);
+    }
+    
+    // Função para tornar elemento arrastável
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Obter posição do mouse
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Calcular nova posição
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Definir nova posição
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+        
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+    
+    // Observar mudanças na página
+    function setupObserver() {
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.addedNodes.length) {
+                    // Verifica se uma nova pergunta foi carregada
+                    const questionScreen = document.querySelector('div.question-header__wrapper');
+                    if (questionScreen && config.autoAnswer) {
+                        tryAnswerQuestion();
+                    }
+                }
+            });
+        });
+        
+        observer.observe(document.body, {
             childList: true,
             subtree: true
         });
+    }
+    
+    // Adicionar estilos customizados
+    GM_addStyle(`
+        @keyframes fadeInOut {
+            0% { opacity: 0; top: 10px; }
+            20% { opacity: 1; top: 20px; }
+            80% { opacity: 1; top: 20px; }
+            100% { opacity: 0; top: 10px; }
+        }
         
-        // Timeout para não ficar esperando para sempre
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+        
+        .kahoot-autoplayer-message {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    `);
+    
+    // Inicialização
+    function init() {
+        createFloatingMenu();
+        setupObserver();
+        
+        // Tentar responder a primeira pergunta se já estiver em uma
         setTimeout(() => {
-            observer.disconnect();
-            resolve(null);
-        }, 5000);
-    });
-}
-
-// Processa as perguntas
-function processQuestions(rawQuestions) {
-    return rawQuestions.map(question => {
-        const processed = {
-            type: question.type,
-            time: question.time
-        };
-        
-        if (['quiz', 'multiple_select_quiz'].includes(question.type)) {
-            processed.answers = [];
-            processed.incorrectAnswers = [];
-            
-            question.choices.forEach((choice, index) => {
-                if (choice.correct) {
-                    processed.answers.push(index);
-                } else {
-                    processed.incorrectAnswers.push(index);
-                }
-            });
-        }
-        
-        return processed;
-    });
-}
-
-// Destaca respostas na tela
-async function highlightAnswers(question) {
-    if (!question) return;
-    
-    for (const index of question.answers) {
-        const btn = await FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
-        if (btn) {
-            btn.style.backgroundColor = '#00ff00';
-            btn.style.borderColor = '#00ff00';
-        }
+            if (config.autoAnswer) {
+                tryAnswerQuestion();
+            }
+        }, 3000);
     }
     
-    if (question.incorrectAnswers) {
-        for (const index of question.incorrectAnswers) {
-            const btn = await FindByAttributeValue("data-functional-selector", `answer-${index}`, "button");
-            if (btn) {
-                btn.style.backgroundColor = '#ff0000';
-                btn.style.borderColor = '#ff0000';
-            }
-        }
+    // Iniciar quando a página estiver carregada
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(init, 1);
+    } else {
+        document.addEventListener('DOMContentLoaded', init);
     }
-}
-
-// Responde automaticamente
-async function autoAnswerQuestion(question) {
-    if (!question || !autoAnswer) return;
-    
-    const answerTime = Math.max(500, question.time * 0.8 - inputLag);
-    
-    setTimeout(async () => {
-        if (question.type === 'quiz' && question.answers.length > 0) {
-            const key = (question.answers[0] + 1).toString();
-            window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-        }
-        else if (question.type === 'multiple_select_quiz') {
-            for (const answer of question.answers) {
-                const key = (answer + 1).toString();
-                window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-            }
-            
-            setTimeout(async () => {
-                const submitBtn = await FindByAttributeValue("data-functional-selector", "multi-select-submit-button", "button");
-                if (submitBtn) submitBtn.click();
-            }, 100);
-        }
-    }, answerTime);
-}
-
-// Sistema de monitoramento de estado
-async function monitorGameState() {
-    try {
-        // Atualiza contador de perguntas
-        const counter = await FindByAttributeValue("data-functional-selector", "question-index-counter", "div");
-        if (counter) {
-            const text = counter.innerText || counter.textContent;
-            const match = text.match(/(\d+)\s*\/\s*(\d+)/);
-            if (match) {
-                info.questionNum = parseInt(match[1]) - 1;
-                info.numQuestions = parseInt(match[2]);
-                questionInfo.textContent = `Pergunta: ${match[1]}/${match[2]}`;
-            }
-        }
-        
-        // Carrega o quiz se ainda não carregado
-        if (!quizLoaded && questions.length === 0) {
-            quizInfo.textContent = 'Quiz: Carregando...';
-            const quizData = await captureQuizData();
-            
-            if (quizData?.questions) {
-                questions = processQuestions(quizData.questions);
-                quizInfo.textContent = `Quiz: Carregado (${questions.length} perguntas)`;
-                quizInfo.style.color = '#00ff00';
-                quizLoaded = true;
-            } else {
-                quizInfo.textContent = 'Quiz: Não encontrado';
-                quizInfo.style.color = '#ff0000';
-            }
-        }
-        
-        // Detecta nova pergunta
-        const answerBtn = await FindByAttributeValue("data-functional-selector", "answer-0", "button");
-        if (answerBtn && info.lastAnsweredQuestion !== info.questionNum) {
-            info.lastAnsweredQuestion = info.questionNum;
-            
-            if (questions.length > info.questionNum) {
-                const currentQuestion = questions[info.questionNum];
-                
-                if (showAnswers) {
-                    highlightAnswers(currentQuestion);
-                }
-                
-                autoAnswerQuestion(currentQuestion);
-            }
-        }
-        
-        // Atualiza latência
-        lagInfo.textContent = `Latência: ${inputLag}ms`;
-        
-    } catch (e) {
-        console.error('Erro no monitorGameState:', e);
-    } finally {
-        setTimeout(monitorGameState, 500);
-    }
-}
-
-// Inicia o monitoramento
-monitorGameState();
+})();
