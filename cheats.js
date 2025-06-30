@@ -595,7 +595,7 @@
             zIndex: '999999',
             fontWeight: 'bold',
             userSelect: 'none',
-            color: '#000',
+            color: '#fff',
             boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
             transition: 'all 0.3s ease'
         });
