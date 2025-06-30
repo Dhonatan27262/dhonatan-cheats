@@ -1,5 +1,5 @@
 let loadedPlugins = [];
-let videoExploitEnabled = true; // Estado inicial do exploit
+let videoExploitEnabled = true; // Estado inicial do exploit de vídeo
 
 console.clear();
 const noop = () => {};
@@ -204,7 +204,7 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(speedControl);
   
-  // NOVO: Switch para ligar/desligar exploit de vídeo
+  // Switch para exploit de vídeo
   const exploitOption = document.createElement('div');
   exploitOption.style.cssText = `
     display: flex;
@@ -243,7 +243,7 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(exploitOption);
   
-  // NOVO: Botão para esconder o menu
+  // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
   hideMenuOption.style.cssText = `
     display: flex;
@@ -311,7 +311,7 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
-  // NOVO: Alternar exploit de vídeo
+  // Alternar exploit de vídeo
   exploitOption.addEventListener('click', () => {
     videoExploitEnabled = !videoExploitEnabled;
     
@@ -329,7 +329,7 @@ function createFloatingMenu() {
     }
   });
   
-  // NOVO: Esconder o menu
+  // Esconder o menu
   hideMenuOption.addEventListener('click', () => {
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
@@ -518,40 +518,41 @@ function createFloatingMenu() {
 function setupMain() {
   const originalFetch = window.fetch;
 
+  // Função para manipular requisições de vídeo
   window.fetch = async function(input, init) {
-    // Verificar se o exploit está desativado
-    if (!videoExploitEnabled) {
-      return originalFetch.apply(this, arguments);
-    }
+    // Verificar se o exploit de vídeo está ativado
+    if (videoExploitEnabled) {
+      let body;
+      if (input instanceof Request) {
+        body = await input.clone().text();
+      } else if (init?.body) {
+        body = init.body;
+      }
 
-    let body;
-    if (input instanceof Request) {
-      body = await input.clone().text();
-    } else if (init?.body) {
-      body = init.body;
-    }
-
-    if (body?.includes('"operationName":"updateUserVideoProgress"')) {
-      try {
-        let bodyObj = JSON.parse(body);
-        if (bodyObj.variables?.input) {
-          const durationSeconds = bodyObj.variables.input.durationSeconds;
-          bodyObj.variables.input.secondsWatched = durationSeconds;
-          bodyObj.variables.input.lastSecondWatched = durationSeconds;
-          body = JSON.stringify(bodyObj);
-          
-          if (input instanceof Request) {
-            input = new Request(input, { body });
-          } else {
-            init.body = body;
+      if (body?.includes('"operationName":"updateUserVideoProgress"')) {
+        try {
+          let bodyObj = JSON.parse(body);
+          if (bodyObj.variables?.input) {
+            const durationSeconds = bodyObj.variables.input.durationSeconds;
+            bodyObj.variables.input.secondsWatched = durationSeconds;
+            bodyObj.variables.input.lastSecondWatched = durationSeconds;
+            body = JSON.stringify(bodyObj);
+            
+            if (input instanceof Request) {
+              input = new Request(input, { body });
+            } else {
+              init.body = body;
+            }
+            sendToast("🔄｜Vídeo exploitado.", 1000);
           }
-          sendToast("🔄｜Vídeo exploitado.", 1000);
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
     }
 
     const originalResponse = await originalFetch.apply(this, arguments);
 
+    // Esta parte (modificação de exercícios) SEMPRE será executada
+    // independente do estado do exploit de vídeo
     try {
       const clonedResponse = originalResponse.clone();
       const responseBody = await clonedResponse.text();
@@ -593,6 +594,7 @@ function setupMain() {
     return originalResponse;
   };
 
+  // Loop de resolução de exercícios - SEMPRE ativo
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
@@ -605,12 +607,6 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
-      // Verificar se o exploit está ativo
-      if (!videoExploitEnabled) {
-        await delay(2000);
-        continue;
-      }
-      
       for (const selector of selectors) {
         findAndClickBySelector(selector);
         const element = document.querySelector(`${selector}> div`);
