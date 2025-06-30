@@ -2,8 +2,7 @@
 (function() {
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
-        const container = document.getElementById('dhonatan-ia-container');
-        container.style.display = 'block';
+        document.getElementById('dhonatan-ia-container').style.display = 'flex';
         return;
     }
 
@@ -57,7 +56,8 @@
         color: '#fff',
         fontSize: '24px',
         cursor: 'pointer',
-        padding: '0 10px'
+        padding: '0 10px',
+        marginRight: '10px'
     });
 
     const btnFechar = document.createElement('button');
@@ -92,7 +92,7 @@
 
     // Mensagem inicial da IA
     const msgInicial = document.createElement('div');
-    msgInicial.textContent = 'Olá! Sou a IA do Dhonatan Modder. Como posso te ajudar hoje?';
+    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou sua assistente pessoal. Como posso te ajudar hoje?';
     Object.assign(msgInicial.style, {
         padding: '12px 15px',
         background: 'rgba(60,60,60,0.7)',
@@ -170,12 +170,49 @@
     // Botão minimizar
     btnMinimizar.onclick = () => {
         container.style.display = 'none';
+        criarBotaoFlutuante();
     };
 
     // Botão fechar
     btnFechar.onclick = () => {
         container.style.display = 'none';
+        criarBotaoFlutuante();
     };
+
+    // Função para criar botão flutuante para reabrir IA
+    function criarBotaoFlutuante() {
+        // Remove botão existente se houver
+        const botaoExistente = document.getElementById('dhonatan-ia-flutuante');
+        if (botaoExistente) botaoExistente.remove();
+        
+        const botao = document.createElement('div');
+        botao.id = 'dhonatan-ia-flutuante';
+        botao.innerHTML = '🤖';
+        Object.assign(botao.style, {
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '50px',
+            height: '50px',
+            background: 'linear-gradient(135deg, #00b4db, #0083b0)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '24px',
+            cursor: 'pointer',
+            zIndex: '999999',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+            color: '#fff'
+        });
+        
+        botao.onclick = () => {
+            container.style.display = 'flex';
+            botao.remove();
+        };
+        
+        document.body.appendChild(botao);
+    }
 
     // Função para enviar mensagem
     async function enviarMensagem() {
@@ -193,13 +230,13 @@
         const idResposta = adicionarMensagem('ai', 'Digitando...', true);
 
         try {
-            // Obter resposta da IA usando Perplexity
-            const resposta = await obterRespostaPerplexity(texto);
+            // Obter resposta da IA
+            const resposta = await obterRespostaIA(texto);
             
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
         } catch (erro) {
-            atualizarMensagem(idResposta, `Erro: ${erro.message}`);
+            atualizarMensagem(idResposta, `Desculpe, ocorreu um erro: ${erro.message}`);
         }
     }
 
@@ -222,7 +259,22 @@
             border: remetente === 'ai' ? '1px solid rgba(255,255,255,0.1)' : 'none'
         });
 
-        msgDiv.textContent = texto;
+        // Formata mensagens da IA com título em negrito
+        if (remetente === 'ai') {
+            const titulo = document.createElement('strong');
+            titulo.textContent = 'IA do Dhonatan Modder\n';
+            titulo.style.color = '#00b4db';
+            
+            const conteudo = document.createElement('span');
+            conteudo.textContent = texto;
+            
+            msgDiv.innerHTML = '';
+            msgDiv.appendChild(titulo);
+            msgDiv.appendChild(conteudo);
+        } else {
+            msgDiv.textContent = texto;
+        }
+        
         historico.appendChild(msgDiv);
         historico.scrollTop = historico.scrollHeight;
 
@@ -233,42 +285,120 @@
     function atualizarMensagem(id, novoTexto) {
         const msgDiv = document.getElementById(id);
         if (msgDiv) {
-            msgDiv.textContent = novoTexto;
+            // Mantém o título e atualiza apenas o conteúdo
+            const titulo = msgDiv.querySelector('strong');
+            const conteudo = msgDiv.querySelector('span');
+            
+            if (titulo && conteudo) {
+                conteudo.textContent = novoTexto;
+            } else {
+                msgDiv.innerHTML = `<strong style="color:#00b4db">IA do Dhonatan Modder</strong><br>${novoTexto}`;
+            }
+            
             historico.scrollTop = historico.scrollHeight;
         }
     }
 
-    // Função para obter resposta usando Perplexity
-    async function obterRespostaPerplexity(pergunta) {
-        // Simulação de atraso de rede
-        await new Promise(resolve => setTimeout(resolve, 1500));
+    // Função para obter resposta da IA
+    async function obterRespostaIA(pergunta) {
+        // Simula tempo de processamento
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
         
-        try {
-            // Abre o Perplexity em uma nova guia
-            const novaJanela = window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(pergunta)}`, '_blank');
-            
-            if (!novaJanela) {
-                throw new Error('Bloqueador de pop-up ativado. Por favor, permita pop-ups para este site.');
-            }
-            
-            return "Sua pesquisa foi aberta no Perplexity. Verifique a nova guia!";
-        } catch (erro) {
-            // Fallback para respostas pré-definidas
-            const respostas = {
-                "olá": "Olá! Como posso te ajudar hoje?",
-                "quem é você": "Sou uma IA integrada ao Dhonatan Modder. Fui criada para ajudar com tarefas e dúvidas!",
-                "como você funciona": "Estou aqui para responder perguntas usando o poder do Perplexity.",
-                "o que você pode fazer": "Posso ajudar com pesquisas, explicações de conceitos, resolução de problemas e muito mais!",
-                "tudo bem": "Estou ótima! E com você?",
-                "bom dia": "Bom dia! Como posso te ajudar?",
-                "boa tarde": "Boa tarde! Em que posso ser útil?",
-                "boa noite": "Boa noite! Precisa de alguma ajuda?",
-                "padrão": `Analisei sua pergunta: "${pergunta}".\n\nA resposta está sendo pesquisada no Perplexity. Verifique a nova guia que foi aberta!`
-            };
+        // Sistema de respostas inteligentes
+        const resposta = gerarRespostaInteligente(pergunta);
+        return resposta;
+    }
 
-            const perguntaLower = pergunta.toLowerCase();
-            return respostas[perguntaLower] || respostas["padrão"];
+    // Gerador de respostas inteligentes
+    function gerarRespostaInteligente(pergunta) {
+        pergunta = pergunta.toLowerCase();
+        
+        // Dicionário de respostas
+        const respostas = {
+            cumprimentos: ["Olá! Como posso te ajudar?", "Oi! Em que posso ser útil?", "Olá! O que você gostaria de saber?"],
+            como_voce_esta: ["Estou ótima, obrigada! E você?", "Funcionando perfeitamente! E com você?", "Tudo bem por aqui! Como você está?"],
+            quem_e_voce: ["Sou a IA do Dhonatan Modder, criada para ajudar você!", "Sua assistente pessoal, pronta para ajudar com o que precisar!", "IA especializada em ajudar com dúvidas e tarefas do dia a dia!"],
+            o_que_voce_faz: [
+                "Posso ajudar com:\n- Respostas a perguntas\n- Explicações de conceitos\n- Sugestões de estudo\n- Resolução de problemas",
+                "Minhas habilidades incluem:\n• Responder perguntas\n• Explicar tópicos complexos\n• Sugerir recursos de aprendizado\n• Ajudar com tarefas"
+            ],
+            matematica: {
+                padrao: "Para matemática, posso ajudar com:\n- Cálculos básicos\n- Explicações de conceitos\n- Resolução de problemas passo a passo",
+                exemplos: [
+                    "Para resolver equações, lembre-se de isolar a variável em um lado da equação.",
+                    "Em geometria, a área de um triângulo é (base × altura) / 2.",
+                    "Para porcentagem: valor × porcentagem / 100"
+                ]
+            },
+            programacao: {
+                padrao: "Posso ajudar com:\n- Explicações de conceitos de programação\n- Solução de erros comuns\n- Exemplos de código",
+                linguagens: [
+                    "JavaScript: função arrow => (param) => { código }",
+                    "Python: loops for item in lista:",
+                    "HTML: <tag atributo='valor'>conteúdo</tag>"
+                ]
+            },
+            estudo: [
+                "Uma boa técnica de estudo é o Pomodoro: 25 minutos de foco, 5 minutos de descanso.",
+                "Para memorização, experimente a técnica de repetição espaçada.",
+                "Faça resumos com suas próprias palavras para fixar melhor o conteúdo."
+            ],
+            despedida: ["Até logo! Estarei aqui se precisar.", "Foi um prazer ajudar! Volte quando quiser.", "Tchau! Não hesite em me chamar novamente."]
+        };
+
+        // Identifica o tipo de pergunta
+        if (pergunta.includes('oi') || pergunta.includes('olá') || pergunta.includes('bom dia') || pergunta.includes('boa tarde') || pergunta.includes('boa noite')) {
+            return randomChoice(respostas.cumprimentos);
         }
+        
+        if (pergunta.includes('tudo bem') || pergunta.includes('como vai') || pergunta.includes('como está')) {
+            return randomChoice(respostas.como_voce_esta);
+        }
+        
+        if (pergunta.includes('quem é você') || pergunta.includes('o que é você')) {
+            return randomChoice(respostas.quem_e_voce);
+        }
+        
+        if (pergunta.includes('o que você faz') || pergunta.includes('para que serve')) {
+            return randomChoice(respostas.o_que_voce_faz);
+        }
+        
+        if (pergunta.includes('matemática') || pergunta.includes('calcular') || pergunta.includes('equação')) {
+            return `${respostas.matematica.padrao}\n\nExemplo: ${randomChoice(respostas.matematica.exemplos)}`;
+        }
+        
+        if (pergunta.includes('programação') || pergunta.includes('código') || pergunta.includes('javascript') || pergunta.includes('python') || pergunta.includes('html')) {
+            return `${respostas.programacao.padrao}\n\nExemplo: ${randomChoice(respostas.programacao.linguagens)}`;
+        }
+        
+        if (pergunta.includes('estudar') || pergunta.includes('aprender') || pergunta.includes('técnica')) {
+            return randomChoice(respostas.estudo);
+        }
+        
+        if (pergunta.includes('tchau') || pergunta.includes('até logo') || pergunta.includes('adeus')) {
+            return randomChoice(respostas.despedida);
+        }
+        
+        // Resposta padrão para perguntas não reconhecidas
+        return gerarRespostaGenerica(pergunta);
+    }
+
+    // Gera respostas genéricas inteligentes
+    function gerarRespostaGenerica(pergunta) {
+        const tiposResposta = [
+            `Entendi sua pergunta sobre "${pergunta}". Posso te ajudar explicando conceitos relacionados ou dando exemplos práticos.`,
+            `Interessante sua dúvida sobre "${pergunta}"! Vamos explorar isso juntos? O que você gostaria de saber especificamente?`,
+            `Sobre "${pergunta}", posso oferecer diferentes abordagens:\n1. Explicação simplificada\n2. Exemplos práticos\n3. Passo a passo de solução\nQual você prefere?`,
+            `Para responder "${pergunta}", é importante considerar vários aspectos. Vou estruturar uma resposta completa para você.`,
+            `"${pergunta}" é um ótimo tópico! Vou organizar as informações de forma clara e objetiva para você.`
+        ];
+        
+        return randomChoice(tiposResposta);
+    }
+
+    // Seleciona um item aleatório de um array
+    function randomChoice(array) {
+        return array[Math.floor(Math.random() * array.length)];
     }
 
     // Permite arrastar a janela
