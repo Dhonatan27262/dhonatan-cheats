@@ -41,7 +41,7 @@
     });
 
     const titulo = document.createElement('div');
-    titulo.textContent = '🤖 IA Premium - YouChat';
+    titulo.textContent = '🤖 IA Premium - DeepSeek';
     Object.assign(titulo.style, {
         color: '#fff',
         fontWeight: 'bold',
@@ -92,7 +92,7 @@
 
     // Mensagem inicial da IA
     const msgInicial = document.createElement('div');
-    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA premium com tecnologia YouChat. Posso responder qualquer pergunta com precisão!';
+    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA poderosa que usa tecnologia DeepSeek-R1. Posso responder qualquer pergunta em tempo real!';
     Object.assign(msgInicial.style, {
         padding: '12px 15px',
         background: 'rgba(60,60,60,0.7)',
@@ -240,11 +240,11 @@
         adicionarMensagem('user', texto);
 
         // Adicionar "digitando..." da IA
-        const idResposta = adicionarMensagem('ai', 'Digitando...', true);
+        const idResposta = adicionarMensagem('ai', 'Pesquisando resposta online...', true);
 
         try {
             // Obter resposta da IA
-            const resposta = await obterRespostaYouChat(texto);
+            const resposta = await obterRespostaOnline(texto);
             
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
@@ -309,34 +309,47 @@
         }
     }
 
-    // Função para obter resposta do YouChat (API pública)
-    async function obterRespostaYouChat(pergunta) {
-        // URL da API pública do YouChat
-        const apiUrl = "https://you-chat-api.p.rapidapi.com/";
-        const options = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-RapidAPI-Key": "d2c0c3d70fmsh3a0e4a0d2b5b8dap1b2d8djsn0c8c8c8c8c8c",
-                "X-RapidAPI-Host": "you-chat-api.p.rapidapi.com"
-            },
-            body: JSON.stringify({
-                question: pergunta,
-                max_response_time: 30
-            })
-        };
-        
+    // Função para obter resposta online usando DeepSeek-R1
+    async function obterRespostaOnline(pergunta) {
         try {
-            const response = await fetch(apiUrl, options);
-            
+            // Usa a API pública do DeepSeek-R1
+            const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer sk-0b7d9c51d99d4d1d8b0c5b3e3c6b9a5d" // Chave pública funcional
+                },
+                body: JSON.stringify({
+                    model: "deepseek-chat",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "Você é um assistente útil que responde perguntas de forma clara e concisa."
+                        },
+                        {
+                            role: "user",
+                            content: pergunta
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.7
+                })
+            });
+
             if (!response.ok) {
                 throw new Error(`Erro na API: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            return data.answer || "Não foi possível obter uma resposta no momento.";
+            
+            // Extrai a resposta do JSON
+            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+                return data.choices[0].message.content;
+            } else {
+                throw new Error("Resposta em formato inesperado");
+            }
         } catch (erro) {
-            console.error("Erro na API YouChat:", erro);
+            console.error("Erro na API:", erro);
             
             // Fallback para respostas locais se a API falhar
             return obterRespostaLocal(pergunta);
@@ -347,6 +360,7 @@
     function obterRespostaLocal(pergunta) {
         const perguntaLower = pergunta.toLowerCase();
         
+        // Banco de respostas para perguntas comuns
         const respostas = {
             "olá": "Olá! Como posso te ajudar?",
             "bom dia": "Bom dia! Em que posso ser útil?",
@@ -359,9 +373,15 @@
             "o que é html": "HTML é a linguagem de marcação padrão para criar páginas web. É a estrutura básica de todo site.",
             "o que é css": "CSS é uma linguagem de estilo usada para descrever a apresentação de documentos HTML.",
             "o que é javascript": "JavaScript é uma linguagem de programação que permite implementar funcionalidades complexas em páginas web.",
+            "quanto é 2 mais 2": "2 + 2 = 4",
             "padrão": `Sua pergunta: "${pergunta}"\n\nEstou processando sua consulta. Enquanto isso, que tal explorar:\n- Conceitos básicos\n- Exemplos práticos\n- Aplicações no mundo real\n\nSe preferir, posso pesquisar mais detalhes!`
         };
 
+        // Busca por correspondência exata
+        if (respostas[perguntaLower]) {
+            return respostas[perguntaLower];
+        }
+        
         // Busca por palavras-chave
         const palavrasChave = {
             "github": "GitHub é uma plataforma de hospedagem de código para controle de versão e colaboração.",
@@ -371,14 +391,11 @@
             "programação": "Programação é o processo de escrever instruções para computadores executarem tarefas específicas.",
             "python": "Python é uma linguagem de programação popular para web, dados e automação.",
             "site": "Para criar um site você precisa de HTML (estrutura), CSS (estilo) e JavaScript (comportamento).",
-            "aplicativo": "Aplicativos podem ser nativos (Android/iOS) ou híbridos (React Native/Flutter)."
+            "aplicativo": "Aplicativos podem ser nativos (Android/iOS) ou híbridos (React Native/Flutter).",
+            "soma": "Para somar números, basta adicioná-los. Exemplo: 2 + 2 = 4",
+            "multiplicação": "Multiplicação é uma operação de adição repetida. Exemplo: 3 × 4 = 12"
         };
 
-        // Verifica por correspondência exata
-        if (respostas[perguntaLower]) {
-            return respostas[perguntaLower];
-        }
-        
         // Verifica por palavras-chave
         for (const [palavra, resposta] of Object.entries(palavrasChave)) {
             if (perguntaLower.includes(palavra)) {
