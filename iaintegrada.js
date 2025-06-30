@@ -2,7 +2,7 @@
 (function() {
     // Configurações com SUA CHAVE
     const GEMINI_API_KEY = "AIzaSyAopsuVRmxCF-o8Icv9_7IUFyAmtOYNE7Y";
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
     
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
@@ -331,39 +331,49 @@
         }
     }
 
-    // Função para obter resposta do Google Gemini
+    // Função para obter resposta do Google Gemini (CORRIGIDA)
     async function obterRespostaGemini(pergunta) {
-        const response = await fetch(GEMINI_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: pergunta
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1500,
-                    topP: 0.9,
-                    topK: 40
+        try {
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                safetySettings: [{
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_NONE"
-                }]
-            })
-        });
+                body: JSON.stringify({
+                    contents: [{
+                        role: "user",
+                        parts: [{
+                            text: pergunta
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1500,
+                        topP: 0.9,
+                        topK: 40
+                    }
+                })
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'Erro na API Gemini');
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('Erro detalhado da API:', error);
+                throw new Error(error.error?.message || 'Erro na API Gemini');
+            }
+
+            const data = await response.json();
+            
+            // Verifica se a resposta tem a estrutura esperada
+            if (data.candidates && data.candidates.length > 0 && 
+                data.candidates[0].content && data.candidates[0].content.parts) {
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('Resposta da API em formato inesperado');
+            }
+        } catch (erro) {
+            console.error('Erro completo:', erro);
+            throw new Error(`Falha ao obter resposta: ${erro.message}`);
         }
-
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
     }
 
     // Permite arrastar a janela
