@@ -305,7 +305,7 @@
                 func: () => window.open('https://speakify.cupiditys.lol', '_blank')
             },
             {
-                nome: 'Script Khan Academy',
+                nome: 'Script Khan Academy (em testes)',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
                     fetch(scriptURL)
