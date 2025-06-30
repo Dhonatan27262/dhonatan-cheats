@@ -4,7 +4,7 @@
     let abaAtiva = 'textos';
     let posX = localStorage.getItem("dhonatanX") || "20px";
     let posY = localStorage.getItem("dhonatanY") || "20px";
-    let corBotao = localStorage.getItem("corBotaoDhonatan") || "#00ffea";
+    let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
     // Estilo moderno para todos os botões
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
