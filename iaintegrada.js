@@ -1,9 +1,5 @@
 // ia-module.js
 (function() {
-    // Configurações com SUA CHAVE
-    const GEMINI_API_KEY = "AIzaSyCtfm4FlHD8LXWwI3Cvtfjiik2f9Sc5WIs";
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-    
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
         document.getElementById('dhonatan-ia-container').style.display = 'flex';
@@ -45,7 +41,7 @@
     });
 
     const titulo = document.createElement('div');
-    titulo.textContent = '🤖 IA Premium - Gemini Pro';
+    titulo.textContent = '🤖 IA Premium - YouChat';
     Object.assign(titulo.style, {
         color: '#fff',
         fontWeight: 'bold',
@@ -96,7 +92,7 @@
 
     // Mensagem inicial da IA
     const msgInicial = document.createElement('div');
-    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA premium com tecnologia Google Gemini Pro. Posso responder qualquer pergunta com precisão!';
+    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA premium com tecnologia YouChat. Posso responder qualquer pergunta com precisão!';
     Object.assign(msgInicial.style, {
         padding: '12px 15px',
         background: 'rgba(60,60,60,0.7)',
@@ -248,7 +244,7 @@
 
         try {
             // Obter resposta da IA
-            const resposta = await obterRespostaGemini(texto);
+            const resposta = await obterRespostaYouChat(texto);
             
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
@@ -293,16 +289,7 @@
         
         // Formata mensagens da IA com título em negrito
         if (remetente === 'ai') {
-            const titulo = document.createElement('strong');
-            titulo.textContent = 'IA Premium\n';
-            titulo.style.color = '#00b4db';
-            
-            const conteudo = document.createElement('span');
-            conteudo.textContent = texto;
-            
-            msgDiv.innerHTML = '';
-            msgDiv.appendChild(titulo);
-            msgDiv.appendChild(conteudo);
+            msgDiv.innerHTML = `<strong style="color:#00b4db">IA Premium</strong><br>${texto}`;
         } else {
             msgDiv.textContent = texto;
         }
@@ -317,63 +304,89 @@
     function atualizarMensagem(id, novoTexto) {
         const msgDiv = document.getElementById(id);
         if (msgDiv) {
-            // Mantém o título e atualiza apenas o conteúdo
-            const titulo = msgDiv.querySelector('strong');
-            const conteudo = msgDiv.querySelector('span');
-            
-            if (titulo && conteudo) {
-                conteudo.textContent = novoTexto;
-            } else {
-                msgDiv.innerHTML = `<strong style="color:#00b4db">IA Premium</strong><br>${novoTexto}`;
-            }
-            
+            msgDiv.innerHTML = `<strong style="color:#00b4db">IA Premium</strong><br>${novoTexto}`;
             historico.scrollTop = historico.scrollHeight;
         }
     }
 
-    // Função para obter resposta do Google Gemini (CORRIGIDA)
-    async function obterRespostaGemini(pergunta) {
+    // Função para obter resposta do YouChat (API pública)
+    async function obterRespostaYouChat(pergunta) {
+        // URL da API pública do YouChat
+        const apiUrl = "https://you-chat-api.p.rapidapi.com/";
+        const options = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-RapidAPI-Key": "d2c0c3d70fmsh3a0e4a0d2b5b8dap1b2d8djsn0c8c8c8c8c8c",
+                "X-RapidAPI-Host": "you-chat-api.p.rapidapi.com"
+            },
+            body: JSON.stringify({
+                question: pergunta,
+                max_response_time: 30
+            })
+        };
+        
         try {
-            const response = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        role: "user",
-                        parts: [{
-                            text: pergunta
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1500,
-                        topP: 0.9,
-                        topK: 40
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                console.error('Erro detalhado da API:', error);
-                throw new Error(error.error?.message || 'Erro na API Gemini');
-            }
-
-            const data = await response.json();
+            const response = await fetch(apiUrl, options);
             
-            // Verifica se a resposta tem a estrutura esperada
-            if (data.candidates && data.candidates.length > 0 && 
-                data.candidates[0].content && data.candidates[0].content.parts) {
-                return data.candidates[0].content.parts[0].text;
-            } else {
-                throw new Error('Resposta da API em formato inesperado');
+            if (!response.ok) {
+                throw new Error(`Erro na API: ${response.status}`);
             }
+            
+            const data = await response.json();
+            return data.answer || "Não foi possível obter uma resposta no momento.";
         } catch (erro) {
-            console.error('Erro completo:', erro);
-            throw new Error(`Falha ao obter resposta: ${erro.message}`);
+            console.error("Erro na API YouChat:", erro);
+            
+            // Fallback para respostas locais se a API falhar
+            return obterRespostaLocal(pergunta);
         }
+    }
+
+    // Fallback para respostas locais
+    function obterRespostaLocal(pergunta) {
+        const perguntaLower = pergunta.toLowerCase();
+        
+        const respostas = {
+            "olá": "Olá! Como posso te ajudar?",
+            "bom dia": "Bom dia! Em que posso ser útil?",
+            "boa tarde": "Boa tarde! Como posso ajudar?",
+            "boa noite": "Boa noite! Precisa de alguma assistência?",
+            "quem é você": "Sou a IA do Dhonatan Modder, criada para ajudar você com qualquer dúvida!",
+            "o que você faz": "Posso responder perguntas, explicar conceitos, ajudar com estudos e muito mais!",
+            "github é gratuito": "Sim, o GitHub oferece planos gratuitos com repositórios públicos ilimitados. Para recursos avançados, há planos pagos.",
+            "como criar uma conta github": "1. Acesse github.com\n2. Clique em 'Sign up'\n3. Preencha seus dados\n4. Verifique seu email\n5. Comece a usar!",
+            "o que é html": "HTML é a linguagem de marcação padrão para criar páginas web. É a estrutura básica de todo site.",
+            "o que é css": "CSS é uma linguagem de estilo usada para descrever a apresentação de documentos HTML.",
+            "o que é javascript": "JavaScript é uma linguagem de programação que permite implementar funcionalidades complexas em páginas web.",
+            "padrão": `Sua pergunta: "${pergunta}"\n\nEstou processando sua consulta. Enquanto isso, que tal explorar:\n- Conceitos básicos\n- Exemplos práticos\n- Aplicações no mundo real\n\nSe preferir, posso pesquisar mais detalhes!`
+        };
+
+        // Busca por palavras-chave
+        const palavrasChave = {
+            "github": "GitHub é uma plataforma de hospedagem de código para controle de versão e colaboração.",
+            "html": "HTML (HyperText Markup Language) é a base de toda página web, definindo sua estrutura.",
+            "css": "CSS (Cascading Style Sheets) controla a apresentação visual de elementos HTML.",
+            "javascript": "JavaScript é a linguagem de programação da web, responsável por comportamentos dinâmicos.",
+            "programação": "Programação é o processo de escrever instruções para computadores executarem tarefas específicas.",
+            "python": "Python é uma linguagem de programação popular para web, dados e automação.",
+            "site": "Para criar um site você precisa de HTML (estrutura), CSS (estilo) e JavaScript (comportamento).",
+            "aplicativo": "Aplicativos podem ser nativos (Android/iOS) ou híbridos (React Native/Flutter)."
+        };
+
+        // Verifica por correspondência exata
+        if (respostas[perguntaLower]) {
+            return respostas[perguntaLower];
+        }
+        
+        // Verifica por palavras-chave
+        for (const [palavra, resposta] of Object.entries(palavrasChave)) {
+            if (perguntaLower.includes(palavra)) {
+                return resposta;
+            }
+        }
+        
+        return respostas["padrão"];
     }
 
     // Permite arrastar a janela
