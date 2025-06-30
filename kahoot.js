@@ -6,6 +6,7 @@
 // @author       Santos.Mec996
 // @match        https://kahoot.it/*
 // @grant        GM_addStyle
+// @require      https://code.jquery.com/jquery-3.6.0.min.js
 // ==/UserScript==
 
 (function() {
@@ -262,6 +263,12 @@
                     if (questionScreen && config.autoAnswer) {
                         tryAnswerQuestion();
                     }
+                    
+                    // Verifica se o quiz terminou
+                    const podiumScreen = document.querySelector('div.podium');
+                    if (podiumScreen) {
+                        showSuccessMessage('🏆 Quiz Finalizado!');
+                    }
                 }
             });
         });
@@ -287,6 +294,23 @@
         
         .kahoot-autoplayer-message {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #kahoot-autoplayer-menu button {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        #kahoot-autoplayer-menu button:hover {
+            transform: scale(1.05);
+        }
+        
+        #kahoot-autoplayer-menu input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: ${config.theme === 'dark' ? '#444' : '#f9f9f9'};
+            color: ${config.theme === 'dark' ? '#fff' : '#333'};
         }
     `);
     
