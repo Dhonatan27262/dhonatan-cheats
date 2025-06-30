@@ -341,7 +341,7 @@
             {
                 nome: 'Futura script',
                 func: () => {
-                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/nome.js?" + Date.now();
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/quizziz.js?" + Date.now();
                     fetch(scriptURL)
                         .then(response => response.text())
                         .then(scriptContent => {
