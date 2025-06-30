@@ -1,7 +1,7 @@
 // ia-module.js
 (function() {
     // Configurações com SUA CHAVE
-    const GEMINI_API_KEY = "AIzaSyAopsuVRmxCF-o8Icv9_7IUFyAmtOYNE7Y";
+    const GEMINI_API_KEY = "AIzaSyCtfm4FlHD8LXWwI3Cvtfjiik2f9Sc5WIs";
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
     
     // Verifica se a IA já está aberta
