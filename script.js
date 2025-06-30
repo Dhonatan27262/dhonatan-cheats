@@ -1,4 +1,5 @@
 let loadedPlugins = [];
+let videoExploitEnabled = true; // Estado inicial do exploit
 
 console.clear();
 const noop = () => {};
@@ -175,7 +176,7 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(themeOption);
   
-  // Opção de controle de velocidade (MÍNIMO DE 1 SEGUNDO)
+  // Opção de controle de velocidade
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -192,7 +193,6 @@ function createFloatingMenu() {
   // Recuperar velocidade salva ou usar 1.5s como padrão
   const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
   
-  // SLIDER COM MÍNIMO DE 1 SEGUNDO
   speedControl.innerHTML = `
     <div style="display: flex; justify-content: space-between;">
       <span>Velocidade</span>
@@ -203,6 +203,64 @@ function createFloatingMenu() {
   `;
   
   optionsMenu.appendChild(speedControl);
+  
+  // NOVO: Switch para ligar/desligar exploit de vídeo
+  const exploitOption = document.createElement('div');
+  exploitOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  exploitOption.innerHTML = `
+    <span>Exploit Vídeo</span>
+    <div id="exploit-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${videoExploitEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${videoExploitEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(exploitOption);
+  
+  // NOVO: Botão para esconder o menu
+  const hideMenuOption = document.createElement('div');
+  hideMenuOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(255, 100, 100, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #ff6b6b;
+    font-size: 14px;
+    user-select: none;
+    margin-top: 5px;
+  `;
+  hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
+  optionsMenu.appendChild(hideMenuOption);
   
   // Adicionar espaço para futuras opções
   const futureOptions = document.createElement('div');
@@ -253,6 +311,72 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
+  // NOVO: Alternar exploit de vídeo
+  exploitOption.addEventListener('click', () => {
+    videoExploitEnabled = !videoExploitEnabled;
+    
+    const exploitSwitch = exploitOption.querySelector('#exploit-toggle-switch');
+    const exploitSwitchInner = exploitSwitch.querySelector('div');
+    
+    if (videoExploitEnabled) {
+      exploitSwitch.style.background = '#4CAF50';
+      exploitSwitchInner.style.left = '22px';
+      sendToast("✅｜Exploit de vídeo ATIVADO", 1500);
+    } else {
+      exploitSwitch.style.background = '#ccc';
+      exploitSwitchInner.style.left = '2px';
+      sendToast("❌｜Exploit de vídeo DESATIVADO", 1500);
+    }
+  });
+  
+  // NOVO: Esconder o menu
+  hideMenuOption.addEventListener('click', () => {
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+    
+    // Criar botão de reativação
+    const reactivateBtn = document.createElement('div');
+    reactivateBtn.id = 'santos-reactivate-btn';
+    reactivateBtn.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 138, 0, 0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10000;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: rgba(255,255,255,0.5);
+    `;
+    reactivateBtn.innerHTML = '☰';
+    document.body.appendChild(reactivateBtn);
+    
+    // Mostrar menu ao passar o mouse
+    reactivateBtn.addEventListener('mouseenter', () => {
+      reactivateBtn.style.background = 'rgba(255, 138, 0, 0.5)';
+      reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
+    });
+    
+    reactivateBtn.addEventListener('mouseleave', () => {
+      reactivateBtn.style.background = 'rgba(255, 138, 0, 0.2)';
+      reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
+    });
+    
+    // Reativar menu ao clicar
+    reactivateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.style.opacity = '1';
+      container.style.pointerEvents = 'auto';
+      reactivateBtn.remove();
+    });
+  });
+  
   // Estado do menu
   let isMenuOpen = false;
   
@@ -282,7 +406,7 @@ function createFloatingMenu() {
   let startX, startY;
   let initialX, initialY;
   let xOffset = 0, yOffset = 0;
-  const DRAG_THRESHOLD = 5; // pixels de movimento para considerar arrasto
+  const DRAG_THRESHOLD = 5;
   
   mainButton.addEventListener('mousedown', startDrag);
   mainButton.addEventListener('touchstart', startDrag, { passive: false });
@@ -298,7 +422,7 @@ function createFloatingMenu() {
     initialX = clientX - xOffset;
     initialY = clientY - yOffset;
     
-    isDragging = false; // Ainda não é arrasto
+    isDragging = false;
     
     document.addEventListener('mousemove', handleDragMove);
     document.addEventListener('touchmove', handleDragMove, { passive: false });
@@ -315,10 +439,8 @@ function createFloatingMenu() {
     const dy = clientY - startY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    // Verificar se o movimento excedeu o threshold
     if (!isDragging && distance > DRAG_THRESHOLD) {
       isDragging = true;
-      // Fechar menu durante o arrasto
       if (isMenuOpen) toggleMenu();
     }
     
@@ -334,23 +456,19 @@ function createFloatingMenu() {
   }
   
   function endDrag(e) {
-    // Se estava arrastando, não faz nada além de limpar
     if (isDragging) {
-      // Salvar posição no localStorage
       localStorage.setItem('santosMenuPosition', JSON.stringify({
         x: xOffset,
         y: yOffset
       }));
     }
     
-    // Limpar eventos
     document.removeEventListener('mousemove', handleDragMove);
     document.removeEventListener('touchmove', handleDragMove);
     document.removeEventListener('mouseup', endDrag);
     document.removeEventListener('touchend', endDrag);
     document.removeEventListener('mouseleave', endDrag);
     
-    // Resetar estado
     isDragging = false;
   }
   
@@ -401,6 +519,11 @@ function setupMain() {
   const originalFetch = window.fetch;
 
   window.fetch = async function(input, init) {
+    // Verificar se o exploit está desativado
+    if (!videoExploitEnabled) {
+      return originalFetch.apply(this, arguments);
+    }
+
     let body;
     if (input instanceof Request) {
       body = await input.clone().text();
@@ -482,6 +605,12 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
+      // Verificar se o exploit está ativo
+      if (!videoExploitEnabled) {
+        await delay(2000);
+        continue;
+      }
+      
       for (const selector of selectors) {
         findAndClickBySelector(selector);
         const element = document.querySelector(`${selector}> div`);
@@ -490,9 +619,8 @@ function setupMain() {
         }
       }
       
-      // Usar velocidade configurada ou padrão de 1.5 segundos
       const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
-      await delay(speed * 1000); 
+      await delay(speed * 1000);
     }
   })();
 }
@@ -518,7 +646,6 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     createFloatingMenu();
     setupMain();
     
-    // Frases personalizadas na inicialização
     sendToast("DHONATAN MODDER INICIOU SEU CHEAT NO KHAN🌟 kkk!");
     setTimeout(() => {
         sendToast("Isso mesmo estudar é bom demais", 2500);
