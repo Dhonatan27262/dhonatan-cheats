@@ -1,5 +1,6 @@
 let loadedPlugins = [];
 let videoExploitEnabled = true; // Estado inicial do exploit de vídeo
+let autoClickEnabled = true;    // Estado inicial da automação de cliques
 
 console.clear();
 const noop = () => {};
@@ -199,7 +200,7 @@ function createFloatingMenu() {
       <span id="speed-value">${savedSpeed}s</span>
     </div>
     <input type="range" min="1" max="5" step="0.1" value="${savedSpeed}" 
-           id="speed-slider" style="width: 100%;">
+           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
   `;
   
   optionsMenu.appendChild(speedControl);
@@ -242,6 +243,45 @@ function createFloatingMenu() {
     </div>
   `;
   optionsMenu.appendChild(exploitOption);
+  
+  // NOVO: Switch para automação de cliques
+  const autoClickOption = document.createElement('div');
+  autoClickOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  autoClickOption.innerHTML = `
+    <span>Automação Cliques</span>
+    <div id="auto-click-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${autoClickEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(autoClickOption);
   
   // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
@@ -326,6 +366,27 @@ function createFloatingMenu() {
       exploitSwitch.style.background = '#ccc';
       exploitSwitchInner.style.left = '2px';
       sendToast("❌｜Exploit de vídeo DESATIVADO", 1500);
+    }
+  });
+  
+  // NOVO: Alternar automação de cliques
+  autoClickOption.addEventListener('click', () => {
+    autoClickEnabled = !autoClickEnabled;
+    
+    const autoClickSwitch = autoClickOption.querySelector('#auto-click-toggle-switch');
+    const autoClickSwitchInner = autoClickSwitch.querySelector('div');
+    const speedSlider = document.getElementById('speed-slider');
+    
+    if (autoClickEnabled) {
+      autoClickSwitch.style.background = '#4CAF50';
+      autoClickSwitchInner.style.left = '22px';
+      if (speedSlider) speedSlider.disabled = false;
+      sendToast("🤖｜Automação de cliques ATIVADA", 1500);
+    } else {
+      autoClickSwitch.style.background = '#ccc';
+      autoClickSwitchInner.style.left = '2px';
+      if (speedSlider) speedSlider.disabled = true;
+      sendToast("🖱️｜Automação de cliques DESATIVADA", 1500);
     }
   });
   
@@ -503,6 +564,9 @@ function createFloatingMenu() {
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
+    // Desativar slider se automação estiver desligada
+    speedSlider.disabled = !autoClickEnabled;
+    
     speedSlider.addEventListener('input', () => {
       const value = speedSlider.value;
       speedValue.textContent = value + 's';
@@ -594,7 +658,7 @@ function setupMain() {
     return originalResponse;
   };
 
-  // Loop de resolução de exercícios - SEMPRE ativo
+  // Loop de resolução de exercícios - controlado por autoClickEnabled
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
@@ -607,6 +671,12 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
+      // Se a automação estiver desligada, esperar e continuar
+      if (!autoClickEnabled) {
+        await delay(2000);
+        continue;
+      }
+      
       for (const selector of selectors) {
         findAndClickBySelector(selector);
         const element = document.querySelector(`${selector}> div`);
