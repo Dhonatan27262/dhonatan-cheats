@@ -1,6 +1,7 @@
 let loadedPlugins = [];
 let videoExploitEnabled = true; // Estado inicial do exploit de vídeo
 let autoClickEnabled = true;    // Estado inicial da automação de cliques
+let autoClickPaused = false;    // Nova variável para pausar cliques temporariamente
 
 console.clear();
 const noop = () => {};
@@ -177,34 +178,6 @@ function createFloatingMenu() {
   
   optionsMenu.appendChild(themeOption);
   
-  // Opção de controle de velocidade
-  const speedControl = document.createElement('div');
-  speedControl.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  
-  // Recuperar velocidade salva ou usar 1.5s como padrão
-  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
-  
-  speedControl.innerHTML = `
-    <div style="display: flex; justify-content: space-between;">
-      <span>Velocidade</span>
-      <span id="speed-value">${savedSpeed}s</span>
-    </div>
-    <input type="range" min="1" max="5" step="0.1" value="${savedSpeed}" 
-           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
-  `;
-  
-  optionsMenu.appendChild(speedControl);
-  
   // Switch para exploit de vídeo
   const exploitOption = document.createElement('div');
   exploitOption.style.cssText = `
@@ -244,7 +217,7 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(exploitOption);
   
-  // NOVO: Switch para automação de cliques
+  // Switch para automação de cliques (AGORA ANTES DO SLIDER)
   const autoClickOption = document.createElement('div');
   autoClickOption.style.cssText = `
     display: flex;
@@ -282,6 +255,34 @@ function createFloatingMenu() {
     </div>
   `;
   optionsMenu.appendChild(autoClickOption);
+  
+  // Opção de controle de velocidade (AGORA ABAIXO DA AUTOMAÇÃO)
+  const speedControl = document.createElement('div');
+  speedControl.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  
+  // Recuperar velocidade salva ou usar 1.5s como padrão
+  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
+  
+  speedControl.innerHTML = `
+    <div style="display: flex; justify-content: space-between;">
+      <span>Velocidade</span>
+      <span id="speed-value">${savedSpeed}s</span>
+    </div>
+    <input type="range" min="1" max="5" step="0.1" value="${savedSpeed}" 
+           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
+  `;
+  
+  optionsMenu.appendChild(speedControl);
   
   // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
@@ -369,7 +370,7 @@ function createFloatingMenu() {
     }
   });
   
-  // NOVO: Alternar automação de cliques
+  // Alternar automação de cliques
   autoClickOption.addEventListener('click', () => {
     autoClickEnabled = !autoClickEnabled;
     
@@ -441,13 +442,27 @@ function createFloatingMenu() {
   // Estado do menu
   let isMenuOpen = false;
   
-  // Abrir/fechar menu
+  // Abrir/fechar menu com controle de pausa
   function toggleMenu() {
     isMenuOpen = !isMenuOpen;
     optionsMenu.style.display = isMenuOpen ? 'flex' : 'none';
     mainButton.style.boxShadow = isMenuOpen ? 
       '0 4px 15px rgba(255, 138, 0, 0.5)' : 
       '0 4px 15px rgba(0,0,0,0.2)';
+    
+    // Pausar automação enquanto o menu está aberto
+    autoClickPaused = isMenuOpen;
+    
+    if (!isMenuOpen) {
+      // Fechar menu - restaurar estado anterior após pequeno delay
+      setTimeout(() => {
+        if (!autoClickPaused) {
+          sendToast("▶️｜Automação retomada", 1000);
+        }
+      }, 500);
+    } else {
+      sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
+    }
   }
   
   mainButton.addEventListener('click', (e) => {
@@ -455,9 +470,9 @@ function createFloatingMenu() {
     toggleMenu();
   });
   
-  // Fechar menu ao clicar fora
+  // Fechar menu ao clicar fora - com proteção contra automação
   document.addEventListener('click', (e) => {
-    if (!container.contains(e.target) && isMenuOpen) {
+    if (!container.contains(e.target) && isMenuOpen && !autoClickPaused) {
       toggleMenu();
     }
   });
@@ -671,8 +686,8 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
-      // Se a automação estiver desligada, esperar e continuar
-      if (!autoClickEnabled) {
+      // Se a automação estiver desligada ou pausada, esperar e continuar
+      if (!autoClickEnabled || autoClickPaused) {
         await delay(2000);
         continue;
       }
