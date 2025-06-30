@@ -339,7 +339,7 @@
                 }
             },
             {
-                nome: 'Script Khan Academy',
+                nome: 'ia',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/iaintegrada.js?" + Date.now();
                     fetch(scriptURL)
