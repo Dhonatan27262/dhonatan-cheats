@@ -1,7 +1,7 @@
 let loadedPlugins = [];
-let videoExploitEnabled = true; // Estado inicial do exploit de vídeo
-let autoClickEnabled = true;    // Estado inicial da automação de cliques
-let autoClickPaused = false;    // Nova variável para pausar cliques temporariamente
+let videoExploitEnabled = true;
+let autoClickEnabled = true;
+let autoClickPaused = false;
 
 console.clear();
 const noop = () => {};
@@ -217,7 +217,7 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(exploitOption);
   
-  // Switch para automação de cliques (AGORA ANTES DO SLIDER)
+  // Switch para automação de cliques
   const autoClickOption = document.createElement('div');
   autoClickOption.style.cssText = `
     display: flex;
@@ -256,7 +256,7 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(autoClickOption);
   
-  // Opção de controle de velocidade (AGORA ABAIXO DA AUTOMAÇÃO)
+  // Opção de controle de velocidade
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -391,8 +391,61 @@ function createFloatingMenu() {
     }
   });
   
+  // Estado do menu
+  let isMenuOpen = false;
+  
+  // Função para fechar o menu e retomar a automação
+  function closeMenu() {
+    if (!isMenuOpen) return;
+    
+    isMenuOpen = false;
+    optionsMenu.style.display = 'none';
+    mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    
+    // Retomar a automação
+    autoClickPaused = false;
+    sendToast("▶️｜Automação retomada", 1000);
+  }
+  
+  // Função para abrir o menu e pausar a automação
+  function openMenu() {
+    if (isMenuOpen) return;
+    
+    isMenuOpen = true;
+    optionsMenu.style.display = 'flex';
+    mainButton.style.boxShadow = '0 4px 15px rgba(255, 138, 0, 0.5)';
+    
+    // Pausar a automação
+    autoClickPaused = true;
+    sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
+  }
+  
+  // Abrir/fechar menu
+  function toggleMenu() {
+    if (isMenuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
+  
+  mainButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+  
+  // Fechar menu ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target) && isMenuOpen) {
+      closeMenu();
+    }
+  });
+  
   // Esconder o menu
   hideMenuOption.addEventListener('click', () => {
+    // Fechar o menu antes de esconder
+    closeMenu();
+    
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
     
@@ -439,44 +492,6 @@ function createFloatingMenu() {
     });
   });
   
-  // Estado do menu
-  let isMenuOpen = false;
-  
-  // Abrir/fechar menu com controle de pausa
-  function toggleMenu() {
-    isMenuOpen = !isMenuOpen;
-    optionsMenu.style.display = isMenuOpen ? 'flex' : 'none';
-    mainButton.style.boxShadow = isMenuOpen ? 
-      '0 4px 15px rgba(255, 138, 0, 0.5)' : 
-      '0 4px 15px rgba(0,0,0,0.2)';
-    
-    // Pausar automação enquanto o menu está aberto
-    autoClickPaused = isMenuOpen;
-    
-    if (!isMenuOpen) {
-      // Fechar menu - restaurar estado anterior após pequeno delay
-      setTimeout(() => {
-        if (!autoClickPaused) {
-          sendToast("▶️｜Automação retomada", 1000);
-        }
-      }, 500);
-    } else {
-      sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
-    }
-  }
-  
-  mainButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
-  
-  // Fechar menu ao clicar fora - com proteção contra automação
-  document.addEventListener('click', (e) => {
-    if (!container.contains(e.target) && isMenuOpen && !autoClickPaused) {
-      toggleMenu();
-    }
-  });
-  
   // Implementação do arrastar com threshold
   let isDragging = false;
   let startX, startY;
@@ -517,7 +532,7 @@ function createFloatingMenu() {
     
     if (!isDragging && distance > DRAG_THRESHOLD) {
       isDragging = true;
-      if (isMenuOpen) toggleMenu();
+      if (isMenuOpen) closeMenu();
     }
     
     if (isDragging) {
