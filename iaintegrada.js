@@ -1,5 +1,9 @@
 // ia-module.js
 (function() {
+    // Configurações com SUA CHAVE
+    const GEMINI_API_KEY = "AIzaSyAopsuVRmxCF-o8Icv9_7IUFyAmtOYNE7Y";
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+    
     // Verifica se a IA já está aberta
     if (document.getElementById('dhonatan-ia-container')) {
         document.getElementById('dhonatan-ia-container').style.display = 'flex';
@@ -41,7 +45,7 @@
     });
 
     const titulo = document.createElement('div');
-    titulo.textContent = '🤖 IA do Dhonatan Modder';
+    titulo.textContent = '🤖 IA Premium - Gemini Pro';
     Object.assign(titulo.style, {
         color: '#fff',
         fontWeight: 'bold',
@@ -92,7 +96,7 @@
 
     // Mensagem inicial da IA
     const msgInicial = document.createElement('div');
-    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou sua assistente pessoal. Como posso te ajudar hoje?';
+    msgInicial.innerHTML = '<strong>IA do Dhonatan Modder</strong><br>Olá! Sou uma IA premium com tecnologia Google Gemini Pro. Posso responder qualquer pergunta com precisão!';
     Object.assign(msgInicial.style, {
         padding: '12px 15px',
         background: 'rgba(60,60,60,0.7)',
@@ -203,12 +207,25 @@
             cursor: 'pointer',
             zIndex: '999999',
             boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-            color: '#fff'
+            color: '#fff',
+            animation: 'pulse 2s infinite'
         });
+        
+        // Adiciona animação de pulsar
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
         
         botao.onclick = () => {
             container.style.display = 'flex';
             botao.remove();
+            style.remove();
         };
         
         document.body.appendChild(botao);
@@ -231,12 +248,12 @@
 
         try {
             // Obter resposta da IA
-            const resposta = await obterRespostaIA(texto);
+            const resposta = await obterRespostaGemini(texto);
             
             // Substituir "Digitando..." pela resposta real
             atualizarMensagem(idResposta, resposta);
         } catch (erro) {
-            atualizarMensagem(idResposta, `Desculpe, ocorreu um erro: ${erro.message}`);
+            atualizarMensagem(idResposta, `Erro: ${erro.message}`);
         }
     }
 
@@ -256,13 +273,28 @@
                 ? 'linear-gradient(135deg, #00b4db, #0083b0)' 
                 : 'rgba(60,60,60,0.7)',
             color: '#fff',
-            border: remetente === 'ai' ? '1px solid rgba(255,255,255,0.1)' : 'none'
+            border: remetente === 'ai' ? '1px solid rgba(255,255,255,0.1)' : 'none',
+            animation: remetente === 'user' ? 'slideInRight 0.3s ease' : 'slideInLeft 0.3s ease'
         });
 
+        // Adiciona animações
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(30px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideInLeft {
+                from { transform: translateX(-30px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
         // Formata mensagens da IA com título em negrito
         if (remetente === 'ai') {
             const titulo = document.createElement('strong');
-            titulo.textContent = 'IA do Dhonatan Modder\n';
+            titulo.textContent = 'IA Premium\n';
             titulo.style.color = '#00b4db';
             
             const conteudo = document.createElement('span');
@@ -292,113 +324,46 @@
             if (titulo && conteudo) {
                 conteudo.textContent = novoTexto;
             } else {
-                msgDiv.innerHTML = `<strong style="color:#00b4db">IA do Dhonatan Modder</strong><br>${novoTexto}`;
+                msgDiv.innerHTML = `<strong style="color:#00b4db">IA Premium</strong><br>${novoTexto}`;
             }
             
             historico.scrollTop = historico.scrollHeight;
         }
     }
 
-    // Função para obter resposta da IA
-    async function obterRespostaIA(pergunta) {
-        // Simula tempo de processamento
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-        
-        // Sistema de respostas inteligentes
-        const resposta = gerarRespostaInteligente(pergunta);
-        return resposta;
-    }
-
-    // Gerador de respostas inteligentes
-    function gerarRespostaInteligente(pergunta) {
-        pergunta = pergunta.toLowerCase();
-        
-        // Dicionário de respostas
-        const respostas = {
-            cumprimentos: ["Olá! Como posso te ajudar?", "Oi! Em que posso ser útil?", "Olá! O que você gostaria de saber?"],
-            como_voce_esta: ["Estou ótima, obrigada! E você?", "Funcionando perfeitamente! E com você?", "Tudo bem por aqui! Como você está?"],
-            quem_e_voce: ["Sou a IA do Dhonatan Modder, criada para ajudar você!", "Sua assistente pessoal, pronta para ajudar com o que precisar!", "IA especializada em ajudar com dúvidas e tarefas do dia a dia!"],
-            o_que_voce_faz: [
-                "Posso ajudar com:\n- Respostas a perguntas\n- Explicações de conceitos\n- Sugestões de estudo\n- Resolução de problemas",
-                "Minhas habilidades incluem:\n• Responder perguntas\n• Explicar tópicos complexos\n• Sugerir recursos de aprendizado\n• Ajudar com tarefas"
-            ],
-            matematica: {
-                padrao: "Para matemática, posso ajudar com:\n- Cálculos básicos\n- Explicações de conceitos\n- Resolução de problemas passo a passo",
-                exemplos: [
-                    "Para resolver equações, lembre-se de isolar a variável em um lado da equação.",
-                    "Em geometria, a área de um triângulo é (base × altura) / 2.",
-                    "Para porcentagem: valor × porcentagem / 100"
-                ]
+    // Função para obter resposta do Google Gemini
+    async function obterRespostaGemini(pergunta) {
+        const response = await fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             },
-            programacao: {
-                padrao: "Posso ajudar com:\n- Explicações de conceitos de programação\n- Solução de erros comuns\n- Exemplos de código",
-                linguagens: [
-                    "JavaScript: função arrow => (param) => { código }",
-                    "Python: loops for item in lista:",
-                    "HTML: <tag atributo='valor'>conteúdo</tag>"
-                ]
-            },
-            estudo: [
-                "Uma boa técnica de estudo é o Pomodoro: 25 minutos de foco, 5 minutos de descanso.",
-                "Para memorização, experimente a técnica de repetição espaçada.",
-                "Faça resumos com suas próprias palavras para fixar melhor o conteúdo."
-            ],
-            despedida: ["Até logo! Estarei aqui se precisar.", "Foi um prazer ajudar! Volte quando quiser.", "Tchau! Não hesite em me chamar novamente."]
-        };
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: pergunta
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1500,
+                    topP: 0.9,
+                    topK: 40
+                },
+                safetySettings: [{
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_NONE"
+                }]
+            })
+        });
 
-        // Identifica o tipo de pergunta
-        if (pergunta.includes('oi') || pergunta.includes('olá') || pergunta.includes('bom dia') || pergunta.includes('boa tarde') || pergunta.includes('boa noite')) {
-            return randomChoice(respostas.cumprimentos);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'Erro na API Gemini');
         }
-        
-        if (pergunta.includes('tudo bem') || pergunta.includes('como vai') || pergunta.includes('como está')) {
-            return randomChoice(respostas.como_voce_esta);
-        }
-        
-        if (pergunta.includes('quem é você') || pergunta.includes('o que é você')) {
-            return randomChoice(respostas.quem_e_voce);
-        }
-        
-        if (pergunta.includes('o que você faz') || pergunta.includes('para que serve')) {
-            return randomChoice(respostas.o_que_voce_faz);
-        }
-        
-        if (pergunta.includes('matemática') || pergunta.includes('calcular') || pergunta.includes('equação')) {
-            return `${respostas.matematica.padrao}\n\nExemplo: ${randomChoice(respostas.matematica.exemplos)}`;
-        }
-        
-        if (pergunta.includes('programação') || pergunta.includes('código') || pergunta.includes('javascript') || pergunta.includes('python') || pergunta.includes('html')) {
-            return `${respostas.programacao.padrao}\n\nExemplo: ${randomChoice(respostas.programacao.linguagens)}`;
-        }
-        
-        if (pergunta.includes('estudar') || pergunta.includes('aprender') || pergunta.includes('técnica')) {
-            return randomChoice(respostas.estudo);
-        }
-        
-        if (pergunta.includes('tchau') || pergunta.includes('até logo') || pergunta.includes('adeus')) {
-            return randomChoice(respostas.despedida);
-        }
-        
-        // Resposta padrão para perguntas não reconhecidas
-        return gerarRespostaGenerica(pergunta);
-    }
 
-    // Gera respostas genéricas inteligentes
-    function gerarRespostaGenerica(pergunta) {
-        const tiposResposta = [
-            `Entendi sua pergunta sobre "${pergunta}". Posso te ajudar explicando conceitos relacionados ou dando exemplos práticos.`,
-            `Interessante sua dúvida sobre "${pergunta}"! Vamos explorar isso juntos? O que você gostaria de saber especificamente?`,
-            `Sobre "${pergunta}", posso oferecer diferentes abordagens:\n1. Explicação simplificada\n2. Exemplos práticos\n3. Passo a passo de solução\nQual você prefere?`,
-            `Para responder "${pergunta}", é importante considerar vários aspectos. Vou estruturar uma resposta completa para você.`,
-            `"${pergunta}" é um ótimo tópico! Vou organizar as informações de forma clara e objetiva para você.`
-        ];
-        
-        return randomChoice(tiposResposta);
-    }
-
-    // Seleciona um item aleatório de um array
-    function randomChoice(array) {
-        return array[Math.floor(Math.random() * array.length)];
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
     }
 
     // Permite arrastar a janela
