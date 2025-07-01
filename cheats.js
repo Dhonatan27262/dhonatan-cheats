@@ -183,6 +183,27 @@
         document.body.appendChild(container);
     };
 
+        const coletarPerguntaEAlternativas = () => {
+        const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
+        const pergunta = perguntaEl ? perguntaEl.innerText.trim() :
+            (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) || '').trim();
+        const alternativasEl = Array.from(document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p'));
+        const alternativasFiltradas = alternativasEl.map(el => el.innerText.trim()).filter(txt =>
+            txt.length > 20 && txt.length < 400 && !txt.includes('?') && !txt.toLowerCase().includes(pergunta.toLowerCase())
+        );
+        const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
+        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
+        return { pergunta, alternativas };
+    };
+
+    const encontrarRespostaColar = () => {
+        const { pergunta, alternativas } = coletarPerguntaEAlternativas();
+        if (!pergunta || !alternativas) return alert('❌ Não foi possível identificar a pergunta ou alternativas.');
+        const prompt = `Responda de forma direta e clara sem ponto final:\n${pergunta}\n\nAlternativas:\n${alternativas}`;
+        const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(prompt)}`;
+        window.open(url, "_blank");
+    };
+
     const encontrarRespostaDigitar = () => {
         const pergunta = prompt("Digite a pergunta:");
         if (!pergunta) return;
@@ -392,40 +413,7 @@
                 { nome: '🔁 Reescrever Texto', func: abrirReescritor }
             ],
             respostas: [
-                { nome: '📡 Encontrar Resposta (Colar)',
-                func: () => {
-                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/coletarperguntaeresposta.js?" + Date.now();
-                    fetch(scriptURL)
-                        .then(response => response.text())
-                        .then(scriptContent => {
-                            const script = document.createElement('script');
-                            script.textContent = scriptContent;
-                            document.head.appendChild(script);
-
-                            const aviso = document.createElement('div');
-                            aviso.textContent = '✅ Kahoo Script carregado!';
-                            aplicarEstiloTexto(aviso, '16px');
-                            Object.assign(aviso.style, {
-                                position: 'fixed',
-                                top: '20%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                padding: '12px 20px',
-                                borderRadius: '10px',
-                                zIndex: '999999',
-                                border: '1px solid #0f0',
-                                background: 'rgba(0,0,0,0.9)'
-                            });
-                            document.body.appendChild(aviso);
-                            setTimeout(() => aviso.remove(), 3000);
-                        })
-                        .catch(error => {
-                            console.error('Erro ao carregar Kahoot script:', error);
-                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
-                        });
-                }
-            }
-        ],
+                { nome: '📡 Encontrar Resposta (Colar)', func: encontrarRespostaColar },
                 { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
                 { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
                 { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
