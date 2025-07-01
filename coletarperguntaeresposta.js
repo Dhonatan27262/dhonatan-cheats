@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Assistente ENEM - Cópia Potente e Busca
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      5.0
 // @description  Sistema ultra potente para copiar conteúdo bloqueado e buscar respostas
 // @author       SeuNome
 // @match        *://*/*
@@ -19,13 +19,18 @@
     // =============================================
     const habilitarCopiaPotente = () => {
         // 1. Remover todos os estilos que bloqueiam seleção
-        document.body.style.userSelect = 'text !important';
-        document.body.style.webkitUserSelect = 'text !important';
-        document.body.style.MozUserSelect = 'text !important';
-        document.body.style.msUserSelect = 'text !important';
-        document.body.style.oUserSelect = 'text !important';
-
-        // 2. Remover eventos bloqueadores
+        const estilosBloqueio = [
+            'user-select', '-webkit-user-select', '-moz-user-select',
+            '-ms-user-select', '-o-user-select', 'pointer-events'
+        ];
+        
+        document.querySelectorAll('*').forEach(el => {
+            estilosBloqueio.forEach(prop => {
+                el.style[prop] = 'auto !important';
+            });
+        });
+        
+        // 2. Remover eventos bloqueadores de seleção
         const eventosBloqueio = [
             'selectstart', 'mousedown', 'mouseup', 'dragstart', 
             'contextmenu', 'copy', 'cut', 'paste', 'keydown'
@@ -35,25 +40,20 @@
             document.addEventListener(evento, e => {
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                if (evento === 'contextmenu') return true;
+                return true;
             }, true);
         });
 
-        // 3. Remover elementos bloqueadores
+        // 3. Remover atributos bloqueadores
+        const atributosBloqueio = [
+            'oncontextmenu', 'onselectstart', 'ondragstart',
+            'onmousedown', 'oncopy', 'oncut', 'onpaste'
+        ];
+        
         document.querySelectorAll('*').forEach(el => {
-            // Remover estilos bloqueadores
-            el.style.userSelect = 'text !important';
-            el.style.webkitUserSelect = 'text !important';
-            el.style.MozUserSelect = 'text !important';
-            el.style.msUserSelect = 'text !important';
-            el.style.oUserSelect = 'text !important';
-            el.style.pointerEvents = 'auto !important';
-            
-            // Remover atributos bloqueadores
-            el.removeAttribute('oncontextmenu');
-            el.removeAttribute('onselectstart');
-            el.removeAttribute('ondragstart');
-            el.removeAttribute('onmousedown');
+            atributosBloqueio.forEach(atributo => {
+                el.removeAttribute(atributo);
+            });
         });
 
         // 4. Remover scripts bloqueadores
@@ -62,15 +62,27 @@
             const termosBloqueio = [
                 'disablecopy', 'onselectstart', 'oncontextmenu',
                 'user-select', 'userSelect', 'preventDefault',
-                'addEventListener("copy"', 'addEventListener("cut"'
+                'addEventListener("copy"', 'addEventListener("cut"',
+                'event.preventDefault', 'return false'
             ];
             
             if (termosBloqueio.some(termo => scriptContent.includes(termo))) {
                 script.remove();
             }
         });
-
-        return "Cópia habilitada com sucesso!";
+        
+        // 5. Forçar ativação da seleção
+        document.body.style.userSelect = 'text !important';
+        document.body.style.webkitUserSelect = 'text !important';
+        document.body.style.MozUserSelect = 'text !important';
+        document.body.style.msUserSelect = 'text !important';
+        document.body.style.oUserSelect = 'text !important';
+        document.body.style.pointerEvents = 'auto !important';
+        
+        // 6. Criar evento para permitir menu de contexto
+        document.oncontextmenu = null;
+        
+        return "Cópia habilitada com sucesso! Agora você pode selecionar texto.";
     };
 
     // =============================
@@ -143,7 +155,7 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
         `;
         
         // HTML da interface
@@ -277,6 +289,14 @@
             const resultado = habilitarCopiaPotente();
             document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> ${resultado}`;
             
+            // Notificação
+            GM_notification({
+                title: 'Cópia Habilitada!',
+                text: resultado,
+                timeout: 3000,
+                silent: true
+            });
+            
             // Efeito visual
             const btn = document.getElementById('habilitar-copia');
             btn.style.background = 'rgba(255,255,255,0.3)';
@@ -295,6 +315,14 @@
             
             GM_setClipboard(conteudo, 'text');
             document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Questão copiada para área de transferência!`;
+            
+            // Notificação
+            GM_notification({
+                title: 'Conteúdo Copiado!',
+                text: 'A questão foi copiada para sua área de transferência',
+                timeout: 3000,
+                silent: true
+            });
             
             // Efeito visual
             const btn = document.getElementById('copiar-questao');
@@ -406,6 +434,14 @@
         setTimeout(() => {
             habilitarCopiaPotente();
             document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Cópia habilitada automaticamente!`;
+            
+            // Notificação
+            GM_notification({
+                title: 'Assistente ENEM Ativado!',
+                text: 'A cópia de texto foi habilitada automaticamente',
+                timeout: 3000,
+                silent: true
+            });
         }, 1500);
     };
 
