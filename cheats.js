@@ -606,8 +606,8 @@ const criarInterface = () => {
 
     // Container principal
 nome = document.createElement('div');
-nome.textContent = 'O melhor menu de funções Dhonatan Cheats🔥';
-aplicarEstiloTexto(nome, '18px');
+    nome.textContent = 'Painel Funções';
+    aplicarEstiloTexto(nome, '18px');
 
     let hue = 0;
     setInterval(() => {
