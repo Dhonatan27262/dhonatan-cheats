@@ -605,7 +605,7 @@ const criarInterface = () => {
     aplicarEstiloContainer(janela);
 
     nome = document.createElement('div');
-    nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
+    nome.textContent = 'O melhor menu de funções Dhonatan Cheats🔥';
     aplicarEstiloTexto(nome, '18px');
 
     let hue = 0;
