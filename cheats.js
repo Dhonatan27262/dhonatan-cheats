@@ -604,15 +604,34 @@ const criarInterface = () => {
     janela = document.createElement('div');
     aplicarEstiloContainer(janela);
 
-    // Container principal
+// Container principal
 nome = document.createElement('div');
-        nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
-        aplicarEstiloTexto(nome, '18px');
+Object.assign(nome.style, {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '5px'
+});
 
-        let hue = 0;
-        setInterval(() => {
-            nome.style.color = `hsl(${hue++ % 360},100%,60%)`;
-        }, 30);
+// Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Funções';
+aplicarEstiloTexto(textoCima, '18px');
+
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'O melhor menu de funções Dhonatan Cheats🔥';
+aplicarEstiloTexto(textoBaixo, '16px');
+
+// Adiciona os textos ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoBaixo);
+
+// Mantém a animação de cores apenas no texto inferior
+let hue = 0;
+setInterval(() => {
+    textoBaixo.style.color = `hsl(${hue++ % 360},100%,60%)`;
+}, 30);
 
     const input = document.createElement('input');
     Object.assign(input.style, {
