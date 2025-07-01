@@ -1,14 +1,13 @@
 // ==UserScript==
-// @name         Assistente ENEM - Toda Matéria (Premium Plus)
+// @name         Assistente ENEM - Toda Matéria (Premium Plus Corrigido)
 // @namespace    http://tampermonkey.net/
-// @version      5.0
+// @version      5.2
 // @description  Busca automática de respostas com detecção inteligente
 // @author       SeuNome
 // @match        *://www.todamateria.com.br/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=todamateria.com.br
-// @grant        GM_setClipboard
-// @grant        GM_notification
-// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js
+// @grant        none
+// @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
 // ==/UserScript==
 
 (function() {
@@ -268,19 +267,9 @@
             return;
         }
 
-        // Copiar para área de transferência como fallback
-        GM_setClipboard(conteudoQuestao, 'text');
-        
         // Abrir Perplexity
         const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudoQuestao)}`;
         window.open(urlPesquisa, '_blank');
-        
-        // Notificação
-        GM_notification({
-            text: 'Conteúdo copiado para área de transferência!',
-            title: 'Assistente ENEM',
-            timeout: 3000
-        });
     };
 
     // Variáveis para arrastar
@@ -309,9 +298,9 @@
             <div id="assistente-menu-content">
                 <p>Selecione o modo de captura:</p>
                 <div class="mode-selector">
-                    <button class="mode-btn ${captureMode === 'auto' ? 'active' : ''}" data-mode="auto">Auto</button>
-                    <button class="mode-btn ${captureMode === 'text' ? 'active' : ''}" data-mode="text">Texto</button>
-                    <button class="mode-btn ${captureMode === 'question' ? 'active' : ''}" data-mode="question">Questão</button>
+                    <button class="mode-btn active" data-mode="auto">Auto</button>
+                    <button class="mode-btn" data-mode="text">Texto</button>
+                    <button class="mode-btn" data-mode="question">Questão</button>
                 </div>
                 <p>Clique para buscar resposta:</p>
             </div>
@@ -322,7 +311,7 @@
 
         document.body.appendChild(menu);
         
-        // Adicionar Font Awesome
+        // Carregar Font Awesome se necessário
         if (!document.querySelector('link[href*="font-awesome"]')) {
             const faLink = document.createElement('link');
             faLink.rel = 'stylesheet';
@@ -331,8 +320,7 @@
         }
         
         // Evento para botão de fechar
-        const closeButton = menu.querySelector('#assistente-menu-close');
-        closeButton.addEventListener('click', () => {
+        menu.querySelector('#assistente-menu-close').addEventListener('click', () => {
             menu.style.display = 'none';
             
             // Criar botão para reabrir
@@ -352,10 +340,10 @@
         
         // Eventos para botões de modo
         menu.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                captureMode = btn.dataset.mode;
-                menu.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                captureMode = this.dataset.mode;
             });
         });
         
@@ -399,14 +387,25 @@
         // Adicionar efeito de entrada
         const menu = document.getElementById('assistente-enem-menu');
         setTimeout(() => {
-            menu.style.transform = 'scale(1)';
-            menu.style.opacity = '1';
+            if (menu) {
+                menu.style.transform = 'scale(1)';
+                menu.style.opacity = '1';
+            }
         }, 100);
     };
 
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(init, 1500);
-    } else {
-        document.addEventListener('DOMContentLoaded', init);
+    // Verificar se é uma página de questão
+    const isQuestionPage = () => {
+        return /questao|pergunta|exercicio|teste/i.test(document.title) || 
+               document.querySelector('.question-text, .exercicio, .enem-question');
+    };
+
+    // Iniciar apenas em páginas de questões
+    if (isQuestionPage()) {
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(init, 1500);
+        } else {
+            document.addEventListener('DOMContentLoaded', init);
+        }
     }
 })();
