@@ -196,12 +196,61 @@
         return { pergunta, alternativas };
     };
 
+    // Função modificada para carregar o script do GitHub
     const encontrarRespostaColar = () => {
-        const { pergunta, alternativas } = coletarPerguntaEAlternativas();
-        if (!pergunta || !alternativas) return alert('❌ Não foi possível identificar a pergunta ou alternativas.');
-        const prompt = `Responda de forma direta e clara sem ponto final:\n${pergunta}\n\nAlternativas:\n${alternativas}`;
-        const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(prompt)}`;
-        window.open(url, "_blank");
+        const avisoCarregando = document.createElement('div');
+        avisoCarregando.textContent = '⏳ Carregando script...';
+        aplicarEstiloTexto(avisoCarregando, '16px');
+        Object.assign(avisoCarregando.style, {
+            position: 'fixed',
+            top: '20%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            zIndex: '1000001',
+            border: '1px solid #ff0',
+            background: 'rgba(0,0,0,0.9)'
+        });
+        document.body.appendChild(avisoCarregando);
+
+        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+
+        fetch(scriptURL)
+            .then(response => {
+                if (!response.ok) throw new Error('Falha ao carregar o script');
+                return response.text();
+            })
+            .then(scriptContent => {
+                avisoCarregando.remove();
+                
+                const script = document.createElement('script');
+                script.textContent = scriptContent;
+                document.head.appendChild(script);
+
+                const avisoSucesso = document.createElement('div');
+                avisoSucesso.textContent = '✅ Script carregado com sucesso!';
+                aplicarEstiloTexto(avisoSucesso, '16px');
+                Object.assign(avisoSucesso.style, {
+                    position: 'fixed',
+                    top: '20%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    zIndex: '1000001',
+                    border: '1px solid #0f0',
+                    background: 'rgba(0,0,0,0.9)'
+                });
+                document.body.appendChild(avisoSucesso);
+                setTimeout(() => avisoSucesso.remove(), 3000);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar script:', error);
+                avisoCarregando.textContent = '❌ Erro ao carregar o script. Verifique o console.';
+                avisoCarregando.style.border = '1px solid #f00';
+                setTimeout(() => avisoCarregando.remove(), 3000);
+            });
     };
 
     const encontrarRespostaDigitar = () => {
@@ -250,54 +299,54 @@
                 padding: '10px 20px', borderRadius: '8px',
                 zIndex: 9999999, fontSize: '20px'
             });
-            document.body.append(progresso);
+        document.body.append(progresso);
 
-            const intervalo = setInterval(() => {
-                if (i < texto.length) {
-                    const c = texto[i++];
-                    document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
-                    progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
-                } else {
-                    clearInterval(intervalo);
-                    progresso.remove();
-                    el.blur();  // fechar
-                    setTimeout(() => {
-                        el.dispatchEvent(new Event('input', { bubbles: true }));
-                        el.dispatchEvent(new Event('change', { bubbles: true }));
-                        const msg = document.createElement('div');
-                        msg.textContent = "✅ Texto digitado com sucesso!";
-                        Object.assign(msg.style, {
-                            position: 'fixed', top: '50%', left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            background: '#000', color: '#0f0',
-                            padding: '15px', borderRadius: '10px',
-                            fontSize: '18px', zIndex: 9999999,
-                            fontWeight: 'bold', textAlign: 'center'
-                        });
-                        document.body.append(msg);
-                        setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
-                    }, 100);
-                }
-            }, 60);
-        };
-        document.addEventListener('click', handler, true);
+        const intervalo = setInterval(() => {
+            if (i < texto.length) {
+                const c = texto[i++];
+                document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
+                progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
+            } else {
+                clearInterval(intervalo);
+                progresso.remove();
+                el.blur();  // fechar
+                setTimeout(() => {
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    const msg = document.createElement('div');
+                    msg.textContent = "✅ Texto digitado com sucesso!";
+                    Object.assign(msg.style, {
+                        position: 'fixed', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: '#000', color: '#0f0',
+                        padding: '15px', borderRadius: '10px',
+                        fontSize: '18px', zIndex: 9999999,
+                        fontWeight: 'bold', textAlign: 'center'
+                    });
+                    document.body.append(msg);
+                    setTimeout(() => { msg.remove(); criarBotaoFlutuante(); }, 3000);
+                }, 100);
+            }
+        }, 60);
     };
+    document.addEventListener('click', handler, true);
+};
 
-    const criarTextoComTema = () => {
-        const tema = prompt("Qual tema deseja?");
-        if (!tema) return;
-        const palavras = prompt("Número mínimo de palavras?");
-        if (!palavras) return;
-        const promptFinal = `Crie um texto com o tema "${tema}" com no mínimo ${palavras} palavras. Seja claro e criativo.`;
-        const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`;
-        window.open(url, "_blank");
-    };
+const criarTextoComTema = () => {
+    const tema = prompt("Qual tema deseja?");
+    if (!tema) return;
+    const palavras = prompt("Número mínimo de palavras?");
+    if (!palavras) return;
+    const promptFinal = `Crie um texto com o tema "${tema}" com no mínimo ${palavras} palavras. Seja claro e criativo.`;
+    const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`;
+    window.open(url, "_blank");
+};
 
-    const abrirReescritor = () => {
-        window.open(`https://www.reescrevertexto.net`, "_blank");
-    };
+const abrirReescritor = () => {
+    window.open(`https://www.reescrevertexto.net`, "_blank");
+};
 
-    criarAbas = () => {
+criarAbas = () => {
     const botoes = {
         scripts: [
             {
@@ -407,305 +456,305 @@
                 }
             }
         ],
-            textos: [
-                { nome: '✍️ Iniciar Bot de Texto', func: () => { fundo.remove(); iniciarMod(); } },
-                { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
-                { nome: '🔁 Reescrever Texto', func: abrirReescritor }
-            ],
-            respostas: [
-                { nome: '📡 Encontrar Resposta (Colar)', func: encontrarRespostaColar },
-                { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
-                { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
-                { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
-                    const r = prompt("Digite a resposta:");
-                    if (r) marcarResposta(r);
-                }}
-            ],
-            config: [
-                { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
-                { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
-                { nome: '🔃 Resetar', func: () => { fundo.remove(); criarInterface(); } }
-            ]
-        };
-
-        const botoesAbas = document.createElement('div');
-        Object.assign(botoesAbas.style, {
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '5px',
-            marginBottom: '15px'
-        });
-
-        ['scripts', 'textos', 'respostas', 'config'].forEach(id => {
-            const botaoAba = document.createElement('button');
-            botaoAba.textContent = id.toUpperCase();
-            aplicarEstiloBotao(botaoAba, abaAtiva === id);
-            botaoAba.onclick = () => {
-                abaAtiva = id;
-                fundo.remove();
-                criarMenu();
-            };
-            botoesAbas.appendChild(botaoAba);
-        });
-
-        janela.appendChild(botoesAbas);
-
-        // Linha de separação entre abas e funções
-        const separador = document.createElement('hr');
-        Object.assign(separador.style, {
-            width: '100%',
-            border: '1px solid rgba(255,255,255,0.1)',
-            margin: '10px 0'
-        });
-        janela.appendChild(separador);
-
-        const containerBotoes = document.createElement('div');
-        Object.assign(containerBotoes.style, {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px'
-        });
-
-        if (botoes[abaAtiva]) {
-            botoes[abaAtiva].forEach(b => {
-                const btn = document.createElement('button');
-                btn.textContent = b.nome;
-                aplicarEstiloBotao(btn);
-                btn.onclick = b.func;
-                containerBotoes.appendChild(btn);
-            });
-        }
-
-        janela.appendChild(containerBotoes);
-
-        // Botões de ação no final
-        const botoesAcao = document.createElement('div');
-        Object.assign(botoesAcao.style, {
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '10px',
-            marginTop: '15px',
-            width: '100%'
-        });
-
-        const btnEsconder = document.createElement('button');
-        btnEsconder.textContent = '👁️ Esconder Mod';
-        aplicarEstiloBotao(btnEsconder);
-        btnEsconder.onclick = () => {
-            fundo.remove();
-            const botaoFlutuante = document.getElementById('dhonatanBotao');
-            if (botaoFlutuante) botaoFlutuante.remove();
-        };
-
-        const btnFechar = document.createElement('button');
-        btnFechar.textContent = '❌ Fechar Menu';
-        aplicarEstiloBotao(btnFechar);
-        btnFechar.onclick = () => {
-            fundo.remove();
-            criarBotaoFlutuante();
-        };
-
-        botoesAcao.append(btnEsconder, btnFechar);
-        janela.appendChild(botoesAcao);
+        textos: [
+            { nome: '✍️ Iniciar Bot de Texto', func: () => { fundo.remove(); iniciarMod(); } },
+            { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
+            { nome: '🔁 Reescrever Texto', func: abrirReescritor }
+        ],
+        respostas: [
+            { nome: '📡 Encontrar Resposta (Colar)', func: encontrarRespostaColar },
+            { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
+            { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
+            { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
+                const r = prompt("Digite a resposta:");
+                if (r) marcarResposta(r);
+            }}
+        ],
+        config: [
+            { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
+            { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
+            { nome: '🔃 Resetar', func: () => { fundo.remove(); criarInterface(); } }
+        ]
     };
 
-    const criarMenu = () => {
-        fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+    const botoesAbas = document.createElement('div');
+    Object.assign(botoesAbas.style, {
+        display: 'flex',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        gap: '5px',
+        marginBottom: '15px'
+    });
+
+    ['scripts', 'textos', 'respostas', 'config'].forEach(id => {
+        const botaoAba = document.createElement('button');
+        botaoAba.textContent = id.toUpperCase();
+        aplicarEstiloBotao(botaoAba, abaAtiva === id);
+        botaoAba.onclick = () => {
+            abaAtiva = id;
+            fundo.remove();
+            criarMenu();
+        };
+        botoesAbas.appendChild(botaoAba);
+    });
+
+    janela.appendChild(botoesAbas);
+
+    // Linha de separação entre abas e funções
+    const separador = document.createElement('hr');
+    Object.assign(separador.style, {
+        width: '100%',
+        border: '1px solid rgba(255,255,255,0.1)',
+        margin: '10px 0'
+    });
+    janela.appendChild(separador);
+
+    const containerBotoes = document.createElement('div');
+    Object.assign(containerBotoes.style, {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px'
+    });
+
+    if (botoes[abaAtiva]) {
+        botoes[abaAtiva].forEach(b => {
+            const btn = document.createElement('button');
+            btn.textContent = b.nome;
+            aplicarEstiloBotao(btn);
+            btn.onclick = b.func;
+            containerBotoes.appendChild(btn);
         });
-
-        janela = document.createElement('div');
-        aplicarEstiloContainer(janela);
-
-        const titulo = document.createElement('div');
-        titulo.textContent = 'DHONATAN MODDER 🔥';
-        aplicarEstiloTexto(titulo, '20px');
-
-        let h = 0;
-        setInterval(() => {
-            titulo.style.color = `hsl(${h++ % 360},100%,60%)`;
-        }, 30);
-
-        relogio = document.createElement('div');
-        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        aplicarEstiloTexto(relogio, '16px');
-        setInterval(() => {
-            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        }, 1000);
-
-        janela.append(titulo, relogio);
-        criarAbas();
-        fundo.append(janela);
-        document.body.append(fundo);
-    };
-
-    const criarInterface = () => {
-        fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-        });
-
-        janela = document.createElement('div');
-        aplicarEstiloContainer(janela);
-
-        nome = document.createElement('div');
-        nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
-        aplicarEstiloTexto(nome, '18px');
-
-        let hue = 0;
-        setInterval(() => {
-            nome.style.color = `hsl(${hue++ % 360},100%,60%)`;
-        }, 30);
-
-        const input = document.createElement('input');
-        Object.assign(input.style, {
-            padding: '12px',
-            width: '80%',
-            margin: '15px 0',
-            background: '#222',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: '30px',
-            textAlign: 'center',
-            fontSize: '16px'
-        });
-        input.type = 'password';
-        input.placeholder = 'Digite a senha';
-
-        const botao = document.createElement('button');
-        botao.textContent = 'Acessar';
-        aplicarEstiloBotao(botao, true);
-
-        const erro = document.createElement('div');
-        erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
-        Object.assign(erro.style, {
-            display: 'none', 
-            color: '#ff5555', 
-            marginTop: '15px',
-            fontSize: '14px'
-        });
-
-        botao.onclick = () => {
-    // Senhas exatamente como digitadas (case-sensitive)
-    if (input.value !== 'admin' && 
-        input.value !== 'tainara' && 
-        input.value !== 'luis' &&
-        input.value !== 'pablo' &&
-        input.value !== 'rafael' &&
-        input.value !== 'adm') {
-        erro.style.display = 'block';
-        return;
     }
-    
-    senhaLiberada = true;
-    fundo.remove();
-    criarMenu();
+
+    janela.appendChild(containerBotoes);
+
+    // Botões de ação no final
+    const botoesAcao = document.createElement('div');
+    Object.assign(botoesAcao.style, {
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '10px',
+        marginTop: '15px',
+        width: '100%'
+    });
+
+    const btnEsconder = document.createElement('button');
+    btnEsconder.textContent = '👁️ Esconder Mod';
+    aplicarEstiloBotao(btnEsconder);
+    btnEsconder.onclick = () => {
+        fundo.remove();
+        const botaoFlutuante = document.getElementById('dhonatanBotao');
+        if (botaoFlutuante) botaoFlutuante.remove();
+    };
+
+    const btnFechar = document.createElement('button');
+    btnFechar.textContent = '❌ Fechar Menu';
+    aplicarEstiloBotao(btnFechar);
+    btnFechar.onclick = () => {
+        fundo.remove();
+        criarBotaoFlutuante();
+    };
+
+    botoesAcao.append(btnEsconder, btnFechar);
+    janela.appendChild(botoesAcao);
 };
 
-        janela.append(nome, input, botao, erro);
-        fundo.append(janela);
-        document.body.append(fundo);
+const criarMenu = () => {
+    fundo = document.createElement('div');
+    Object.assign(fundo.style, {
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    });
+
+    janela = document.createElement('div');
+    aplicarEstiloContainer(janela);
+
+    const titulo = document.createElement('div');
+    titulo.textContent = 'DHONATAN MODDER 🔥';
+    aplicarEstiloTexto(titulo, '20px');
+
+    let h = 0;
+    setInterval(() => {
+        titulo.style.color = `hsl(${h++ % 360},100%,60%)`;
+    }, 30);
+
+    relogio = document.createElement('div');
+    relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    aplicarEstiloTexto(relogio, '16px');
+    setInterval(() => {
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    }, 1000);
+
+    janela.append(titulo, relogio);
+    criarAbas();
+    fundo.append(janela);
+    document.body.append(fundo);
+};
+
+const criarInterface = () => {
+    fundo = document.createElement('div');
+    Object.assign(fundo.style, {
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    });
+
+    janela = document.createElement('div');
+    aplicarEstiloContainer(janela);
+
+    nome = document.createElement('div');
+    nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
+    aplicarEstiloTexto(nome, '18px');
+
+    let hue = 0;
+    setInterval(() => {
+        nome.style.color = `hsl(${hue++ % 360},100%,60%)`;
+    }, 30);
+
+    const input = document.createElement('input');
+    Object.assign(input.style, {
+        padding: '12px',
+        width: '80%',
+        margin: '15px 0',
+        background: '#222',
+        color: '#fff',
+        border: '1px solid #444',
+        borderRadius: '30px',
+        textAlign: 'center',
+        fontSize: '16px'
+    });
+    input.type = 'password';
+    input.placeholder = 'Digite a senha';
+
+    const botao = document.createElement('button');
+    botao.textContent = 'Acessar';
+    aplicarEstiloBotao(botao, true);
+
+    const erro = document.createElement('div');
+    erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
+    Object.assign(erro.style, {
+        display: 'none', 
+        color: '#ff5555', 
+        marginTop: '15px',
+        fontSize: '14px'
+    });
+
+    botao.onclick = () => {
+        // Senhas exatamente como digitadas (case-sensitive)
+        if (input.value !== 'admin' && 
+            input.value !== 'tainara' && 
+            input.value !== 'luis' &&
+            input.value !== 'pablo' &&
+            input.value !== 'rafael' &&
+            input.value !== 'adm') {
+            erro.style.display = 'block';
+            return;
+        }
+        
+        senhaLiberada = true;
+        fundo.remove();
+        criarMenu();
     };
 
-    const criarBotaoFlutuante = () => {
-        const b = document.createElement('div');
-        b.id = "dhonatanBotao";
-        b.textContent = "Menu";
-        Object.assign(b.style, {
-            position: 'fixed',
-            left: posX,
-            top: posY,
-            background: corBotao,
-            padding: '12px 20px',
-            borderRadius: '30px',
-            cursor: 'grab',
-            zIndex: '999999',
-            fontWeight: 'bold',
-            userSelect: 'none',
-            color: '#fff',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease'
-        });
+    janela.append(nome, input, botao, erro);
+    fundo.append(janela);
+    document.body.append(fundo);
+};
 
-        let isDragging = false;
-        let startX, startY;
-        let initialX, initialY;
-        let xOffset = 0, yOffset = 0;
-        const DRAG_THRESHOLD = 5;
+const criarBotaoFlutuante = () => {
+    const b = document.createElement('div');
+    b.id = "dhonatanBotao";
+    b.textContent = "Menu";
+    Object.assign(b.style, {
+        position: 'fixed',
+        left: posX,
+        top: posY,
+        background: corBotao,
+        padding: '12px 20px',
+        borderRadius: '30px',
+        cursor: 'grab',
+        zIndex: '999999',
+        fontWeight: 'bold',
+        userSelect: 'none',
+        color: '#fff',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+        transition: 'all 0.3s ease'
+    });
 
-        b.addEventListener('mousedown', startDrag);
-        b.addEventListener('touchstart', startDrag, { passive: false });
+    let isDragging = false;
+    let startX, startY;
+    let initialX, initialY;
+    let xOffset = 0, yOffset = 0;
+    const DRAG_THRESHOLD = 5;
 
-        function startDrag(e) {
-            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            
-            startX = clientX;
-            startY = clientY;
-            initialX = clientX - (parseFloat(b.style.left) || 0);
-            initialY = clientY - (parseFloat(b.style.top) || 0);
-            
-            isDragging = false;
-            
-            document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('touchmove', handleDragMove, { passive: false });
-            document.addEventListener('mouseup', endDrag);
-            document.addEventListener('touchend', endDrag);
+    b.addEventListener('mousedown', startDrag);
+    b.addEventListener('touchstart', startDrag, { passive: false });
+
+    function startDrag(e) {
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
+        startX = clientX;
+        startY = clientY;
+        initialX = clientX - (parseFloat(b.style.left) || 0);
+        initialY = clientY - (parseFloat(b.style.top) || 0);
+        
+        isDragging = false;
+        
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function handleDragMove(e) {
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (!isDragging && distance > DRAG_THRESHOLD) {
+            isDragging = true;
         }
-
-        function handleDragMove(e) {
-            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
+        if (isDragging) {
+            const currentX = clientX - initialX;
+            const currentY = clientY - initialY;
             
-            const dx = clientX - startX;
-            const dy = clientY - startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (!isDragging && distance > DRAG_THRESHOLD) {
-                isDragging = true;
-            }
-            
-            if (isDragging) {
-                const currentX = clientX - initialX;
-                const currentY = clientY - initialY;
-                
-                b.style.left = `${currentX}px`;
-                b.style.top = `${currentY}px`;
-                b.style.cursor = 'grabbing';
-            }
+            b.style.left = `${currentX}px`;
+            b.style.top = `${currentY}px`;
+            b.style.cursor = 'grabbing';
         }
+    }
 
-        function endDrag() {
-            if (isDragging) {
-                posX = b.style.left;
-                posY = b.style.top;
-                localStorage.setItem("dhonatanX", posX);
-                localStorage.setItem("dhonatanY", posY);
-            } else {
-                // Se não estava arrastando, é um clique
-                b.remove();
-                senhaLiberada ? criarMenu() : criarInterface();
-            }
-            
-            b.style.cursor = 'grab';
-            isDragging = false;
-            
-            document.removeEventListener('mousemove', handleDragMove);
-            document.removeEventListener('touchmove', handleDragMove);
-            document.removeEventListener('mouseup', endDrag);
-            document.removeEventListener('touchend', endDrag);
+    function endDrag() {
+        if (isDragging) {
+            posX = b.style.left;
+            posY = b.style.top;
+            localStorage.setItem("dhonatanX", posX);
+            localStorage.setItem("dhonatanY", posY);
+        } else {
+            // Se não estava arrastando, é um clique
+            b.remove();
+            senhaLiberada ? criarMenu() : criarInterface();
         }
+        
+        b.style.cursor = 'grab';
+        isDragging = false;
+        
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+    }
 
-        document.body.append(b);
-    };
+    document.body.append(b);
+};
 
-    // Iniciar o botão flutuante
-    criarBotaoFlutuante();
+// Iniciar o botão flutuante
+criarBotaoFlutuante();
 })();
