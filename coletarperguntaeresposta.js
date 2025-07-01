@@ -1,87 +1,126 @@
 // ==UserScript==
-// @name         Assistente ENEM - Cópia e Busca
+// @name         Assistente ENEM - Cópia Potente e Busca
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Habilita cópia de texto e busca de respostas
+// @version      3.0
+// @description  Sistema ultra potente para copiar conteúdo bloqueado e buscar respostas
 // @author       SeuNome
 // @match        *://*/*
-// @grant        none
+// @grant        GM_setClipboard
+// @grant        GM_notification
 // @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
+// @icon         https://i.imgur.com/7YbX5Jx.png
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // 1. Habilitar cópia de texto em sites bloqueados
-    const habilitarCopiaTexto = () => {
-        // Remover bloqueadores de seleção
+    // =============================================
+    // SISTEMA ULTRA POTENTE DE HABILITAÇÃO DE CÓPIA
+    // =============================================
+    const habilitarCopiaPotente = () => {
+        // 1. Remover todos os estilos que bloqueiam seleção
         document.body.style.userSelect = 'text !important';
         document.body.style.webkitUserSelect = 'text !important';
+        document.body.style.MozUserSelect = 'text !important';
+        document.body.style.msUserSelect = 'text !important';
+        document.body.style.oUserSelect = 'text !important';
+
+        // 2. Remover eventos bloqueadores
+        const eventosBloqueio = [
+            'selectstart', 'mousedown', 'mouseup', 'dragstart', 
+            'contextmenu', 'copy', 'cut', 'paste', 'keydown'
+        ];
         
-        // Remover bloqueadores de menu de contexto
-        document.addEventListener('contextmenu', e => {
-            e.stopPropagation();
-        }, true);
-        
-        // Remover bloqueadores de eventos de seleção
-        const eventosBloqueio = ['selectstart', 'mousedown', 'mouseup', 'dragstart'];
         eventosBloqueio.forEach(evento => {
             document.addEventListener(evento, e => {
                 e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (evento === 'contextmenu') return true;
             }, true);
         });
-        
-        // Remover elementos bloqueadores
+
+        // 3. Remover elementos bloqueadores
         document.querySelectorAll('*').forEach(el => {
+            // Remover estilos bloqueadores
             el.style.userSelect = 'text !important';
             el.style.webkitUserSelect = 'text !important';
             el.style.MozUserSelect = 'text !important';
             el.style.msUserSelect = 'text !important';
             el.style.oUserSelect = 'text !important';
+            el.style.pointerEvents = 'auto !important';
+            
+            // Remover atributos bloqueadores
+            el.removeAttribute('oncontextmenu');
+            el.removeAttribute('onselectstart');
+            el.removeAttribute('ondragstart');
+            el.removeAttribute('onmousedown');
         });
+
+        // 4. Remover scripts bloqueadores
+        document.querySelectorAll('script').forEach(script => {
+            const scriptContent = script.textContent.toLowerCase();
+            const termosBloqueio = [
+                'disablecopy', 'onselectstart', 'oncontextmenu',
+                'user-select', 'userSelect', 'preventDefault',
+                'addEventListener("copy"', 'addEventListener("cut"'
+            ];
+            
+            if (termosBloqueio.some(termo => scriptContent.includes(termo))) {
+                script.remove();
+            }
+        });
+
+        return "Cópia habilitada com sucesso!";
     };
 
-    // 2. Coletar conteúdo da questão
-    const coletarConteudoQuestao = () => {
-        // Tentar encontrar a pergunta
+    // =============================
+    // SISTEMA DE CAPTURA DE CONTEÚDO
+    // =============================
+    const capturarConteudoQuestao = () => {
+        // 1. Tentar identificar uma pergunta
         let pergunta = '';
-        const elementosTexto = document.querySelectorAll('p, h1, h2, h3, h4, div, span');
+        const elementosTexto = document.querySelectorAll('p, h1, h2, h3, h4, h5, div, span, li');
         
         for (const el of elementosTexto) {
             const texto = el.textContent.trim();
-            if (texto.includes('?')) {
+            if (texto.includes('?') && texto.length > 10 && texto.length < 300) {
                 pergunta = texto;
                 break;
             }
         }
         
-        // Coletar alternativas
+        // 2. Capturar alternativas
         let alternativas = [];
-        const padraoAlternativa = /^[a-e]\)\s+/i;
+        const padraoAlternativa = /^[a-e]\)\s+|^\d+\.\s+|^[-•]\s+/i;
         
-        document.querySelectorAll('li, p, div').forEach(el => {
+        document.querySelectorAll('li, p, div, span, td').forEach(el => {
             const texto = el.textContent.trim();
             if (padraoAlternativa.test(texto) && texto.length > 10 && texto.length < 200) {
                 alternativas.push(texto);
             }
         });
         
-        // Montar conteúdo
-        if (pergunta && alternativas.length > 0) {
-            return `${pergunta}\n\n${alternativas.join('\n')}`;
+        // 3. Montar conteúdo
+        let conteudo = pergunta;
+        
+        if (alternativas.length > 0) {
+            conteudo += '\n\n' + alternativas.join('\n');
         }
         
-        if (pergunta) {
-            return pergunta;
+        // 4. Fallback: capturar todo o conteúdo visível
+        if (!conteudo || conteudo.length < 30) {
+            conteudo = document.body.innerText
+                .replace(/\s+/g, ' ')
+                .replace(/(.{100})/g, '$1\n')
+                .substring(0, 1500);
         }
         
-        // Fallback: todo o conteúdo da página
-        return document.body.textContent
-            .replace(/\s+/g, ' ')
-            .substring(0, 1500);
+        return conteudo;
     };
 
-    // 3. Interface do usuário
+    // =============================
+    // INTERFACE DO USUÁRIO
+    // =============================
     const criarInterface = () => {
         // Remover interface existente
         const existingUI = document.getElementById('assistente-enem-ui');
@@ -90,7 +129,7 @@
         // Criar container principal
         const ui = document.createElement('div');
         ui.id = 'assistente-enem-ui';
-        ui.style = `
+        ui.style.cssText = `
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -104,106 +143,225 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
         `;
         
+        // HTML da interface
         ui.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: 18px;">
+                <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-graduation-cap"></i> Assistente ENEM
                 </h3>
-                <button id="assistente-close" style="
-                    background: rgba(255,255,255,0.2);
-                    border: none;
-                    width: 30px;
-                    height: 30px;
-                    border-radius: 50%;
-                    color: white;
-                    font-weight: bold;
-                    cursor: pointer;
-                ">×</button>
+                <div>
+                    <button id="minimizar-menu" style="
+                        background: rgba(255,255,255,0.2);
+                        border: none;
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        margin-right: 5px;
+                    "><i class="fas fa-minus"></i></button>
+                    <button id="fechar-menu" style="
+                        background: rgba(255,255,255,0.2);
+                        border: none;
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">×</button>
+                </div>
             </div>
             
-            <div style="margin-bottom: 15px;">
+            <div id="conteudo-menu">
                 <button id="habilitar-copia" style="
                     width: 100%;
-                    padding: 10px;
+                    padding: 12px;
                     background: rgba(255,255,255,0.15);
                     border: 1px solid rgba(255,255,255,0.3);
-                    border-radius: 8px;
+                    border-radius: 10px;
                     color: white;
                     cursor: pointer;
-                    margin-bottom: 10px;
+                    margin-bottom: 12px;
                     text-align: left;
                     display: flex;
                     align-items: center;
+                    font-size: 15px;
+                    transition: all 0.2s;
                 ">
-                    <i class="fas fa-copy" style="margin-right: 10px;"></i>
+                    <i class="fas fa-copy" style="margin-right: 10px; font-size: 18px;"></i>
                     Habilitar Cópia de Texto
+                </button>
+                
+                <button id="copiar-questao" style="
+                    width: 100%;
+                    padding: 12px;
+                    background: rgba(255,255,255,0.15);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 10px;
+                    color: white;
+                    cursor: pointer;
+                    margin-bottom: 12px;
+                    text-align: left;
+                    display: flex;
+                    align-items: center;
+                    font-size: 15px;
+                    transition: all 0.2s;
+                ">
+                    <i class="fas fa-clipboard" style="margin-right: 10px; font-size: 18px;"></i>
+                    Copiar Questão
                 </button>
                 
                 <button id="buscar-resposta" style="
                     width: 100%;
-                    padding: 10px;
+                    padding: 14px;
                     background: white;
                     border: none;
-                    border-radius: 8px;
+                    border-radius: 10px;
                     color: #1a2980;
                     font-weight: bold;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    font-size: 16px;
+                    transition: all 0.3s;
                 ">
                     <i class="fas fa-search" style="margin-right: 10px;"></i>
                     Buscar Resposta
                 </button>
+                
+                <div id="status" style="
+                    font-size: 13px;
+                    text-align: center;
+                    padding: 10px;
+                    background: rgba(0,0,0,0.2);
+                    border-radius: 8px;
+                    margin-top: 15px;
+                    min-height: 20px;
+                ">
+                    <i class="fas fa-check-circle" style="margin-right: 5px;"></i>
+                    Pronto para usar
+                </div>
             </div>
             
-            <div id="status" style="
-                font-size: 12px;
-                text-align: center;
-                padding: 5px;
-                background: rgba(0,0,0,0.2);
-                border-radius: 5px;
-                margin-top: 10px;
-            ">Pronto para usar</div>
+            <div id="menu-minimizado" style="display: none; text-align: center;">
+                <button id="expandir-menu" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 20px;
+                ">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
         `;
         
         document.body.appendChild(ui);
         
-        // Adicionar eventos
-        document.getElementById('assistente-close').addEventListener('click', () => {
-            ui.style.display = 'none';
-        });
+        // =====================
+        // EVENTOS DA INTERFACE
+        // =====================
         
+        // Habilitar cópia
         document.getElementById('habilitar-copia').addEventListener('click', () => {
-            habilitarCopiaTexto();
-            document.getElementById('status').textContent = 'Cópia habilitada! Agora você pode selecionar texto.';
+            const resultado = habilitarCopiaPotente();
+            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> ${resultado}`;
+            
+            // Efeito visual
+            const btn = document.getElementById('habilitar-copia');
+            btn.style.background = 'rgba(255,255,255,0.3)';
             setTimeout(() => {
-                document.getElementById('status').textContent = 'Modo cópia ativo';
-            }, 3000);
+                btn.style.background = 'rgba(255,255,255,0.15)';
+            }, 300);
         });
         
-        document.getElementById('buscar-resposta').addEventListener('click', () => {
-            const conteudo = coletarConteudoQuestao();
+        // Copiar questão
+        document.getElementById('copiar-questao').addEventListener('click', () => {
+            const conteudo = capturarConteudoQuestao();
             if (conteudo.length < 20) {
-                document.getElementById('status').textContent = 'Erro: Não foi possível identificar a questão';
+                document.getElementById('status').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Não foi possível capturar a questão`;
                 return;
             }
             
-            document.getElementById('status').textContent = 'Buscando resposta...';
+            GM_setClipboard(conteudo, 'text');
+            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Questão copiada para área de transferência!`;
+            
+            // Efeito visual
+            const btn = document.getElementById('copiar-questao');
+            btn.style.background = 'rgba(255,255,255,0.3)';
+            setTimeout(() => {
+                btn.style.background = 'rgba(255,255,255,0.15)';
+            }, 300);
+        });
+        
+        // Buscar resposta
+        document.getElementById('buscar-resposta').addEventListener('click', () => {
+            const conteudo = capturarConteudoQuestao();
+            if (conteudo.length < 20) {
+                document.getElementById('status').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Não foi possível identificar a questão`;
+                return;
+            }
+            
+            document.getElementById('status').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Buscando resposta...`;
             
             // Abrir no Perplexity
             const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudo)}`;
             window.open(url, '_blank');
             
-            document.getElementById('status').textContent = 'Resposta enviada para pesquisa!';
+            setTimeout(() => {
+                document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Resposta enviada para pesquisa!`;
+            }, 2000);
+            
+            // Efeito visual
+            const btn = document.getElementById('buscar-resposta');
+            btn.style.transform = 'translateY(-3px)';
+            btn.style.boxShadow = '0 7px 15px rgba(0,0,0,0.3)';
+            setTimeout(() => {
+                btn.style.transform = 'none';
+                btn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+            }, 300);
         });
         
-        // Tornar arrastável
+        // Fechar menu
+        document.getElementById('fechar-menu').addEventListener('click', () => {
+            ui.style.display = 'none';
+        });
+        
+        // Minimizar menu
+        document.getElementById('minimizar-menu').addEventListener('click', () => {
+            document.getElementById('conteudo-menu').style.display = 'none';
+            document.getElementById('menu-minimizado').style.display = 'block';
+            ui.style.width = '60px';
+            ui.style.padding = '10px';
+        });
+        
+        // Expandir menu
+        document.getElementById('expandir-menu').addEventListener('click', () => {
+            document.getElementById('conteudo-menu').style.display = 'block';
+            document.getElementById('menu-minimizado').style.display = 'none';
+            ui.style.width = '300px';
+            ui.style.padding = '15px';
+        });
+        
+        // =====================
+        // ARRASTAR A INTERFACE
+        // =====================
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        ui.addEventListener('mousedown', dragMouseDown);
+        
+        const header = ui.querySelector('h3');
+        header.style.cursor = 'move';
+        
+        header.addEventListener('mousedown', dragMouseDown);
         
         function dragMouseDown(e) {
             e.preventDefault();
@@ -229,7 +387,9 @@
         }
     };
 
-    // Iniciar
+    // =====================
+    // INICIALIZAÇÃO
+    // =====================
     const init = () => {
         // Carregar Font Awesome
         if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -242,8 +402,11 @@
         // Criar interface
         criarInterface();
         
-        // Habilitar cópia por padrão
-        setTimeout(habilitarCopiaTexto, 1000);
+        // Habilitar cópia automaticamente
+        setTimeout(() => {
+            habilitarCopiaPotente();
+            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Cópia habilitada automaticamente!`;
+        }, 1500);
     };
 
     // Aguardar o carregamento da página
@@ -252,4 +415,7 @@
     } else {
         window.addEventListener('load', init);
     }
+
+    // Depuração
+    console.log('Assistente ENEM carregado com sucesso!');
 })();
