@@ -604,9 +604,34 @@ const criarInterface = () => {
     janela = document.createElement('div');
     aplicarEstiloContainer(janela);
 
-    nome = document.createElement('div');
-    nome.textContent = 'O melhor menu de funções Dhonatan Cheats🔥';
-    aplicarEstiloTexto(nome, '18px');
+    // Container principal
+nome = document.createElement('div');
+Object.assign(nome.style, {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '5px'
+});
+
+// Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Funções';
+aplicarEstiloTexto(textoCima, '18px');
+
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Criador: Dhonatan Cheats🔥';
+aplicarEstiloTexto(textoBaixo, '16px');
+
+// Adiciona os textos ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoBaixo);
+
+// Mantém a animação de cores apenas no texto inferior
+let hue = 0;
+setInterval(() => {
+    textoBaixo.style.color = `hsl(${hue++ % 360},100%,60%)`;
+}, 30);
 
     let hue = 0;
     setInterval(() => {
