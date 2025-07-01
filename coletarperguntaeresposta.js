@@ -1,79 +1,67 @@
+// ==UserScript==
+// @name         Assistente ENEM - Toda Matéria (Modo Texto Completo)
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Busca automática de respostas copiando todo o texto da questão
+// @author       SeuNome
+// @match        *://www.todamateria.com.br/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=todamateria.com.br
+// @grant        none
+// ==/UserScript==
+
 (function() {
     'use strict';
 
-    const coletarPerguntaEAlternativas = () => {
-        // 1. Detecção de pergunta
-        let pergunta = '';
+    // Função para coletar todo o texto visível da questão
+    const coletarTextoQuestao = () => {
+        // Tenta encontrar o container principal da questão
+        const containers = [
+            '.article-content', 
+            '.entry-content', 
+            '.post-content',
+            '.question-container',
+            '.exercicio',
+            '#content'
+        ];
         
-        // Tentar encontrar pelo cabeçalho principal
-        const cabecalhos = Array.from(document.querySelectorAll('h1, h2, h3, h4'));
-        for (const cabecalho of cabecalhos) {
-            const texto = cabecalho.textContent.trim();
-            if (texto.includes('?')) {
-                pergunta = texto;
-                break;
-            }
+        let container = null;
+        for (const selector of containers) {
+            container = document.querySelector(selector);
+            if (container) break;
         }
-
-        // Fallback - Buscar em parágrafos
-        if (!pergunta) {
-            const paragrafos = Array.from(document.querySelectorAll('p'));
-            for (const p of paragrafos) {
-                const texto = p.textContent.trim();
-                if (texto.includes('?') && texto.length > 10 && texto.length < 500) {
-                    pergunta = texto;
-                    break;
-                }
-            }
-        }
-
-        // 2. Detecção de alternativas
-        const alternativas = [];
         
-        // Tentar encontrar em listas (estrutura comum)
-        const listItems = document.querySelectorAll('li');
-        listItems.forEach(li => {
-            const texto = li.textContent.trim().replace(/\s+/g, ' ');
-            if (texto.length > 10 && texto.length < 300 && /^[a-e]\)\s+/i.test(texto)) {
-                alternativas.push(texto.replace(/^[a-e]\)\s+/i, ''));
-            }
+        // Fallback: usa o body se não encontrar container específico
+        container = container || document.body;
+        
+        // Clona o container para trabalhar sem afetar o DOM
+        const clone = container.cloneNode(true);
+        
+        // Remove elementos indesejados
+        clone.querySelectorAll('script, style, iframe, img, button, .ads, footer, header').forEach(el => {
+            el.remove();
         });
-
-        // Fallback - Buscar em divs com classes específicas
-        if (alternativas.length < 2) {
-            const divs = document.querySelectorAll('div');
-            divs.forEach(div => {
-                const texto = div.textContent.trim().replace(/\s+/g, ' ');
-                if (texto.length > 10 && texto.length < 300 && /^[a-e]\)\s+/i.test(texto)) {
-                    alternativas.push(texto.replace(/^[a-e]\)\s+/i, ''));
-                }
-            });
-        }
-
-        return { pergunta, alternativas };
+        
+        // Coleta todo o texto
+        return clone.innerText
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 2000); // Limita o tamanho
     };
 
     const buscarResposta = () => {
-        const { pergunta, alternativas } = coletarPerguntaEAlternativas();
+        const textoQuestao = coletarTextoQuestao();
         
-        if (!pergunta || alternativas.length < 2) {
-            alert('❌ Não foi possível identificar a pergunta ou alternativas suficientes.');
+        if (!textoQuestao || textoQuestao.length < 20) {
+            alert('❌ Não foi possível identificar o conteúdo da questão.');
             return;
         }
 
-        // Formatar alternativas para pesquisa
-        const alternativasFormatadas = alternativas.map((alt, i) => {
-            return `${String.fromCharCode(97 + i)}) ${alt}`;
-        }).join('\n');
-
-        const promptPesquisa = `${pergunta}\n\n${alternativasFormatadas}`;
-        const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptPesquisa)}`;
-        
+        // Abre o Perplexity com o texto completo da questão
+        const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(textoQuestao)}`;
         window.open(urlPesquisa, '_blank');
     };
 
     const criarMenuFlutuante = () => {
-        // Evitar duplicação do menu
         if (document.getElementById('assistente-enem-menu')) return;
 
         const menu = document.createElement('div');
@@ -102,7 +90,7 @@
                 <h3 style="margin: 0; font-weight: 600;">Assistente ENEM</h3>
             </div>
             <p style="font-size: 14px; line-height: 1.4; margin-bottom: 15px; opacity: 0.9;">
-                Clique no botão abaixo para buscar a resposta para esta questão no Perplexity AI
+                Clique para buscar resposta com o texto completo da questão
             </p>
             <button id="buscar-resposta-btn" style="
                 background: white;
@@ -116,20 +104,40 @@
                 transition: all 0.3s ease;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             ">
-                Buscar Resposta
+                Buscar Resposta Completa
             </button>
         `;
 
         document.body.appendChild(menu);
-        
-        // Adicionar evento de clique
         document.getElementById('buscar-resposta-btn').addEventListener('click', buscarResposta);
     };
 
     // Iniciar quando o DOM estiver pronto
+    const init = () => {
+        criarMenuFlutuante();
+        
+        // Adiciona estilo para melhorar a usabilidade
+        const css = `
+            #assistente-enem-menu {
+                animation: fadeIn 0.5s ease-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            #buscar-resposta-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+        `;
+        const style = document.createElement('style');
+        style.textContent = css;
+        document.head.appendChild(style);
+    };
+
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(criarMenuFlutuante, 1000);
+        setTimeout(init, 1000);
     } else {
-        document.addEventListener('DOMContentLoaded', criarMenuFlutuante);
+        document.addEventListener('DOMContentLoaded', init);
     }
 })();
