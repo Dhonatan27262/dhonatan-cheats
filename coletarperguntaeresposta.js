@@ -1,12 +1,13 @@
 // ==UserScript==
-// @name         Assistente ENEM - Toda Matéria (Premium)
+// @name         Assistente ENEM - Toda Matéria (Premium Plus)
 // @namespace    http://tampermonkey.net/
-// @version      4.0
-// @description  Busca automática de respostas com menu arrastável e botão de fechar
+// @version      5.0
+// @description  Busca automática de respostas com detecção inteligente
 // @author       SeuNome
 // @match        *://www.todamateria.com.br/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=todamateria.com.br
-// @grant        none
+// @grant        GM_setClipboard
+// @grant        GM_notification
 // @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js
 // ==/UserScript==
 
@@ -133,67 +134,153 @@
             font-size: 14px;
             margin-right: 5px;
         }
+        
+        .mode-selector {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 5px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .mode-btn.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: bold;
+        }
     `;
     
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
 
-    // Função para coletar todo o texto relevante da questão
-    const coletarTextoQuestao = () => {
-        // Identificar container principal
-        const containers = [
+    // Modos de captura
+    let captureMode = 'auto'; // auto, text, question
+    const textosIgnorados = [
+        'compartilhe', 'comentários', 'publicidade', 'anúncio', 'ads', 
+        'leia também', 'veja também', 'relacionados', 'copyright',
+        'termos de uso', 'política de privacidade', 'menu', 'buscar'
+    ];
+
+    // Função inteligente para coletar conteúdo da questão
+    const coletarConteudoQuestao = () => {
+        // Tentar encontrar container principal
+        const containerSelectors = [
+            '.td-post-content', // Toda Matéria
             '.article-content', 
             '.entry-content', 
             '.post-content',
             '.question-container',
             '.exercicio',
-            '.td-post-content',
-            '#content'
+            '#content',
+            'main'
         ];
         
         let container = null;
-        for (const selector of containers) {
+        for (const selector of containerSelectors) {
             container = document.querySelector(selector);
             if (container) break;
         }
         
         container = container || document.body;
         
-        // Clonar e limpar o conteúdo
+        // Clonar e limpar
         const clone = container.cloneNode(true);
-        clone.querySelectorAll('script, style, iframe, img, button, .ads, .comments, .td-post-sharing').forEach(el => el.remove());
+        clone.querySelectorAll('script, style, iframe, img, button, .ads, .comments, .td-post-sharing, .ad, .publicidade').forEach(el => el.remove());
         
-        // Extrair texto com foco na pergunta
-        let texto = clone.innerText
-            .replace(/\s+/g, ' ')
-            .trim();
+        // Encontrar elemento com a pergunta
+        let questionElement = null;
+        const headingSelectors = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
         
-        // Encontrar o início da pergunta
-        const headings = clone.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        for (const heading of headings) {
-            const headingText = heading.innerText.trim();
-            if (headingText && texto.includes(headingText)) {
-                const startIndex = texto.indexOf(headingText);
-                texto = texto.substring(startIndex);
-                break;
+        for (const selector of headingSelectors) {
+            const elements = clone.querySelectorAll(selector);
+            for (const el of elements) {
+                if (el.textContent.includes('?')) {
+                    questionElement = el;
+                    break;
+                }
+            }
+            if (questionElement) break;
+        }
+        
+        // Se não encontrou pergunta, pegar o primeiro heading
+        if (!questionElement) {
+            for (const selector of headingSelectors) {
+                const el = clone.querySelector(selector);
+                if (el) {
+                    questionElement = el;
+                    break;
+                }
             }
         }
         
+        // Determinar modo de captura
+        let conteudo = '';
+        
+        if (captureMode === 'text' || !questionElement) {
+            // Modo texto completo (fallback)
+            conteudo = clone.innerText;
+        } else {
+            // Modo focado na questão
+            conteudo = questionElement.textContent + '\n';
+            
+            // Coletar elementos seguintes até o próximo heading
+            let nextElement = questionElement.nextElementSibling;
+            while (nextElement) {
+                if (headingSelectors.includes(nextElement.tagName.toLowerCase())) break;
+                conteudo += nextElement.textContent + '\n';
+                nextElement = nextElement.nextElementSibling;
+            }
+        }
+        
+        // Processar texto
+        conteudo = conteudo
+            .replace(/\s+/g, ' ')
+            .trim();
+        
+        // Filtrar linhas indesejadas
+        conteudo = conteudo.split('\n')
+            .filter(line => {
+                const lowerLine = line.toLowerCase();
+                return !textosIgnorados.some(ignored => lowerLine.includes(ignored)) && 
+                       line.length > 5;
+            })
+            .join('\n');
+        
         // Limitar tamanho
-        return texto.substring(0, 1500);
+        return conteudo.substring(0, 1500);
     };
 
     const buscarResposta = () => {
-        const textoQuestao = coletarTextoQuestao();
+        const conteudoQuestao = coletarConteudoQuestao();
         
-        if (!textoQuestao || textoQuestao.length < 30) {
+        if (!conteudoQuestao || conteudoQuestao.length < 30) {
             alert('❌ Não foi possível identificar o conteúdo da questão.');
             return;
         }
 
-        const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(textoQuestao)}`;
+        // Copiar para área de transferência como fallback
+        GM_setClipboard(conteudoQuestao, 'text');
+        
+        // Abrir Perplexity
+        const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudoQuestao)}`;
         window.open(urlPesquisa, '_blank');
+        
+        // Notificação
+        GM_notification({
+            text: 'Conteúdo copiado para área de transferência!',
+            title: 'Assistente ENEM',
+            timeout: 3000
+        });
     };
 
     // Variáveis para arrastar
@@ -220,7 +307,13 @@
                 <button id="assistente-menu-close">×</button>
             </div>
             <div id="assistente-menu-content">
-                Clique para buscar resposta com o texto completo da questão
+                <p>Selecione o modo de captura:</p>
+                <div class="mode-selector">
+                    <button class="mode-btn ${captureMode === 'auto' ? 'active' : ''}" data-mode="auto">Auto</button>
+                    <button class="mode-btn ${captureMode === 'text' ? 'active' : ''}" data-mode="text">Texto</button>
+                    <button class="mode-btn ${captureMode === 'question' ? 'active' : ''}" data-mode="question">Questão</button>
+                </div>
+                <p>Clique para buscar resposta:</p>
             </div>
             <button id="buscar-resposta-btn">
                 <i class="fas fa-search"></i> Buscar Resposta
@@ -229,7 +322,7 @@
 
         document.body.appendChild(menu);
         
-        // Adicionar Font Awesome (se necessário)
+        // Adicionar Font Awesome
         if (!document.querySelector('link[href*="font-awesome"]')) {
             const faLink = document.createElement('link');
             faLink.rel = 'stylesheet';
@@ -256,6 +349,15 @@
         
         // Evento para botão de busca
         menu.querySelector('#buscar-resposta-btn').addEventListener('click', buscarResposta);
+        
+        // Eventos para botões de modo
+        menu.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                captureMode = btn.dataset.mode;
+                menu.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
         
         // Tornar arrastável
         const header = menu.querySelector("#assistente-menu-header");
