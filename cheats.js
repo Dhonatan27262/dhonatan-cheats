@@ -392,7 +392,15 @@
                 { nome: '🔁 Reescrever Texto', func: abrirReescritor }
             ],
             respostas: [
-                { nome: '📡 Encontrar Resposta (Colar)', func: encontrarRespostaColar },
+                { nome: '📡 Encontrar Resposta (Colar)',
+                    func: () => {
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/coletarperguntaeresposta.js?" + Date.now();
+                    fetch(scriptURL)
+                        .then(response => response.text())
+                        .then(scriptContent => {
+                            const script = document.createElement('script');
+                            script.textContent = scriptContent;
+                            document.head.appendChild(script);
                 { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
                 { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
                 { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
