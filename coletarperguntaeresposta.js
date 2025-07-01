@@ -1,11 +1,10 @@
 // ==UserScript==
-// @name         Assistente ENEM - Toda Matéria (Solução Definitiva)
+// @name         Assistente ENEM - Cópia e Busca
 // @namespace    http://tampermonkey.net/
-// @version      7.0
-// @description  Sistema inteligente de detecção de questões
+// @version      1.0
+// @description  Habilita cópia de texto e busca de respostas
 // @author       SeuNome
-// @match        *://www.todamateria.com.br/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=todamateria.com.br
+// @match        *://*/*
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
 // ==/UserScript==
@@ -13,273 +12,199 @@
 (function() {
     'use strict';
 
-    // Estilos CSS otimizados
-    const css = `
-        #assistente-enem-menu {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
-            color: white;
-            padding: 12px 15px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            width: 280px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.3);
-            cursor: move;
-            transition: all 0.3s ease;
-        }
+    // 1. Habilitar cópia de texto em sites bloqueados
+    const habilitarCopiaTexto = () => {
+        // Remover bloqueadores de seleção
+        document.body.style.userSelect = 'text !important';
+        document.body.style.webkitUserSelect = 'text !important';
         
-        #assistente-menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
+        // Remover bloqueadores de menu de contexto
+        document.addEventListener('contextmenu', e => {
+            e.stopPropagation();
+        }, true);
         
-        #assistente-menu-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-            font-weight: 600;
-        }
+        // Remover bloqueadores de eventos de seleção
+        const eventosBloqueio = ['selectstart', 'mousedown', 'mouseup', 'dragstart'];
+        eventosBloqueio.forEach(evento => {
+            document.addEventListener(evento, e => {
+                e.stopPropagation();
+            }, true);
+        });
         
-        #assistente-menu-close {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        #buscar-resposta-btn {
-            background: white;
-            color: #1a2980;
-            border: none;
-            padding: 10px;
-            width: 100%;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        
-        #assistente-reopen-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-            font-size: 18px;
-        }
-        
-        .drag-handle {
-            cursor: move;
-            opacity: 0.7;
-            font-size: 14px;
-            margin-right: 5px;
-        }
-        
-        .status-indicator {
-            font-size: 12px;
-            margin-top: 8px;
-            text-align: center;
-            opacity: 0.8;
-        }
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = css;
-    document.head.appendChild(style);
+        // Remover elementos bloqueadores
+        document.querySelectorAll('*').forEach(el => {
+            el.style.userSelect = 'text !important';
+            el.style.webkitUserSelect = 'text !important';
+            el.style.MozUserSelect = 'text !important';
+            el.style.msUserSelect = 'text !important';
+            el.style.oUserSelect = 'text !important';
+        });
+    };
 
-    // Sistema de detecção de questões
-    const detectarQuestao = () => {
-        // 1. Tentar encontrar por classe específica do Toda Matéria
-        const container = document.querySelector('.td-post-content, .entry-content, .post-content, .question-container') || document.body;
-        
-        // 2. Detecção de perguntas
-        const perguntaSelectors = [
-            '.enem-question', 
-            '.question-text',
-            '.exercicio',
-            'h1:has(> ?), h2:has(> ?), h3:has(> ?)',
-            'p:has(> ?), div:has(> ?)'
-        ];
-        
+    // 2. Coletar conteúdo da questão
+    const coletarConteudoQuestao = () => {
+        // Tentar encontrar a pergunta
         let pergunta = '';
-        for (const selector of perguntaSelectors) {
-            const el = container.querySelector(selector);
-            if (el && el.textContent.includes('?')) {
-                pergunta = el.textContent.trim();
+        const elementosTexto = document.querySelectorAll('p, h1, h2, h3, h4, div, span');
+        
+        for (const el of elementosTexto) {
+            const texto = el.textContent.trim();
+            if (texto.includes('?')) {
+                pergunta = texto;
                 break;
             }
         }
         
-        // 3. Fallback: Busca textual por padrão de questão
-        if (!pergunta) {
-            const elementos = container.querySelectorAll('p, h1, h2, h3, div');
-            for (const el of elementos) {
-                const texto = el.textContent.trim();
-                if (texto.includes('?') && texto.length > 20 && texto.length < 300) {
-                    pergunta = texto;
-                    break;
-                }
-            }
-        }
-        
-        // 4. Detecção de alternativas
+        // Coletar alternativas
         let alternativas = [];
-        const alternativaPattern = /^([a-e]\)\s*|•\s*|-\s*)/i;
+        const padraoAlternativa = /^[a-e]\)\s+/i;
         
-        // Tentar em listas
-        const listItems = container.querySelectorAll('li');
-        for (const item of listItems) {
-            const texto = item.textContent.trim();
-            if (alternativaPattern.test(texto) && texto.length > 10 && texto.length < 200) {
+        document.querySelectorAll('li, p, div').forEach(el => {
+            const texto = el.textContent.trim();
+            if (padraoAlternativa.test(texto) && texto.length > 10 && texto.length < 200) {
                 alternativas.push(texto);
             }
-        }
+        });
         
-        // Fallback: tentar em parágrafos e divs
-        if (alternativas.length < 2) {
-            const elementos = container.querySelectorAll('p, div');
-            for (const el of elementos) {
-                const texto = el.textContent.trim();
-                if (alternativaPattern.test(texto) && !alternativas.includes(texto) && texto.length > 10) {
-                    alternativas.push(texto);
-                }
-            }
-        }
-        
-        // 5. Montar conteúdo final
-        if (pergunta && alternativas.length > 1) {
+        // Montar conteúdo
+        if (pergunta && alternativas.length > 0) {
             return `${pergunta}\n\n${alternativas.join('\n')}`;
-        } 
+        }
         
         if (pergunta) {
             return pergunta;
         }
         
-        // 6. Último recurso: conteúdo do container principal
-        return container.textContent
+        // Fallback: todo o conteúdo da página
+        return document.body.textContent
             .replace(/\s+/g, ' ')
-            .replace(/(Leia também|Veja também|Compartilhe|Comentários).+/i, '')
             .substring(0, 1500);
     };
 
-    const buscarResposta = () => {
-        const conteudoQuestao = detectarQuestao();
+    // 3. Interface do usuário
+    const criarInterface = () => {
+        // Remover interface existente
+        const existingUI = document.getElementById('assistente-enem-ui');
+        if (existingUI) existingUI.remove();
         
-        if (!conteudoQuestao || conteudoQuestao.length < 30) {
-            alert('❌ Não foi possível identificar o conteúdo da questão.');
-            return;
-        }
-
-        // Abrir Perplexity com a questão formatada
-        const urlPesquisa = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudoQuestao)}`;
-        window.open(urlPesquisa, '_blank');
-        
-        // Atualizar status
-        const status = document.getElementById('assistente-status');
-        if (status) {
-            status.textContent = 'Pesquisa enviada!';
-            setTimeout(() => {
-                status.textContent = 'Pronto para nova pesquisa';
-            }, 3000);
-        }
-    };
-
-    // Variáveis para arrastar
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-    const criarMenuFlutuante = () => {
-        // Remover menu existente
-        const existingMenu = document.getElementById('assistente-enem-menu');
-        if (existingMenu) existingMenu.remove();
-        
-        const reopenBtn = document.getElementById('assistente-reopen-btn');
-        if (reopenBtn) reopenBtn.remove();
-
-        // Criar novo menu
-        const menu = document.createElement('div');
-        menu.id = 'assistente-enem-menu';
-        menu.innerHTML = `
-            <div id="assistente-menu-header">
-                <div id="assistente-menu-title">
-                    <span class="drag-handle">≡</span>
-                    <span>Assistente ENEM</span>
-                </div>
-                <button id="assistente-menu-close">×</button>
-            </div>
-            <div>
-                <p>Clique para buscar resposta:</p>
-                <button id="buscar-resposta-btn">
-                    <i class="fas fa-search"></i> Buscar Resposta
-                </button>
-                <div class="status-indicator" id="assistente-status">Pronto para usar</div>
-            </div>
+        // Criar container principal
+        const ui = document.createElement('div');
+        ui.id = 'assistente-enem-ui';
+        ui.style = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999999;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 15px;
+            width: 300px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
         `;
-
-        document.body.appendChild(menu);
         
-        // Carregar Font Awesome
-        if (!document.querySelector('link[href*="font-awesome"]')) {
-            const faLink = document.createElement('link');
-            faLink.rel = 'stylesheet';
-            faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
-            document.head.appendChild(faLink);
-        }
-        
-        // Evento para botão de fechar
-        menu.querySelector('#assistente-menu-close').addEventListener('click', () => {
-            menu.style.display = 'none';
+        ui.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 18px;">
+                    <i class="fas fa-graduation-cap"></i> Assistente ENEM
+                </h3>
+                <button id="assistente-close" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    color: white;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">×</button>
+            </div>
             
-            const reopenButton = document.createElement('div');
-            reopenButton.id = 'assistente-reopen-btn';
-            reopenButton.innerHTML = '<i class="fas fa-question"></i>';
-            reopenButton.addEventListener('click', () => {
-                menu.style.display = 'block';
-                reopenButton.remove();
-            });
-            document.body.appendChild(reopenButton);
+            <div style="margin-bottom: 15px;">
+                <button id="habilitar-copia" style="
+                    width: 100%;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.15);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 8px;
+                    color: white;
+                    cursor: pointer;
+                    margin-bottom: 10px;
+                    text-align: left;
+                    display: flex;
+                    align-items: center;
+                ">
+                    <i class="fas fa-copy" style="margin-right: 10px;"></i>
+                    Habilitar Cópia de Texto
+                </button>
+                
+                <button id="buscar-resposta" style="
+                    width: 100%;
+                    padding: 10px;
+                    background: white;
+                    border: none;
+                    border-radius: 8px;
+                    color: #1a2980;
+                    font-weight: bold;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                ">
+                    <i class="fas fa-search" style="margin-right: 10px;"></i>
+                    Buscar Resposta
+                </button>
+            </div>
+            
+            <div id="status" style="
+                font-size: 12px;
+                text-align: center;
+                padding: 5px;
+                background: rgba(0,0,0,0.2);
+                border-radius: 5px;
+                margin-top: 10px;
+            ">Pronto para usar</div>
+        `;
+        
+        document.body.appendChild(ui);
+        
+        // Adicionar eventos
+        document.getElementById('assistente-close').addEventListener('click', () => {
+            ui.style.display = 'none';
         });
         
-        // Evento para botão de busca
-        menu.querySelector('#buscar-resposta-btn').addEventListener('click', buscarResposta);
+        document.getElementById('habilitar-copia').addEventListener('click', () => {
+            habilitarCopiaTexto();
+            document.getElementById('status').textContent = 'Cópia habilitada! Agora você pode selecionar texto.';
+            setTimeout(() => {
+                document.getElementById('status').textContent = 'Modo cópia ativo';
+            }, 3000);
+        });
+        
+        document.getElementById('buscar-resposta').addEventListener('click', () => {
+            const conteudo = coletarConteudoQuestao();
+            if (conteudo.length < 20) {
+                document.getElementById('status').textContent = 'Erro: Não foi possível identificar a questão';
+                return;
+            }
+            
+            document.getElementById('status').textContent = 'Buscando resposta...';
+            
+            // Abrir no Perplexity
+            const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudo)}`;
+            window.open(url, '_blank');
+            
+            document.getElementById('status').textContent = 'Resposta enviada para pesquisa!';
+        });
         
         // Tornar arrastável
-        const header = menu.querySelector("#assistente-menu-header");
-        header.addEventListener('mousedown', dragMouseDown);
-
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        ui.addEventListener('mousedown', dragMouseDown);
+        
         function dragMouseDown(e) {
             e.preventDefault();
             pos3 = e.clientX;
@@ -287,38 +212,44 @@
             document.addEventListener('mouseup', closeDragElement);
             document.addEventListener('mousemove', elementDrag);
         }
-
+        
         function elementDrag(e) {
             e.preventDefault();
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
-            menu.style.top = (menu.offsetTop - pos2) + "px";
-            menu.style.left = (menu.offsetLeft - pos1) + "px";
+            ui.style.top = (ui.offsetTop - pos2) + "px";
+            ui.style.left = (ui.offsetLeft - pos1) + "px";
         }
-
+        
         function closeDragElement() {
             document.removeEventListener('mouseup', closeDragElement);
             document.removeEventListener('mousemove', elementDrag);
         }
     };
 
-    // Iniciar quando o DOM estiver pronto
+    // Iniciar
     const init = () => {
-        criarMenuFlutuante();
+        // Carregar Font Awesome
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+            document.head.appendChild(link);
+        }
+        
+        // Criar interface
+        criarInterface();
+        
+        // Habilitar cópia por padrão
+        setTimeout(habilitarCopiaTexto, 1000);
     };
 
+    // Aguardar o carregamento da página
     if (document.readyState === 'complete') {
         init();
     } else {
         window.addEventListener('load', init);
     }
-
-    // Depuração avançada
-    console.log('Script do Assistente ENEM carregado');
-    window.assistenteDebug = {
-        detectarQuestao,
-        buscarResposta
-    };
 })();
