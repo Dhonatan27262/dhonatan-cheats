@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Assistente ENEM - Cópia Potente e Busca
+// @name         SANTOS.meczada - Busca de Respostas
 // @namespace    http://tampermonkey.net/
 // @version      5.0
-// @description  Sistema ultra potente para copiar conteúdo bloqueado e buscar respostas
+// @description  Sistema otimizado para busca de respostas
 // @author       SeuNome
 // @match        *://*/*
 // @grant        GM_setClipboard
@@ -13,77 +13,6 @@
 
 (function() {
     'use strict';
-
-    // =============================================
-    // SISTEMA ULTRA POTENTE DE HABILITAÇÃO DE CÓPIA
-    // =============================================
-    const habilitarCopiaPotente = () => {
-        // 1. Remover todos os estilos que bloqueiam seleção
-        const estilosBloqueio = [
-            'user-select', '-webkit-user-select', '-moz-user-select',
-            '-ms-user-select', '-o-user-select', 'pointer-events'
-        ];
-        
-        document.querySelectorAll('*').forEach(el => {
-            estilosBloqueio.forEach(prop => {
-                el.style[prop] = 'auto !important';
-            });
-        });
-        
-        // 2. Remover eventos bloqueadores de seleção
-        const eventosBloqueio = [
-            'selectstart', 'mousedown', 'mouseup', 'dragstart', 
-            'contextmenu', 'copy', 'cut', 'paste', 'keydown'
-        ];
-        
-        eventosBloqueio.forEach(evento => {
-            document.addEventListener(evento, e => {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                return true;
-            }, true);
-        });
-
-        // 3. Remover atributos bloqueadores
-        const atributosBloqueio = [
-            'oncontextmenu', 'onselectstart', 'ondragstart',
-            'onmousedown', 'oncopy', 'oncut', 'onpaste'
-        ];
-        
-        document.querySelectorAll('*').forEach(el => {
-            atributosBloqueio.forEach(atributo => {
-                el.removeAttribute(atributo);
-            });
-        });
-
-        // 4. Remover scripts bloqueadores
-        document.querySelectorAll('script').forEach(script => {
-            const scriptContent = script.textContent.toLowerCase();
-            const termosBloqueio = [
-                'disablecopy', 'onselectstart', 'oncontextmenu',
-                'user-select', 'userSelect', 'preventDefault',
-                'addEventListener("copy"', 'addEventListener("cut"',
-                'event.preventDefault', 'return false'
-            ];
-            
-            if (termosBloqueio.some(termo => scriptContent.includes(termo))) {
-                script.remove();
-            }
-        });
-        
-        // 5. Forçar ativação da seleção
-        document.body.style.userSelect = 'text !important';
-        document.body.style.webkitUserSelect = 'text !important';
-        document.body.style.MozUserSelect = 'text !important';
-        document.body.style.msUserSelect = 'text !important';
-        document.body.style.oUserSelect = 'text !important';
-        document.body.style.pointerEvents = 'auto !important';
-        
-        // 6. Criar evento para permitir menu de contexto
-        document.oncontextmenu = null;
-        
-        return "Cópia habilitada com sucesso! Agora você pode selecionar texto.";
-    };
 
     // =============================
     // SISTEMA DE CAPTURA DE CONTEÚDO
@@ -162,7 +91,7 @@
         ui.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-graduation-cap"></i> Assistente ENEM
+                    <i class="fas fa-graduation-cap"></i> SANTOS.meczada
                 </h3>
                 <div>
                     <button id="minimizar-menu" style="
@@ -190,44 +119,6 @@
             </div>
             
             <div id="conteudo-menu">
-                <button id="habilitar-copia" style="
-                    width: 100%;
-                    padding: 12px;
-                    background: rgba(255,255,255,0.15);
-                    border: 1px solid rgba(255,255,255,0.3);
-                    border-radius: 10px;
-                    color: white;
-                    cursor: pointer;
-                    margin-bottom: 12px;
-                    text-align: left;
-                    display: flex;
-                    align-items: center;
-                    font-size: 15px;
-                    transition: all 0.2s;
-                ">
-                    <i class="fas fa-copy" style="margin-right: 10px; font-size: 18px;"></i>
-                    Habilitar Cópia de Texto
-                </button>
-                
-                <button id="copiar-questao" style="
-                    width: 100%;
-                    padding: 12px;
-                    background: rgba(255,255,255,0.15);
-                    border: 1px solid rgba(255,255,255,0.3);
-                    border-radius: 10px;
-                    color: white;
-                    cursor: pointer;
-                    margin-bottom: 12px;
-                    text-align: left;
-                    display: flex;
-                    align-items: center;
-                    font-size: 15px;
-                    transition: all 0.2s;
-                ">
-                    <i class="fas fa-clipboard" style="margin-right: 10px; font-size: 18px;"></i>
-                    Copiar Questão
-                </button>
-                
                 <button id="buscar-resposta" style="
                     width: 100%;
                     padding: 14px;
@@ -283,54 +174,6 @@
         // =====================
         // EVENTOS DA INTERFACE
         // =====================
-        
-        // Habilitar cópia
-        document.getElementById('habilitar-copia').addEventListener('click', () => {
-            const resultado = habilitarCopiaPotente();
-            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> ${resultado}`;
-            
-            // Notificação
-            GM_notification({
-                title: 'Cópia Habilitada!',
-                text: resultado,
-                timeout: 3000,
-                silent: true
-            });
-            
-            // Efeito visual
-            const btn = document.getElementById('habilitar-copia');
-            btn.style.background = 'rgba(255,255,255,0.3)';
-            setTimeout(() => {
-                btn.style.background = 'rgba(255,255,255,0.15)';
-            }, 300);
-        });
-        
-        // Copiar questão
-        document.getElementById('copiar-questao').addEventListener('click', () => {
-            const conteudo = capturarConteudoQuestao();
-            if (conteudo.length < 20) {
-                document.getElementById('status').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Não foi possível capturar a questão`;
-                return;
-            }
-            
-            GM_setClipboard(conteudo, 'text');
-            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Questão copiada para área de transferência!`;
-            
-            // Notificação
-            GM_notification({
-                title: 'Conteúdo Copiado!',
-                text: 'A questão foi copiada para sua área de transferência',
-                timeout: 3000,
-                silent: true
-            });
-            
-            // Efeito visual
-            const btn = document.getElementById('copiar-questao');
-            btn.style.background = 'rgba(255,255,255,0.3)';
-            setTimeout(() => {
-                btn.style.background = 'rgba(255,255,255,0.15)';
-            }, 300);
-        });
         
         // Buscar resposta
         document.getElementById('buscar-resposta').addEventListener('click', () => {
@@ -430,19 +273,8 @@
         // Criar interface
         criarInterface();
         
-        // Habilitar cópia automaticamente
-        setTimeout(() => {
-            habilitarCopiaPotente();
-            document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Cópia habilitada automaticamente!`;
-            
-            // Notificação
-            GM_notification({
-                title: 'Assistente ENEM Ativado!',
-                text: 'A cópia de texto foi habilitada automaticamente',
-                timeout: 3000,
-                silent: true
-            });
-        }, 1500);
+        // Mensagem inicial
+        document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Pronto para buscar respostas`;
     };
 
     // Aguardar o carregamento da página
@@ -453,5 +285,5 @@
     }
 
     // Depuração
-    console.log('Assistente ENEM carregado com sucesso!');
+    console.log('SANTOS.meczada carregado com sucesso!');
 })();
