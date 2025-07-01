@@ -620,7 +620,7 @@ aplicarEstiloTexto(textoCima, '18px');
 
 // Texto INFERIOR
 const textoBaixo = document.createElement('div');
-textoBaixo.textContent = 'O melhor menu de funções Dhonatan Cheats🔥';
+textoBaixo.textContent = 'tudo para suas atividades de escola aqui!';
 aplicarEstiloTexto(textoBaixo, '16px');
 
 // Adiciona os textos ao container
