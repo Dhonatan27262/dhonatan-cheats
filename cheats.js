@@ -606,13 +606,13 @@ const criarInterface = () => {
 
     // Container principal
 nome = document.createElement('div');
-    nome.textContent = 'Painel Funções';
-    aplicarEstiloTexto(nome, '18px');
+        nome.textContent = 'Bem-vindo(a) ao mod do Dhonatan Modder';
+        aplicarEstiloTexto(nome, '18px');
 
-    let hue = 0;
-    setInterval(() => {
-        nome.style.color = `hsl(${hue++ % 360},100%,60%)`;
-    }, 30);
+        let hue = 0;
+        setInterval(() => {
+            nome.style.color = `hsl(${hue++ % 360},100%,60%)`;
+        }, 30);
 
     const input = document.createElement('input');
     Object.assign(input.style, {
