@@ -10,7 +10,7 @@
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
         Object.assign(elemento.style, {
             padding: '10px 15px',
-            background: gradiente ? 'linear-gradient(135deg, #8A2BE2, #4B0082)' : '#363636',
+            background: gradiente ? 'linear-gradient(135deg, #8A2BE2, #4B0082)' : '#222',
             color: '#fff',
             border: 'none',
             borderRadius: '30px',
