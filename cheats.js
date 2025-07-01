@@ -278,9 +278,6 @@ const criarMenuContexto = () => {
     document.body.appendChild(menu);
 };
 
-// Iniciar automaticamente
-criarMenuContexto();
-
     const encontrarRespostaDigitar = () => {
         const pergunta = prompt("Digite a pergunta:");
         if (!pergunta) return;
