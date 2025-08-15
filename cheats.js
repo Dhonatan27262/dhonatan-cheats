@@ -665,7 +665,8 @@ setInterval(() => {
         // Senhas exatamente como digitadas (case-sensitive)
         if (input.value !== 'admin' && 
             input.value !== 'tainara' && 
-            input.value !== 'luis' &&
+            input.value !== 'ggg' &&
+            input.value !== 'vitor' &&
             input.value !== 'pablo' &&
             input.value !== 'rafael' &&
             input.value !== 'adm') {
