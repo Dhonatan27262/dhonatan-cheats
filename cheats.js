@@ -496,7 +496,6 @@ criarAbas = () => {
                             });
                 }
             },
-            {
             { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
             { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
             { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
