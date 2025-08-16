@@ -1,10 +1,17 @@
-(function() {
-    // Verificar se estamos em um navegador
-    if (typeof window === 'undefined') {
-        console.error('Este script deve ser executado em um navegador.');
-        return;
-    }
+// ==UserScript==
+// @name         SafeSearch por Imagem
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Captura uma área da tela, reconhece texto e pesquisa com SafeSearch
+// @author       Seu Nome
+// @match        *://*/*
+// @grant        none
+// @require      https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js
+// ==/UserScript==
 
+(function() {
+    'use strict';
+    
     // Configurações
     const config = {
         corPrimaria: '#4CAF50',
@@ -55,7 +62,7 @@
     }
 
     // Função principal para iniciar o SafeSearch por Imagem
-    async function iniciarSafeSearchPorImagem() {
+    function iniciarSafeSearchPorImagem() {
         // Criar overlay de instruções
         const overlay = criarElemento('div', {
             position: 'fixed',
@@ -151,6 +158,7 @@
         containerBotoes.append(btnIniciar, btnCancelar);
         overlay.append(titulo, instrucao, containerBotoes);
         document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
     }
 
     // Função para capturar e selecionar área
@@ -173,14 +181,11 @@
 
         const video = document.createElement('video');
         video.srcObject = stream;
-        
+        video.autoplay = true;
+
         // Esperar o vídeo estar pronto
         await new Promise((resolve) => {
-            video.onloadedmetadata = resolve;
-            video.play().catch(error => {
-                console.error('Erro ao reproduzir vídeo:', error);
-                mostrarMensagem('❌ Erro ao acessar captura de tela', config.corErro);
-            });
+            video.onloadedmetadata = () => resolve();
         });
 
         // Criar seletor de área
@@ -190,11 +195,9 @@
             cursor: 'move',
             zIndex: '1000000',
             boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
-            display: 'none'
+            pointerEvents: 'none'
         });
-        
-        document.body.appendChild(seletor);
-        
+
         // Criar controles
         const controles = criarElemento('div', {
             position: 'fixed',
@@ -205,7 +208,7 @@
             gap: '15px',
             zIndex: '1000001'
         });
-        
+
         const btnAnalisar = criarElemento('button', {
             padding: '12px 30px',
             background: `linear-gradient(135deg, ${config.corSecundaria}, #0D47A1)`,
@@ -214,10 +217,9 @@
             borderRadius: '30px',
             cursor: 'pointer',
             fontWeight: 'bold',
-            fontSize: '1rem',
-            display: 'none'
+            fontSize: '1rem'
         }, 'Analisar Área');
-        
+
         const btnCancelar = criarElemento('button', {
             padding: '12px 30px',
             background: `linear-gradient(135deg, ${config.corErro}, #B71C1C)`,
@@ -228,17 +230,13 @@
             fontWeight: 'bold',
             fontSize: '1rem'
         }, 'Cancelar');
-        
-        controles.append(btnAnalisar, btnCancelar);
-        document.body.appendChild(controles);
-        
+
         // Variáveis de estado
         let startX = 100, startY = 100;
         let width = 400, height = 300;
         let dragging = false;
-        let dragStartX, dragStartY;
         let offsetX, offsetY;
-        
+
         // Atualizar posição do seletor
         function atualizarSeletor() {
             seletor.style.left = `${startX}px`;
@@ -246,40 +244,27 @@
             seletor.style.width = `${width}px`;
             seletor.style.height = `${height}px`;
         }
-        
+
         // Eventos de mouse
         function iniciarArrasto(e) {
-            const rect = seletor.getBoundingClientRect();
-            const inSeletor = (
-                e.clientX >= rect.left && 
-                e.clientX <= rect.right && 
-                e.clientY >= rect.top && 
-                e.clientY <= rect.bottom
-            );
-            
-            if (inSeletor) {
-                dragging = true;
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
-                offsetX = dragStartX - startX;
-                offsetY = dragStartY - startY;
-                document.body.style.userSelect = 'none';
-            }
+            dragging = true;
+            offsetX = e.clientX - startX;
+            offsetY = e.clientY - startY;
+            document.body.style.userSelect = 'none';
         }
-        
+
         function arrastar(e) {
             if (!dragging) return;
-            
             startX = e.clientX - offsetX;
             startY = e.clientY - offsetY;
             atualizarSeletor();
         }
-        
+
         function pararArrasto() {
             dragging = false;
             document.body.style.userSelect = '';
         }
-        
+
         // Configurar botões
         btnAnalisar.onclick = async () => {
             // Remover elementos temporários
@@ -288,10 +273,10 @@
             document.removeEventListener('mousedown', iniciarArrasto);
             document.removeEventListener('mousemove', arrastar);
             document.removeEventListener('mouseup', pararArrasto);
-            
+
             // Parar stream de vídeo
             stream.getTracks().forEach(track => track.stop());
-            
+
             // Processar área selecionada
             try {
                 await processarAreaCapturada(video, startX, startY, width, height);
@@ -300,7 +285,7 @@
                 mostrarMensagem(`❌ ${error.message}`, config.corErro);
             }
         };
-        
+
         btnCancelar.onclick = () => {
             seletor.remove();
             controles.remove();
@@ -308,13 +293,15 @@
             document.removeEventListener('mousedown', iniciarArrasto);
             document.removeEventListener('mousemove', arrastar);
             document.removeEventListener('mouseup', pararArrasto);
+            document.body.style.overflow = '';
         };
-        
+
         // Posicionamento inicial
         atualizarSeletor();
-        seletor.style.display = 'block';
-        btnAnalisar.style.display = 'block';
-        
+        document.body.appendChild(seletor);
+        controles.append(btnAnalisar, btnCancelar);
+        document.body.appendChild(controles);
+
         // Adicionar eventos
         document.addEventListener('mousedown', iniciarArrasto);
         document.addEventListener('mousemove', arrastar);
@@ -341,7 +328,7 @@
         }, '🔍 Processando imagem com IA...');
 
         document.body.appendChild(loading);
-        
+
         try {
             // Criar canvas para captura
             const canvas = document.createElement('canvas');
@@ -349,22 +336,19 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, x, y, width, height, 0, 0, width, height);
-            
-            // Carregar Tesseract.js dinamicamente
-            await carregarScript('https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js');
-            
+
             // Executar OCR
             const worker = await Tesseract.createWorker('por+eng');
             const { data: { text } } = await worker.recognize(canvas);
             await worker.terminate();
-            
+
             // Remover loading
             loading.remove();
-            
+
             if (!text.trim()) {
                 throw new Error('Nenhum texto detectado na área selecionada');
             }
-            
+
             // Mostrar preview do texto
             const preview = criarElemento('div', {
                 position: 'fixed',
@@ -382,13 +366,13 @@
                 border: `1px solid ${config.corSecundaria}`,
                 boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
             });
-            
+
             const previewTitulo = criarElemento('h3', {
                 marginBottom: '15px',
                 color: config.corPrimaria,
                 textAlign: 'center'
             }, 'Texto detectado:');
-            
+
             const previewTexto = criarElemento('div', {
                 marginBottom: '20px',
                 padding: '15px',
@@ -399,13 +383,13 @@
                 fontSize: '16px',
                 lineHeight: '1.5'
             }, text);
-            
+
             const containerBotoes = criarElemento('div', {
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '15px'
             });
-            
+
             const btnPesquisar = criarElemento('button', {
                 padding: '12px 30px',
                 background: `linear-gradient(135deg, ${config.corPrimaria}, #2E7D32)`,
@@ -415,7 +399,7 @@
                 cursor: 'pointer',
                 fontWeight: 'bold'
             }, 'Pesquisar com SafeSearch');
-            
+
             const btnFechar = criarElemento('button', {
                 padding: '12px 30px',
                 background: `linear-gradient(135deg, #9E9E9E, #616161)`,
@@ -425,42 +409,27 @@
                 cursor: 'pointer',
                 fontWeight: 'bold'
             }, 'Fechar');
-            
+
             btnPesquisar.onclick = () => {
                 preview.remove();
                 pesquisarTextoComSafeSearch(text);
+                document.body.style.overflow = '';
             };
-            
+
             btnFechar.onclick = () => {
                 preview.remove();
+                document.body.style.overflow = '';
             };
-            
+
             // Montar preview
             containerBotoes.append(btnPesquisar, btnFechar);
             preview.append(previewTitulo, previewTexto, containerBotoes);
             document.body.appendChild(preview);
-            
+
         } catch (erro) {
             loading.remove();
             throw erro;
         }
-    }
-
-    // Função para carregar scripts dinamicamente
-    function carregarScript(url) {
-        return new Promise((resolve, reject) => {
-            // Verificar se o script já está carregado
-            if (document.querySelector(`script[src="${url}"]`)) {
-                resolve();
-                return;
-            }
-            
-            const script = document.createElement('script');
-            script.src = url;
-            script.onload = resolve;
-            script.onerror = () => reject(new Error(`Falha ao carregar o script: ${url}`));
-            document.head.appendChild(script);
-        });
     }
 
     // Função para pesquisar com SafeSearch
@@ -468,34 +437,11 @@
         const textoLimpo = texto.trim().substring(0, 500); // Limitar tamanho
         const query = encodeURIComponent(textoLimpo);
         const url = `https://www.google.com/search?q=${query}&safe=active`;
-        
+
         window.open(url, '_blank');
         mostrarMensagem('✅ Pesquisa segura iniciada!', config.corPrimaria);
     }
 
-    // Iniciar o processo quando o script for carregado
-    document.addEventListener('DOMContentLoaded', () => {
-        // Adicionar estilos básicos se necessário
-        if (!document.querySelector('#safeSearchStyles')) {
-            const style = document.createElement('style');
-            style.id = 'safeSearchStyles';
-            style.textContent = `
-                body.safe-search-active {
-                    overflow: hidden !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        // Adicionar classe ao body para controle
-        document.body.classList.add('safe-search-active');
-        
-        // Iniciar a interface
-        iniciarSafeSearchPorImagem();
-    });
-
-    // Tratamento de erros globais
-    window.addEventListener('error', (event) => {
-        mostrarMensagem(`❌ Erro: ${event.message}`, config.corErro, 5000);
-    });
+    // Iniciar o processo
+    iniciarSafeSearchPorImagem();
 })();
