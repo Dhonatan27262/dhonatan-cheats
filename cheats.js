@@ -493,7 +493,7 @@ criarAbas = () => {
                         .catch(error => {
                             console.error('Erro ao carregar script:', error);
                             alert('❌ Erro ao carregar script. Verifique o console.');
-                        });
+                            });
                 }
             },
             {
