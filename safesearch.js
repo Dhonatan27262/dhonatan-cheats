@@ -1,6 +1,9 @@
 (function(){
     // Cria o menu
     let menu = document.createElement("div");
+    menu.id = "safeSearchMenu"; // evita duplicado
+    if(document.getElementById("safeSearchMenu")) return; // já existe
+
     menu.style.position = "fixed";
     menu.style.top = "20px";
     menu.style.right = "20px";
@@ -14,7 +17,7 @@
     
     // Título
     let titulo = document.createElement("div");
-    titulo.innerText = "📌 Menu";
+    titulo.innerText = "📌 SafeSearch Menu";
     titulo.style.fontWeight = "bold";
     titulo.style.marginBottom = "8px";
     menu.appendChild(titulo);
