@@ -481,7 +481,7 @@ criarAbas = () => {
         });
         document.body.appendChild(avisoCarregando);
 
-        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/safesearch.js?" + Date.now();
 
         fetch(scriptURL)
             .then(response => {
