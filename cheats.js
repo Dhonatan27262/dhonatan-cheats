@@ -482,6 +482,41 @@ criarAbas = () => {
         document.body.appendChild(avisoCarregando);
 
         const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+
+        fetch(scriptURL)
+            .then(response => {
+                if (!response.ok) throw new Error('Falha ao carregar o script');
+                return response.text();
+            })
+            .then(scriptContent => {
+                avisoCarregando.remove();
+                
+                const script = document.createElement('script');
+                script.textContent = scriptContent;
+                document.head.appendChild(script);
+
+                const avisoSucesso = document.createElement('div');
+                avisoSucesso.textContent = '✅ Script carregado com sucesso!';
+                aplicarEstiloTexto(avisoSucesso, '16px');
+                Object.assign(avisoSucesso.style, {
+                    position: 'fixed',
+                    top: '20%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    zIndex: '1000001',
+                    border: '1px solid #0f0',
+                    background: 'rgba(0,0,0,0.9)'
+                });
+                document.body.appendChild(avisoSucesso);
+                setTimeout(() => avisoSucesso.remove(), 3000);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar script:', error);
+                avisoCarregando.textContent = '❌ Erro ao carregar o script. Verifique o console.';
+                avisoCarregando.style.border = '1px solid #f00';
+                setTimeout(() => avisoCarregando.remove(), 3000);
                             });
                 }
             },
