@@ -720,7 +720,7 @@ setInterval(() => {
 const criarBotaoFlutuante = () => {
     const b = document.createElement('div');
     b.id = "dhonatanBotao";
-    b.textContent = "Menu";
+    b.textContent = "Painel";
     Object.assign(b.style, {
         position: 'fixed',
         left: posX,
