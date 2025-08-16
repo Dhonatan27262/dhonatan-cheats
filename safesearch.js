@@ -1,5 +1,11 @@
 (function() {
-    // ================= CONFIGURAÇÕES GLOBAIS ================= //
+    // Verificar se estamos em um navegador
+    if (typeof window === 'undefined') {
+        console.error('Este script deve ser executado em um navegador.');
+        return;
+    }
+
+    // Configurações
     const config = {
         corPrimaria: '#4CAF50',
         corSecundaria: '#2196F3',
@@ -8,14 +14,15 @@
         corTexto: '#FFFFFF'
     };
 
-    // ================= FUNÇÕES DE UTILIDADE ================= //
-    function criarElemento(tag, estilos, texto = '') {
+    // Função para criar elementos com estilos
+    function criarElemento(tag, estilos = {}, texto = '') {
         const elemento = document.createElement(tag);
         Object.assign(elemento.style, estilos);
         if (texto) elemento.textContent = texto;
         return elemento;
     }
 
+    // Função para exibir mensagens temporárias
     function mostrarMensagem(mensagem, cor = config.corPrimaria, tempo = 3000) {
         const msg = criarElemento('div', {
             position: 'fixed',
@@ -30,14 +37,24 @@
             fontWeight: 'bold',
             boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
             textAlign: 'center',
-            fontSize: '16px'
+            fontSize: '16px',
+            opacity: '0',
+            transition: 'opacity 0.3s'
         }, mensagem);
 
         document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), tempo);
+        
+        // Animar entrada
+        setTimeout(() => msg.style.opacity = '1', 10);
+        
+        // Remover após o tempo especificado
+        setTimeout(() => {
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 300);
+        }, tempo);
     }
 
-    // ================= FUNÇÃO PRINCIPAL ================= //
+    // Função principal para iniciar o SafeSearch por Imagem
     async function iniciarSafeSearchPorImagem() {
         // Criar overlay de instruções
         const overlay = criarElemento('div', {
@@ -71,13 +88,16 @@
             fontSize: '1.2rem',
             maxWidth: '600px',
             marginBottom: '30px',
-            lineHeight: '1.6'
-        }, 'Capture uma área da tela para analisar texto e pesquisar com segurança no Perplexity AI. O SafeSearch estará ativado automaticamente.');
+            lineHeight: '1.6',
+            padding: '0 20px'
+        }, 'Capture uma área da tela para analisar texto e pesquisar com segurança. O SafeSearch estará ativado automaticamente.');
 
         const containerBotoes = criarElemento('div', {
             display: 'flex',
             gap: '20px',
-            marginTop: '20px'
+            marginTop: '20px',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
         });
 
         const btnIniciar = criarElemento('button', {
@@ -115,7 +135,12 @@
         // Event listeners
         btnIniciar.onclick = async () => {
             overlay.remove();
-            await capturarESelecionarArea();
+            try {
+                await capturarESelecionarArea();
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem(`❌ ${error.message}`, config.corErro);
+            }
         };
 
         btnCancelar.onclick = () => {
@@ -128,151 +153,175 @@
         document.body.appendChild(overlay);
     }
 
-    // ================= CAPTURA E SELEÇÃO DE ÁREA ================= //
+    // Função para capturar e selecionar área
     async function capturarESelecionarArea() {
+        // Verificar suporte a getDisplayMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            throw new Error('Seu navegador não suporta captura de tela.');
+        }
+
+        let stream;
         try {
             // Solicitar permissão para capturar tela
-            const stream = await navigator.mediaDevices.getDisplayMedia({
+            stream = await navigator.mediaDevices.getDisplayMedia({
                 video: { cursor: "always" },
                 audio: false
             });
-            
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            await video.play();
-            
-            // Criar seletor de área
-            const seletor = criarElemento('div', {
-                position: 'fixed',
-                border: `3px dashed ${config.corPrimaria}`,
-                cursor: 'move',
-                zIndex: '1000000',
-                boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)'
-            });
-            
-            document.body.appendChild(seletor);
-            
-            // Criar controles
-            const controles = criarElemento('div', {
-                position: 'fixed',
-                bottom: '30px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '15px',
-                zIndex: '1000001'
-            });
-            
-            const btnAnalisar = criarElemento('button', {
-                padding: '12px 30px',
-                background: `linear-gradient(135deg, ${config.corSecundaria}, #0D47A1)`,
-                color: config.corTexto,
-                border: 'none',
-                borderRadius: '30px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '1rem'
-            }, 'Analisar Área');
-            
-            const btnCancelar = criarElemento('button', {
-                padding: '12px 30px',
-                background: `linear-gradient(135deg, ${config.corErro}, #B71C1C)`,
-                color: config.corTexto,
-                border: 'none',
-                borderRadius: '30px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '1rem'
-            }, 'Cancelar');
-            
-            controles.append(btnAnalisar, btnCancelar);
-            document.body.appendChild(controles);
-            
-            // Variáveis de estado
-            let startX = 100, startY = 100;
-            let width = 400, height = 300;
-            let dragging = false;
-            let dragStartX, dragStartY;
-            let offsetX, offsetY;
-            
-            // Atualizar posição do seletor
-            function atualizarSeletor() {
-                seletor.style.left = `${startX}px`;
-                seletor.style.top = `${startY}px`;
-                seletor.style.width = `${width}px`;
-                seletor.style.height = `${height}px`;
-            }
-            
-            // Eventos de mouse
-            document.addEventListener('mousedown', iniciarArrasto);
-            document.addEventListener('mousemove', arrastar);
-            document.addEventListener('mouseup', pararArrasto);
-            
-            function iniciarArrasto(e) {
-                const rect = seletor.getBoundingClientRect();
-                const inSeletor = (
-                    e.clientX >= rect.left && 
-                    e.clientX <= rect.right && 
-                    e.clientY >= rect.top && 
-                    e.clientY <= rect.bottom
-                );
-                
-                if (inSeletor) {
-                    dragging = true;
-                    dragStartX = e.clientX;
-                    dragStartY = e.clientY;
-                    offsetX = dragStartX - startX;
-                    offsetY = dragStartY - startY;
-                }
-            }
-            
-            function arrastar(e) {
-                if (!dragging) return;
-                
-                startX = e.clientX - offsetX;
-                startY = e.clientY - offsetY;
-                atualizarSeletor();
-            }
-            
-            function pararArrasto() {
-                dragging = false;
-            }
-            
-            // Configurar botões
-            btnAnalisar.onclick = async () => {
-                // Remover elementos temporários
-                seletor.remove();
-                controles.remove();
-                document.removeEventListener('mousedown', iniciarArrasto);
-                document.removeEventListener('mousemove', arrastar);
-                document.removeEventListener('mouseup', pararArrasto);
-                
-                // Parar stream de vídeo
-                stream.getTracks().forEach(track => track.stop());
-                
-                // Processar área selecionada
-                processarAreaCapturada(video, startX, startY, width, height);
-            };
-            
-            btnCancelar.onclick = () => {
-                seletor.remove();
-                controles.remove();
-                stream.getTracks().forEach(track => track.stop());
-                document.removeEventListener('mousedown', iniciarArrasto);
-                document.removeEventListener('mousemove', arrastar);
-                document.removeEventListener('mouseup', pararArrasto);
-            };
-            
-            // Posicionamento inicial
-            atualizarSeletor();
-            
-        } catch (erro) {
-            console.error('Erro na captura de tela:', erro);
-            mostrarMensagem(`❌ Erro: ${erro.message}`, config.corErro);
+        } catch (error) {
+            throw new Error('Permissão de captura de tela negada.');
         }
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        
+        // Esperar o vídeo estar pronto
+        await new Promise((resolve) => {
+            video.onloadedmetadata = resolve;
+            video.play().catch(error => {
+                console.error('Erro ao reproduzir vídeo:', error);
+                mostrarMensagem('❌ Erro ao acessar captura de tela', config.corErro);
+            });
+        });
+
+        // Criar seletor de área
+        const seletor = criarElemento('div', {
+            position: 'fixed',
+            border: `3px dashed ${config.corPrimaria}`,
+            cursor: 'move',
+            zIndex: '1000000',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
+            display: 'none'
+        });
+        
+        document.body.appendChild(seletor);
+        
+        // Criar controles
+        const controles = criarElemento('div', {
+            position: 'fixed',
+            bottom: '30px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '15px',
+            zIndex: '1000001'
+        });
+        
+        const btnAnalisar = criarElemento('button', {
+            padding: '12px 30px',
+            background: `linear-gradient(135deg, ${config.corSecundaria}, #0D47A1)`,
+            color: config.corTexto,
+            border: 'none',
+            borderRadius: '30px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            display: 'none'
+        }, 'Analisar Área');
+        
+        const btnCancelar = criarElemento('button', {
+            padding: '12px 30px',
+            background: `linear-gradient(135deg, ${config.corErro}, #B71C1C)`,
+            color: config.corTexto,
+            border: 'none',
+            borderRadius: '30px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem'
+        }, 'Cancelar');
+        
+        controles.append(btnAnalisar, btnCancelar);
+        document.body.appendChild(controles);
+        
+        // Variáveis de estado
+        let startX = 100, startY = 100;
+        let width = 400, height = 300;
+        let dragging = false;
+        let dragStartX, dragStartY;
+        let offsetX, offsetY;
+        
+        // Atualizar posição do seletor
+        function atualizarSeletor() {
+            seletor.style.left = `${startX}px`;
+            seletor.style.top = `${startY}px`;
+            seletor.style.width = `${width}px`;
+            seletor.style.height = `${height}px`;
+        }
+        
+        // Eventos de mouse
+        function iniciarArrasto(e) {
+            const rect = seletor.getBoundingClientRect();
+            const inSeletor = (
+                e.clientX >= rect.left && 
+                e.clientX <= rect.right && 
+                e.clientY >= rect.top && 
+                e.clientY <= rect.bottom
+            );
+            
+            if (inSeletor) {
+                dragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                offsetX = dragStartX - startX;
+                offsetY = dragStartY - startY;
+                document.body.style.userSelect = 'none';
+            }
+        }
+        
+        function arrastar(e) {
+            if (!dragging) return;
+            
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+            atualizarSeletor();
+        }
+        
+        function pararArrasto() {
+            dragging = false;
+            document.body.style.userSelect = '';
+        }
+        
+        // Configurar botões
+        btnAnalisar.onclick = async () => {
+            // Remover elementos temporários
+            seletor.remove();
+            controles.remove();
+            document.removeEventListener('mousedown', iniciarArrasto);
+            document.removeEventListener('mousemove', arrastar);
+            document.removeEventListener('mouseup', pararArrasto);
+            
+            // Parar stream de vídeo
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Processar área selecionada
+            try {
+                await processarAreaCapturada(video, startX, startY, width, height);
+            } catch (error) {
+                console.error('Erro no processamento:', error);
+                mostrarMensagem(`❌ ${error.message}`, config.corErro);
+            }
+        };
+        
+        btnCancelar.onclick = () => {
+            seletor.remove();
+            controles.remove();
+            stream.getTracks().forEach(track => track.stop());
+            document.removeEventListener('mousedown', iniciarArrasto);
+            document.removeEventListener('mousemove', arrastar);
+            document.removeEventListener('mouseup', pararArrasto);
+        };
+        
+        // Posicionamento inicial
+        atualizarSeletor();
+        seletor.style.display = 'block';
+        btnAnalisar.style.display = 'block';
+        
+        // Adicionar eventos
+        document.addEventListener('mousedown', iniciarArrasto);
+        document.addEventListener('mousemove', arrastar);
+        document.addEventListener('mouseup', pararArrasto);
     }
 
-    // ================= PROCESSAMENTO DA IMAGEM ================= //
+    // Função para processar a área capturada
     async function processarAreaCapturada(video, x, y, width, height) {
         // Mostrar loading
         const loading = criarElemento('div', {
@@ -305,10 +354,9 @@
             await carregarScript('https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js');
             
             // Executar OCR
-            const { data: { text } } = await Tesseract.recognize(
-                canvas.toDataURL('image/png'),
-                'por+eng' // Idiomas: Português e Inglês
-            );
+            const worker = await Tesseract.createWorker('por+eng');
+            const { data: { text } } = await worker.recognize(canvas);
+            await worker.terminate();
             
             // Remover loading
             loading.remove();
@@ -393,15 +441,15 @@
             document.body.appendChild(preview);
             
         } catch (erro) {
-            console.error('Erro no processamento:', erro);
             loading.remove();
-            mostrarMensagem(`❌ ${erro.message}`, config.corErro);
+            throw erro;
         }
     }
 
-    // ================= FUNÇÕES AUXILIARES ================= //
+    // Função para carregar scripts dinamicamente
     function carregarScript(url) {
         return new Promise((resolve, reject) => {
+            // Verificar se o script já está carregado
             if (document.querySelector(`script[src="${url}"]`)) {
                 resolve();
                 return;
@@ -410,27 +458,44 @@
             const script = document.createElement('script');
             script.src = url;
             script.onload = resolve;
-            script.onerror = reject;
+            script.onerror = () => reject(new Error(`Falha ao carregar o script: ${url}`));
             document.head.appendChild(script);
         });
     }
 
+    // Função para pesquisar com SafeSearch
     function pesquisarTextoComSafeSearch(texto) {
         const textoLimpo = texto.trim().substring(0, 500); // Limitar tamanho
         const query = encodeURIComponent(textoLimpo);
-        const url = `https://www.perplexity.ai/search?q=${query}&safe=active`;
+        const url = `https://www.google.com/search?q=${query}&safe=active`;
         
         window.open(url, '_blank');
         mostrarMensagem('✅ Pesquisa segura iniciada!', config.corPrimaria);
     }
 
-    // ================= INICIALIZAÇÃO ================= //
-    // Verificar compatibilidade do navegador
-    if (!('mediaDevices' in navigator) {
-        mostrarMensagem('❌ Seu navegador não suporta captura de tela', config.corErro);
-        return;
-    }
+    // Iniciar o processo quando o script for carregado
+    document.addEventListener('DOMContentLoaded', () => {
+        // Adicionar estilos básicos se necessário
+        if (!document.querySelector('#safeSearchStyles')) {
+            const style = document.createElement('style');
+            style.id = 'safeSearchStyles';
+            style.textContent = `
+                body.safe-search-active {
+                    overflow: hidden !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Adicionar classe ao body para controle
+        document.body.classList.add('safe-search-active');
+        
+        // Iniciar a interface
+        iniciarSafeSearchPorImagem();
+    });
 
-    // Iniciar o processo
-    iniciarSafeSearchPorImagem();
+    // Tratamento de erros globais
+    window.addEventListener('error', (event) => {
+        mostrarMensagem(`❌ Erro: ${event.message}`, config.corErro, 5000);
+    });
 })();
