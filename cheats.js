@@ -720,7 +720,7 @@ const carregarSenhasRemotas = async () => {
         console.error('Falha ao carregar senhas:', error);
         // Fallback com senhas locais
         window.verificarSenha = function(senha) {
-            const senhasBackup = ["admin", "adm"];
+            const senhasBackup = ["admin", "Teste24", "adm"];
             return senhasBackup.includes(senha);
         }
         senhasCarregadas = true;
