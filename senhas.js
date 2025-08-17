@@ -3,6 +3,7 @@ window.verificarSenha = function(senha) {
     // Mantenha todas as senhas em minúsculas para evitar problemas
     const senhasValidas = [
         "admin",
+        "Teste24",
         "adm",
         "tainara",
         "vitor",
