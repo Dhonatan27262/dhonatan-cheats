@@ -4,7 +4,6 @@ window.verificarSenha = function(senha) {
     const senhasValidas = [
         "admin",
         "tainara",
-        "ggg",
         "vitor",
         "pablo",
         "rafael",
