@@ -727,9 +727,7 @@ const carregarSenhasRemotas = async () => {
                 "tainara",
                 "vitor",
                 "pablo",
-                "rafael",
-                "Teste123",
-                "ta"
+                "rafael"
             ];
             return senhasBackup.includes(senha);
         };
