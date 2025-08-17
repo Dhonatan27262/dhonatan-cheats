@@ -1,12 +1,10 @@
 // ==UserScript==
 // @name         Captura de Tela para Gemini
-// @version      1.2
-// @description  Captura a tela usando html2canvas
+// @version      1.4
+// @description  Captura a tela usando a API de Clipboard
 // @author       Você
 // @match        *://*/*
-// @grant        GM_xmlhttpRequest
-// @grant        GM_download
-// @require      https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
+// @grant        none
 // ==/UserScript==
 
 (function() {
@@ -30,43 +28,19 @@
                 font-size: 16px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             }
-            #geminiPreviewContainer {
-                display: none;
+            #geminiClipboardAlert {
                 position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.8);
-                z-index: 10000;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            #geminiPreviewImg {
-                max-width: 90%;
-                max-height: 80%;
-                border: 2px solid white;
-                box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            }
-            .geminiActionBtn {
-                padding: 10px 20px;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                margin: 0 10px;
-                font-size: 14px;
-            }
-            #geminiSendBtn {
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
                 background: #34a853;
-            }
-            #geminiCancelBtn {
-                background: #ea4335;
-            }
-            .geminiBtnContainer {
-                margin-top: 20px;
-                display: flex;
+                color: white;
+                padding: 15px;
+                border-radius: 4px;
+                z-index: 10000;
+                display: none;
+                max-width: 90%;
+                text-align: center;
             }
         `;
         document.head.appendChild(style);
@@ -76,71 +50,72 @@
     function setupScreenCapture() {
         injectCSS();
 
-        // Criar elementos
+        // Criar botão de captura
         const captureBtn = document.createElement('button');
         captureBtn.id = 'geminiCaptureBtn';
-        captureBtn.textContent = '📸 Capturar Tela para Gemini';
+        captureBtn.textContent = '📸 Capturar para Gemini';
         document.body.appendChild(captureBtn);
 
-        const previewContainer = document.createElement('div');
-        previewContainer.id = 'geminiPreviewContainer';
+        // Criar alerta de clipboard
+        const clipboardAlert = document.createElement('div');
+        clipboardAlert.id = 'geminiClipboardAlert';
+        clipboardAlert.textContent = 'Captura copiada para a área de transferência! Cole no Gemini.';
+        document.body.appendChild(clipboardAlert);
 
-        const previewImg = document.createElement('img');
-        previewImg.id = 'geminiPreviewImg';
-
-        const btnContainer = document.createElement('div');
-        btnContainer.className = 'geminiBtnContainer';
-
-        const sendBtn = document.createElement('button');
-        sendBtn.id = 'geminiSendBtn';
-        sendBtn.className = 'geminiActionBtn';
-        sendBtn.textContent = 'Enviar para Gemini';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.id = 'geminiCancelBtn';
-        cancelBtn.className = 'geminiActionBtn';
-        cancelBtn.textContent = 'Cancelar';
-
-        btnContainer.appendChild(sendBtn);
-        btnContainer.appendChild(cancelBtn);
-        previewContainer.appendChild(previewImg);
-        previewContainer.appendChild(btnContainer);
-        document.body.appendChild(previewContainer);
-
-        // Eventos
-        captureBtn.addEventListener('click', captureScreen);
-        cancelBtn.addEventListener('click', () => previewContainer.style.display = 'none');
-        sendBtn.addEventListener('click', () => {
-            const imageData = previewImg.src;
-            // Aqui você pode enviar para o Gemini
-            alert('Imagem capturada com sucesso! Cole no Gemini:');
-            prompt('Copie os dados da imagem:', imageData);
-            previewContainer.style.display = 'none';
+        // Evento de captura
+        captureBtn.addEventListener('click', async () => {
+            try {
+                // Solicitar permissão de clipboard
+                const permission = await navigator.permissions.query({
+                    name: 'clipboard-write'
+                });
+                
+                if (permission.state === 'granted' || permission.state === 'prompt') {
+                    // Copiar a URL da página e conteúdo como texto formatado
+                    await copyPageToClipboard();
+                    showAlert();
+                } else {
+                    alert('Permissão para área de transferência negada. Por favor, permita o acesso.');
+                }
+            } catch (error) {
+                console.error('Erro na captura:', error);
+                alert('Seu navegador não suporta esta função. Tente no Chrome ou Edge.');
+            }
         });
     }
 
-    // Função de captura com html2canvas
-    async function captureScreen() {
-        try {
-            const previewImg = document.getElementById('geminiPreviewImg');
-            previewImg.src = '';
-            
-            // Capturar toda a página
-            html2canvas(document.body, {
-                scale: 0.8,
-                useCORS: true,
-                allowTaint: true,
-                logging: false
-            }).then(canvas => {
-                const imageData = canvas.toDataURL('image/png');
-                previewImg.src = imageData;
-                document.getElementById('geminiPreviewContainer').style.display = 'flex';
-            });
-            
-        } catch (error) {
-            console.error('Erro na captura:', error);
-            alert('Erro na captura: ' + error.message);
-        }
+    // Função para copiar conteúdo da página para clipboard
+    async function copyPageToClipboard() {
+        const htmlContent = `
+            <div style="border:2px solid #4285f4;padding:20px;border-radius:8px;max-width:800px;margin:0 auto">
+                <h1 style="color:#1a73e8">Captura da Página: ${document.title}</h1>
+                <p style="color:#5f6368">URL: ${window.location.href}</p>
+                <p style="color:#5f6368">Data: ${new Date().toLocaleString()}</p>
+                <hr style="margin:20px 0">
+                <div style="background:#f8f9fa;padding:20px;border-radius:8px">
+                    ${document.body.innerHTML}
+                </div>
+            </div>
+        `;
+
+        // Criar um blob HTML
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const clipboardItem = new ClipboardItem({
+            'text/html': blob,
+            'text/plain': new Blob([`Página: ${document.title}\nURL: ${window.location.href}\nConteúdo:\n${document.body.innerText}`], { type: 'text/plain' })
+        });
+
+        // Escrever no clipboard
+        await navigator.clipboard.write([clipboardItem]);
+    }
+
+    // Mostrar alerta de sucesso
+    function showAlert() {
+        const alert = document.getElementById('geminiClipboardAlert');
+        alert.style.display = 'block';
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 5000);
     }
 
     // Iniciar
