@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         SANTOS.meczada - Busca Inteligente Automática
 // @namespace    http://tampermonkey.net/
-// @version      7.0
+// @version      7.2
 // @description  Sistema automático para captura e envio de conteúdo
 // @author       SeuNome
 // @match        *://*/*
-// @grant        GM_setClipboard
-// @grant        GM_notification
+// @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
 // @icon         https://i.imgur.com/7YbX5Jx.png
 // ==/UserScript==
@@ -197,43 +196,23 @@
                     </div>
                 </div>
                 
-                <div id="botoes-acao" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <button id="copiar-conteudo" style="
-                        flex: 1;
-                        padding: 12px;
-                        background: #34a853;
-                        border: none;
-                        border-radius: 8px;
-                        color: white;
-                        font-weight: bold;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: transform 0.2s;
-                    ">
-                        <i class="fas fa-copy" style="margin-right: 6px;"></i>
-                        Copiar
-                    </button>
-                    
-                    <button id="enviar-perplexity" style="
-                        flex: 1;
-                        padding: 12px;
-                        background: #9c27b0;
-                        border: none;
-                        border-radius: 8px;
-                        color: white;
-                        font-weight: bold;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: transform 0.2s;
-                    ">
-                        <i class="fas fa-paper-plane" style="margin-right: 6px;"></i>
-                        Perplexity
-                    </button>
-                </div>
+                <button id="enviar-perplexity" style="
+                    padding: 12px;
+                    background: #9c27b0;
+                    border: none;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: bold;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: transform 0.2s;
+                    margin-bottom: 12px;
+                ">
+                    <i class="fas fa-paper-plane" style="margin-right: 6px;"></i>
+                    Enviar para Perplexity
+                </button>
                 
                 <div id="status" style="
                     font-size: 13px;
@@ -283,12 +262,6 @@
         // =====================
         // EVENTOS DA INTERFACE
         // =====================
-        // Copiar conteúdo
-        document.getElementById('copiar-conteudo').addEventListener('click', () => {
-            GM_setClipboard(lastCapturedContent, 'text');
-            mostrarNotificacao('<i class="fas fa-clipboard-check"></i> Conteúdo copiado!');
-        });
-        
         // Enviar para Perplexity
         document.getElementById('enviar-perplexity').addEventListener('click', () => {
             // Reduzir conteúdo para caber na URL
@@ -486,5 +459,5 @@
         window.addEventListener('load', init);
     }
 
-    console.log('SANTOS.meczada v7.0 - Modo Automático carregado!');
+    console.log('SANTOS.meczada v7.2 - Modo Automático carregado!');
 })();
