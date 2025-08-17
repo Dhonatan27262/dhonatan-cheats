@@ -1,6 +1,5 @@
-// ATENÇÃO: Deve ser EXATAMENTE este formato
+// senhas.js - Nova versão corrigida
 window.verificarSenha = function(senha) {
-    // Mantenha todas as senhas em minúsculas para evitar problemas
     const senhasValidas = [
         "admin",
         "Teste24",
@@ -10,8 +9,8 @@ window.verificarSenha = function(senha) {
         "pablo",
         "rafael",
         "Teste123",  
-        "ta"// Adicione novas aqui
+        "ta"
     ];
-    // Converte para minúsculas antes de verificar
-    return senhasValidas.includes(senha.toLowerCase());
+    // Verifica a senha exatamente como digitada (case sensitive)
+    return senhasValidas.includes(senha);
 };
