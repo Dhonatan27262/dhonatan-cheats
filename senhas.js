@@ -10,7 +10,7 @@ window.verificarSenha = function(senha) {
         "rafael",
         "Teste123",
         "Maca1",
-        "123"
+        "123",
         "Te",
         "ta"
     ];
