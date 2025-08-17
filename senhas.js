@@ -9,6 +9,7 @@ window.verificarSenha = function(senha) {
         "pablo",
         "rafael",
         "adm",
+        "ad",
         "novasenha"  // Adicione novas aqui
     ];
     // Converte para minúsculas antes de verificar
