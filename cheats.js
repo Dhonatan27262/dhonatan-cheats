@@ -507,8 +507,6 @@ criarAbas = () => {
     
     // Remove o aviso após 3 segundos
     setTimeout(() => aviso.remove(), 3000);
-    });
-  }
 },
         ],
         config: [
