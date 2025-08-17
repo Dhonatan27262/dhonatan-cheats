@@ -475,6 +475,41 @@ criarAbas = () => {
   nome: 'Extensão libera bloqueio Wifi', 
   func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') 
 },
+{
+  nome: '🎮 Jogo da Velha',
+  func: () => {
+    // Fecha o menu
+    if (fundo) fundo.remove();
+    
+    // Carrega o script do repositório
+    const script = document.createElement('script');
+    script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?' + Date.now();
+    
+    // Adiciona ao documento
+    document.head.appendChild(script);
+    
+    // Feedback visual
+    const aviso = document.createElement('div');
+    aviso.textContent = '✅ Carregando Jogo da Velha...';
+    aviso.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0a0;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 100000;
+      font-weight: bold;
+    `;
+    document.body.appendChild(aviso);
+    
+    // Remove o aviso após 3 segundos
+    setTimeout(() => aviso.remove(), 3000);
+    });
+  }
+},
         ],
         config: [
             { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
