@@ -9,9 +9,46 @@
         document.head.appendChild(script);
     }
 
-    // Cria a interface do usuário
-    function createUI() {
+    // Cria o botão flutuante inicial
+    function createFloatingButton() {
+        const button = document.createElement('button');
+        button.id = 'captureFloatingButton';
+        button.textContent = 'Capturar Tela';
+        button.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            font-weight: 600;
+        `;
+        
+        button.addEventListener('mouseenter', () => {
+            button.style.transform = 'translateY(-3px)';
+            button.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+        });
+        
+        document.body.appendChild(button);
+        return button;
+    }
+
+    // Cria a interface completa
+    function createFullUI() {
         const container = document.createElement('div');
+        container.id = 'captureContainer';
         container.style.cssText = `
             position: fixed;
             top: 0;
@@ -66,6 +103,7 @@
         card.appendChild(subtitle);
 
         const previewContainer = document.createElement('div');
+        previewContainer.id = 'previewContainer';
         previewContainer.style.cssText = `
             margin: 25px 0;
             border-radius: 15px;
@@ -81,6 +119,7 @@
         card.appendChild(previewContainer);
 
         const placeholder = document.createElement('div');
+        placeholder.id = 'placeholder';
         placeholder.style.cssText = `
             text-align: center;
             padding: 30px;
@@ -98,6 +137,7 @@
         placeholder.appendChild(placeholderText);
 
         const loading = document.createElement('div');
+        loading.id = 'loading';
         loading.style.cssText = `
             display: none;
             flex-direction: column;
@@ -123,6 +163,7 @@
         loading.appendChild(loadingText);
 
         const captureBtn = document.createElement('button');
+        captureBtn.id = 'captureBtn';
         captureBtn.style.cssText = `
             background: linear-gradient(135deg, #4CAF50, #2E7D32);
             color: white;
@@ -143,6 +184,7 @@
         card.appendChild(captureBtn);
 
         const openGeminiBtn = document.createElement('button');
+        openGeminiBtn.id = 'openGeminiBtn';
         openGeminiBtn.style.cssText = `
             background: linear-gradient(135deg, #FF9800, #F57C00);
             color: white;
@@ -161,6 +203,58 @@
         `;
         openGeminiBtn.textContent = 'Abrir Gemini para Envio';
         card.appendChild(openGeminiBtn);
+
+        const instructions = document.createElement('div');
+        instructions.style.cssText = `
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            text-align: left;
+        `;
+        card.appendChild(instructions);
+
+        const instructionsTitle = document.createElement('h3');
+        instructionsTitle.style.cssText = `
+            color: #FF9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            font-size: 1.4rem;
+        `;
+        instructionsTitle.innerHTML = 'ℹ️ Instruções de Envio';
+        instructions.appendChild(instructionsTitle);
+
+        const steps = document.createElement('div');
+        steps.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        `;
+        instructions.appendChild(steps);
+
+        const step1 = createStep('1', 'Clique na área de entrada de mensagem');
+        steps.appendChild(step1);
+
+        const step2 = createStep('2', 'Cole a imagem usando Ctrl+V (Windows) ou Cmd+V (Mac)');
+        steps.appendChild(step2);
+
+        const step3 = createStep('3', 'Adicione sua pergunta sobre a imagem se desejar');
+        steps.appendChild(step3);
+
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            margin-top: 30px;
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            padding: 10px;
+        `;
+        footer.textContent = 'Esta ferramenta não requer login ou chaves de API. Basta capturar e colar no Gemini!';
+        card.appendChild(footer);
 
         const style = document.createElement('style');
         style.textContent = `
@@ -188,61 +282,136 @@
         };
     }
 
+    // Função auxiliar para criar passos
+    function createStep(number, text) {
+        const step = document.createElement('div');
+        step.style.cssText = `
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        `;
+
+        const stepNumber = document.createElement('div');
+        stepNumber.style.cssText = `
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: bold;
+            font-size: 1.2rem;
+        `;
+        stepNumber.textContent = number;
+        step.appendChild(stepNumber);
+
+        const stepContent = document.createElement('div');
+        stepContent.style.cssText = `
+            line-height: 1.6;
+            font-size: 1.1rem;
+        `;
+        stepContent.textContent = text;
+        step.appendChild(stepContent);
+
+        return step;
+    }
+
+    // Função para copiar imagem para área de transferência
+    async function copyImageToClipboard(dataUrl) {
+        try {
+            // Converter data URL para blob
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            
+            // Copiar para área de transferência
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'image/png': blob
+                })
+            ]);
+            return true;
+        } catch (err) {
+            console.error('Erro ao copiar imagem:', err);
+            return false;
+        }
+    }
+
+    // Função para salvar imagem como arquivo
+    function saveImage(dataUrl) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'captura-gemini.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // Função principal
     function init() {
-        const ui = createUI();
+        // Cria o botão flutuante inicial
+        const floatingButton = createFloatingButton();
         let capturedImageData = null;
         
-        ui.captureBtn.addEventListener('click', async function() {
-            ui.placeholder.style.display = 'none';
-            ui.loading.style.display = 'flex';
+        floatingButton.addEventListener('click', function() {
+            // Remove o botão flutuante
+            floatingButton.remove();
             
-            try {
-                const canvas = await html2canvas(document.body, {
-                    scale: 0.8,
-                    useCORS: true,
-                    logging: false
-                });
-                
-                capturedImageData = canvas.toDataURL('image/jpeg', 0.85);
-                
-                const previewImage = document.createElement('img');
-                previewImage.src = capturedImageData;
-                previewImage.style.cssText = 'max-width: 100%; max-height: 500px;';
-                
-                ui.previewContainer.innerHTML = '';
-                ui.previewContainer.appendChild(previewImage);
-                ui.openGeminiBtn.style.display = 'block';
-                
-            } catch (error) {
-                console.error('Erro na captura:', error);
-                alert('Erro ao capturar tela. Tente novamente.');
-            } finally {
-                ui.loading.style.display = 'none';
-            }
-        });
-        
-        ui.openGeminiBtn.addEventListener('click', function() {
-            if (!capturedImageData) {
-                alert('Capture uma imagem primeiro!');
-                return;
-            }
+            // Cria a interface completa
+            const ui = createFullUI();
             
-            copyImageToClipboard(capturedImageData);
-            window.open('https://gemini.google.com/app', '_blank');
-            alert('Imagem copiada! Cole no Gemini com Ctrl+V.');
+            // Evento para capturar a tela
+            ui.captureBtn.addEventListener('click', async function() {
+                ui.placeholder.style.display = 'none';
+                ui.loading.style.display = 'flex';
+                
+                try {
+                    const canvas = await html2canvas(document.body, {
+                        scale: 0.8,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: null
+                    });
+                    
+                    capturedImageData = canvas.toDataURL('image/png');
+                    
+                    const previewImage = document.createElement('img');
+                    previewImage.src = capturedImageData;
+                    previewImage.style.cssText = 'max-width: 100%; max-height: 500px;';
+                    
+                    ui.previewContainer.innerHTML = '';
+                    ui.previewContainer.appendChild(previewImage);
+                    ui.openGeminiBtn.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Erro na captura:', error);
+                    alert('Erro ao capturar tela. Tente novamente.');
+                } finally {
+                    ui.loading.style.display = 'none';
+                }
+            });
+            
+            // Evento para abrir o Gemini
+            ui.openGeminiBtn.addEventListener('click', async function() {
+                if (!capturedImageData) {
+                    alert('Capture uma imagem primeiro!');
+                    return;
+                }
+                
+                // Tenta copiar para a área de transferência
+                const copySuccess = await copyImageToClipboard(capturedImageData);
+                
+                if (copySuccess) {
+                    alert('Imagem copiada! Cole no Gemini com Ctrl+V.');
+                } else {
+                    alert('Não foi possível copiar automaticamente. A imagem será salva para você enviar manualmente.');
+                    saveImage(capturedImageData);
+                }
+                
+                window.open('https://gemini.google.com/app', '_blank');
+            });
         });
-        
-        async function copyImageToClipboard(dataUrl) {
-            try {
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
-                await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-            } catch (err) {
-                console.error('Erro ao copiar:', err);
-                alert('Falha ao copiar. Você pode salvar a imagem manualmente.');
-            }
-        }
     }
 
     // Inicia quando o DOM estiver pronto
