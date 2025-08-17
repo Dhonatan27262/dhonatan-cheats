@@ -1,4 +1,17 @@
-function createMenuNoAPI() {
+// === Adiciona html2canvas ao documento ===
+(function() {
+  if (!window.html2canvas) {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.onload = () => initCaptureMenu();
+    document.head.appendChild(script);
+  } else {
+    initCaptureMenu();
+  }
+})();
+
+// === Função principal para criar menu ===
+function initCaptureMenu() {
   const menu = document.createElement('div');
   menu.style.position = 'fixed';
   menu.style.top = '20px';
@@ -8,6 +21,14 @@ function createMenuNoAPI() {
   menu.style.padding = '15px';
   menu.style.borderRadius = '10px';
   menu.style.zIndex = 9999;
+  menu.style.fontFamily = 'Arial, sans-serif';
+  menu.style.boxShadow = '0px 0px 10px black';
+
+  const title = document.createElement('div');
+  title.textContent = 'Menu IA';
+  title.style.fontWeight = 'bold';
+  title.style.marginBottom = '10px';
+  menu.appendChild(title);
 
   const btn = document.createElement('button');
   btn.textContent = 'Buscar Resposta';
@@ -20,27 +41,36 @@ function createMenuNoAPI() {
 
   btn.onclick = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({video: {mediaSource:'screen'}});
-      const track = stream.getVideoTracks()[0];
-      const imageCapture = new ImageCapture(track);
-      const bitmap = await imageCapture.grabFrame();
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext('2d').drawImage(bitmap,0,0);
+      // Captura toda a página
+      const canvas = await html2canvas(document.body);
       const dataUrl = canvas.toDataURL('image/png');
-      track.stop();
 
-      // Abrir Perplexity em nova aba
-      const win = window.open('https://www.perplexity.ai/', '_blank');
-      alert('Captura feita! Cole a imagem ou pergunta no site da IA.');
-    } catch(e) {
-      alert('Erro ao capturar tela: ' + e);
+      // Abre nova aba com a imagem
+      const win = window.open();
+      win.document.write('<h2>Imagem Capturada:</h2>');
+      win.document.write('<img src="' + dataUrl + '" style="max-width:100%;"/>');
+      alert('Página capturada! Agora você pode copiar a imagem e enviar para a IA.');
+    } catch (e) {
+      alert('Erro ao capturar a página: ' + e);
+      console.error(e);
     }
   };
 
   menu.appendChild(btn);
   document.body.appendChild(menu);
-}
 
-createMenuNoAPI();
+  // === Permite arrastar o menu ===
+  let isDragging = false, offsetX, offsetY;
+  menu.addEventListener('mousedown', e => {
+    isDragging = true;
+    offsetX = e.clientX - menu.offsetLeft;
+    offsetY = e.clientY - menu.offsetTop;
+  });
+  document.addEventListener('mousemove', e => {
+    if (isDragging) {
+      menu.style.left = e.clientX - offsetX + 'px';
+      menu.style.top = e.clientY - offsetY + 'px';
+    }
+  });
+  document.addEventListener('mouseup', () => isDragging = false);
+}
