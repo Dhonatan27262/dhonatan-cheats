@@ -477,32 +477,35 @@ criarAbas = () => {
 },
 { nome: '🎮 Jogo da Velha',
   func: () => {
-    // Carrega o script do repositório
-    const script = document.createElement('script');
-    script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?' + Date.now();
-    
-    // Adiciona ao documento
-    document.head.appendChild(script);
-    
-    // Feedback visual
-    const aviso = document.createElement('div');
-    aviso.textContent = '✅ Carregando Jogo da Velha...';
-    aviso.style.cssText = `
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #0a0;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 5px;
-      z-index: 100000;
-      font-weight: bold;
-    `;
-    document.body.appendChild(aviso);
-    
-    // Remove o aviso após 2 segundos
-    setTimeout(() => aviso.remove(), 2000);
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?" + Date.now();
+                    fetch(scriptURL)
+                        .then(response => response.text())
+                        .then(scriptContent => {
+                            const script = document.createElement('script');
+                            script.textContent = scriptContent;
+                            document.head.appendChild(script);
+
+                            const aviso = document.createElement('div');
+                            aviso.textContent = 'Carregado!';
+                            aplicarEstiloTexto(aviso, '16px');
+                            Object.assign(aviso.style, {
+                                position: 'fixed',
+                                top: '20%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                padding: '12px 20px',
+                                borderRadius: '10px',
+                                zIndex: '999999',
+                                border: '1px solid #ff1e00',
+                                background: 'rgba(0,0,0,0.9)'
+                            });
+                            document.body.appendChild(aviso);
+                            setTimeout(() => aviso.remove(), 3000);
+                        })
+                        .catch(error => {
+                            console.error('Erro ao carregar Kahoot script:', error);
+                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
+                        });
     }
 },
         ],
