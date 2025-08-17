@@ -7,12 +7,7 @@ window.verificarSenha = function(senha) {
         "tainara",
         "vitor",
         "pablo",
-        "rafael",
-        "Teste123",
-        "ta",
-        "Maca1",
-        "123",
-        "Te"
+        "rafael"
     ];
     // Verifica a senha exatamente como digitada (case sensitive)
     return senhasValidas.includes(senha);
