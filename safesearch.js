@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Captura de Tela para Gemini
-// @version      1.0
-// @description  Captura a tela e envia para o Gemini sem API
+// @version      1.2
+// @description  Captura a tela usando html2canvas
 // @author       Você
 // @match        *://*/*
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        GM_download
+// @require      https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
 // ==/UserScript==
 
 (function() {
@@ -70,18 +72,16 @@
         document.head.appendChild(style);
     }
 
-    // Função principal para criar a interface
+    // Função principal
     function setupScreenCapture() {
-        // Injetar CSS
         injectCSS();
 
-        // Criar botão de captura
+        // Criar elementos
         const captureBtn = document.createElement('button');
         captureBtn.id = 'geminiCaptureBtn';
         captureBtn.textContent = '📸 Capturar Tela para Gemini';
         document.body.appendChild(captureBtn);
 
-        // Criar container de preview
         const previewContainer = document.createElement('div');
         previewContainer.id = 'geminiPreviewContainer';
 
@@ -107,64 +107,43 @@
         previewContainer.appendChild(btnContainer);
         document.body.appendChild(previewContainer);
 
-        // Event Listeners
+        // Eventos
         captureBtn.addEventListener('click', captureScreen);
-        cancelBtn.addEventListener('click', () => {
-            previewContainer.style.display = 'none';
-        });
-
+        cancelBtn.addEventListener('click', () => previewContainer.style.display = 'none');
         sendBtn.addEventListener('click', () => {
             const imageData = previewImg.src;
-            // Aqui você pode adicionar a lógica para enviar para o Gemini
-            // Exemplo: window.open(`https://gemini.google.com?image=${encodeURIComponent(imageData)}`);
-            alert('Imagem pronta para envio ao Gemini!\n\nDados da imagem (base64):\n' + imageData.substring(0, 100) + '...');
+            // Aqui você pode enviar para o Gemini
+            alert('Imagem capturada com sucesso! Cole no Gemini:');
+            prompt('Copie os dados da imagem:', imageData);
             previewContainer.style.display = 'none';
         });
     }
 
-    // Função para capturar a tela
+    // Função de captura com html2canvas
     async function captureScreen() {
         try {
-            // Usando a API nativa do navegador
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: { cursor: "always" },
-                audio: false
-            });
-
-            const video = document.createElement('video');
-            video.style.display = 'none';
-            video.srcObject = stream;
-            document.body.appendChild(video);
-
-            video.onloadedmetadata = () => {
-                video.play();
-
-                // Criar canvas para captura
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // Obter imagem
+            const previewImg = document.getElementById('geminiPreviewImg');
+            previewImg.src = '';
+            
+            // Capturar toda a página
+            html2canvas(document.body, {
+                scale: 0.8,
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            }).then(canvas => {
                 const imageData = canvas.toDataURL('image/png');
-
-                // Parar a captura
-                stream.getTracks().forEach(track => track.stop());
-                video.remove();
-
-                // Mostrar preview
-                document.getElementById('geminiPreviewImg').src = imageData;
+                previewImg.src = imageData;
                 document.getElementById('geminiPreviewContainer').style.display = 'flex';
-            };
+            });
+            
         } catch (error) {
             console.error('Erro na captura:', error);
-            alert('Captura cancelada ou falhou: ' + error.message);
+            alert('Erro na captura: ' + error.message);
         }
     }
 
-    // Iniciar quando o DOM estiver pronto
+    // Iniciar
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', setupScreenCapture);
     } else {
