@@ -69,7 +69,7 @@
         container.style.transform = 'translate(-50%, -50%)';
         
         const titulo = document.createElement('div');
-        titulo.textContent = '👑 Mod criado por Dhonatan';
+        titulo.textContent = '👑 Criado por Dhonatan';
         aplicarEstiloTexto(titulo, '20px');
         
         const insta = document.createElement('div');
@@ -77,7 +77,7 @@
         aplicarEstiloTexto(insta);
         
         const info = document.createElement('div');
-        info.textContent = '💻 Mod exclusivo e protegido';
+        info.textContent = '💻 Mod exclusivo e protegido, feito para poupar seu tempo';
         aplicarEstiloTexto(info);
         
         const btnFechar = document.createElement('button');
@@ -350,11 +350,11 @@ criarAbas = () => {
     const botoes = {
         scripts: [
             {
-                nome: 'Ingles Pr',
+                nome: 'Ingles Parana',
                 func: () => window.open('https://speakify.cupiditys.lol', '_blank')
             },
             {
-                nome: 'Script Khan Academy',
+                nome: 'Khan Academy',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
                     fetch(scriptURL)
@@ -388,7 +388,7 @@ criarAbas = () => {
                 }
             },
             {
-                nome: 'Futura script',
+                nome: '❌',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/quizziz.js" + Date.now();
                     fetch(scriptURL)
@@ -422,7 +422,7 @@ criarAbas = () => {
                 }
             },
             {
-                nome: 'Kahoot Script teste (em testes)',
+                nome: '❌',
                 func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/kahoot.js?" + Date.now();
                     fetch(scriptURL)
@@ -433,7 +433,7 @@ criarAbas = () => {
                             document.head.appendChild(script);
 
                             const aviso = document.createElement('div');
-                            aviso.textContent = '✅ Kahoot Script carregado!';
+                            aviso.textContent = 'Nada Carregado!';
                             aplicarEstiloTexto(aviso, '16px');
                             Object.assign(aviso.style, {
                                 position: 'fixed',
@@ -443,7 +443,7 @@ criarAbas = () => {
                                 padding: '12px 20px',
                                 borderRadius: '10px',
                                 zIndex: '999999',
-                                border: '1px solid #0f0',
+                                border: '1px solid #ff1e00',
                                 background: 'rgba(0,0,0,0.9)'
                             });
                             document.body.appendChild(aviso);
@@ -457,7 +457,7 @@ criarAbas = () => {
             }
         ],
         textos: [
-            { nome: '✍️ Iniciar Bot de Texto', func: () => { fundo.remove(); iniciarMod(); } },
+            { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
             { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
             { nome: '🔁 Reescrever Texto', func: abrirReescritor }
         ],
@@ -540,7 +540,7 @@ criarAbas = () => {
     });
 
     const btnEsconder = document.createElement('button');
-    btnEsconder.textContent = '👁️ Esconder Mod';
+    btnEsconder.textContent = '👁️ Fechar Menu';
     aplicarEstiloBotao(btnEsconder);
     btnEsconder.onclick = () => {
         fundo.remove();
@@ -549,7 +549,7 @@ criarAbas = () => {
     };
 
     const btnFechar = document.createElement('button');
-    btnFechar.textContent = '❌ Fechar Menu';
+    btnFechar.textContent = '❌ Minimizar Menu';
     aplicarEstiloBotao(btnFechar);
     btnFechar.onclick = () => {
         fundo.remove();
@@ -572,7 +572,7 @@ const criarMenu = () => {
     aplicarEstiloContainer(janela);
 
     const titulo = document.createElement('div');
-    titulo.textContent = 'DHONATAN MODDER 🔥';
+    titulo.textContent = 'PAINEL AUXÍLIO';
     aplicarEstiloTexto(titulo, '20px');
 
     let h = 0;
