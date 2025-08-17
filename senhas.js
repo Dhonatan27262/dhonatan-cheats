@@ -3,11 +3,11 @@ window.verificarSenha = function(senha) {
     // Mantenha todas as senhas em minúsculas para evitar problemas
     const senhasValidas = [
         "admin",
+        "adm",
         "tainara",
         "vitor",
         "pablo",
         "rafael",
-        "adm",
         "novasenha",  
         "put"// Adicione novas aqui
     ];
