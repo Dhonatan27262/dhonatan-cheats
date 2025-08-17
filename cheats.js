@@ -470,6 +470,9 @@ criarAbas = () => {
                 if (r) marcarResposta(r);
             }}
         ],
+        outros: [
+            { nome: 'Extensão vpn (libera bloqueio wifi)', func: () => { fundo.remove(); iniciarMod(); } },
+        ],
         config: [
             { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
             { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
@@ -486,7 +489,7 @@ criarAbas = () => {
         marginBottom: '15px'
     });
 
-    ['scripts', 'textos', 'respostas', 'config'].forEach(id => {
+    ['scripts', 'textos', 'respostas', 'outros', 'config'].forEach(id => {
         const botaoAba = document.createElement('button');
         botaoAba.textContent = id.toUpperCase();
         aplicarEstiloBotao(botaoAba, abaAtiva === id);
