@@ -661,23 +661,29 @@ setInterval(() => {
         fontSize: '14px'
     });
 
-    botao.onclick = () => {
-        // Senhas exatamente como digitadas (case-sensitive)
-        if (input.value !== 'admin' && 
-            input.value !== 'tainara' && 
-            input.value !== 'ggg' &&
-            input.value !== 'vitor' &&
-            input.value !== 'pablo' &&
-            input.value !== 'rafael' &&
-            input.value !== 'adm') {
-            erro.style.display = 'block';
-            return;
-        }
-        
+    // ===== [SISTEMA DE SENHAS REMOTO] ===== //
+// 1. Carrega senhas do GitHub (atualizado automaticamente)
+const carregarSenhas = document.createElement('script');
+carregarSenhas.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now();
+document.head.appendChild(carregarSenhas);
+
+// 2. Fallback com senhas locais caso GitHub falhe
+window.verificarSenha = window.verificarSenha || function(senha) {
+    const senhasBackup = ["admin", "tainara", "ggg", "vitor", "pablo", "rafael", "adm"];
+    return senhasBackup.includes(senha);
+};
+
+// 3. Verificação simplificada
+botao.onclick = () => {
+    if (verificarSenha(input.value)) {
         senhaLiberada = true;
         fundo.remove();
         criarMenu();
-    };
+    } else {
+        erro.style.display = 'block';
+    }
+};
+// ===== [FIM DO SISTEMA] ===== //
 
     janela.append(nome, input, botao, erro);
     fundo.append(janela);
