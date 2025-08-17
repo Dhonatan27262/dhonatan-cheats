@@ -560,6 +560,22 @@ criarAbas = () => {
     janela.appendChild(botoesAcao);
 };
 
+// ===== [INÍCIO DO CÓDIGO DO PING] ===== //
+const medirPing = async () => {
+    const start = performance.now();
+    try {
+        await fetch('https://www.google.com', {
+            method: 'HEAD',
+            cache: 'no-store'
+        });
+        const latency = performance.now() - start;
+        return Math.round(latency);
+    } catch (e) {
+        return null;
+    }
+};
+// ===== [FIM DO CÓDIGO DO PING] ===== //
+
 const criarMenu = () => {
     fundo = document.createElement('div');
     Object.assign(fundo.style, {
@@ -580,14 +596,37 @@ const criarMenu = () => {
         titulo.style.color = `hsl(${h++ % 360},100%,60%)`;
     }, 30);
 
-    relogio = document.createElement('div');
-    relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    aplicarEstiloTexto(relogio, '16px');
-    setInterval(() => {
-        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    }, 1000);
+    // ===== [INÍCIO DA MODIFICAÇÃO DO RELÓGIO] ===== //
+relogio = document.createElement('div');
+aplicarEstiloTexto(relogio, '16px');
 
-    janela.append(titulo, relogio);
+const pingElement = document.createElement('div');
+aplicarEstiloTexto(pingElement, '16px');
+pingElement.style.marginLeft = '10px';
+pingElement.style.display = 'inline-block';
+
+const timeContainer = document.createElement('div');
+Object.assign(timeContainer.style, {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: '10px 0'
+});
+
+const atualizarTempo = async () => {
+    relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    
+    const ping = await medirPing();
+    pingElement.textContent = ping !== null ? `📶 ${ping}ms` : '📶 Offline';
+    pingElement.style.color = ping < 100 ? '#0f0' : ping < 300 ? '#ff0' : '#f00';
+};
+
+setInterval(atualizarTempo, 5000);
+atualizarTempo();
+
+timeContainer.append(relogio, pingElement);
+janela.append(titulo, timeContainer);
+// ===== [FIM DA MODIFICAÇÃO DO RELÓGIO] ===== //
     criarAbas();
     fundo.append(janela);
     document.body.append(fundo);
