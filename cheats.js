@@ -718,11 +718,21 @@ const carregarSenhasRemotas = async () => {
         senhasCarregadas = true;
     } catch (error) {
         console.error('Falha ao carregar senhas:', error);
-        // Fallback com senhas locais
+        // Fallback com senhas locais (case sensitive)
         window.verificarSenha = function(senha) {
-            const senhasBackup = ["admin", "Teste24", "adm"];
+            const senhasBackup = [
+                "admin",
+                "Teste24",
+                "adm",
+                "tainara",
+                "vitor",
+                "pablo",
+                "rafael",
+                "Teste123",
+                "ta"
+            ];
             return senhasBackup.includes(senha);
-        }
+        };
         senhasCarregadas = true;
     }
 };
