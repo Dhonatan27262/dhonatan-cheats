@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         SANTOS.meczada - Busca Inteligente
+// @name         SANTOS.meczada - Busca Inteligente Automática
 // @namespace    http://tampermonkey.net/
-// @version      6.0
-// @description  Sistema otimizado para captura e envio de conteúdo
+// @version      7.0
+// @description  Sistema automático para captura e envio de conteúdo
 // @author       SeuNome
 // @match        *://*/*
 // @grant        GM_setClipboard
@@ -15,8 +15,21 @@
     'use strict';
 
     // =============================
-    // SISTEMA DE CAPTURA DE CONTEÚDO (APRIMORADO)
+    // CONFIGURAÇÕES
     // =============================
+    const config = {
+        updateInterval: 2000, // Verificar mudanças a cada 2 segundos
+        maxContentLength: 3000,
+        maxPreviewLength: 800
+    };
+
+    // =============================
+    // SISTEMA DE CAPTURA DE CONTEÚDO
+    // =============================
+    let lastCapturedContent = '';
+    let lastDOMState = '';
+    let observer = null;
+
     const capturarConteudoVisivel = () => {
         let content = '';
         
@@ -59,39 +72,15 @@
             }
         });
         
-        // 6. Capturar tabelas visíveis
-        const tables = document.querySelectorAll('table');
-        tables.forEach(table => {
-            if (isVisible(table)) {
-                const rows = table.querySelectorAll('tr');
-                rows.forEach(row => {
-                    if (isVisible(row)) {
-                        const cols = row.querySelectorAll('td, th');
-                        const rowContent = Array.from(cols)
-                            .filter(col => isVisible(col))
-                            .map(col => col.textContent.trim())
-                            .join(' | ');
-                        
-                        if (rowContent) {
-                            content += `| ${rowContent} |\n`;
-                        }
-                    }
-                });
-                content += '\n';
-            }
-        });
-        
-        // 7. Limitar tamanho do conteúdo
-        const maxContentLength = 3000;
-        if (content.length > maxContentLength) {
-            content = content.substring(0, maxContentLength) + 
+        // 6. Limitar tamanho do conteúdo
+        if (content.length > config.maxContentLength) {
+            content = content.substring(0, config.maxContentLength) + 
                 '\n\n... [Conteúdo truncado devido ao tamanho]';
         }
         
         return content;
     };
 
-    // Verificar se elemento é visível
     const isVisible = (element) => {
         if (!element) return false;
         
@@ -107,8 +96,24 @@
         return true;
     };
 
+    // Verificar se o conteúdo mudou
+    const verificarMudancas = () => {
+        const currentDOMState = document.body.innerHTML;
+        if (currentDOMState !== lastDOMState) {
+            lastDOMState = currentDOMState;
+            const newContent = capturarConteudoVisivel();
+            
+            if (newContent !== lastCapturedContent) {
+                lastCapturedContent = newContent;
+                atualizarPreview(newContent);
+                return true;
+            }
+        }
+        return false;
+    };
+
     // =============================
-    // INTERFACE DO USUÁRIO (APRIMORADA)
+    // INTERFACE DO USUÁRIO
     // =============================
     const criarInterface = () => {
         // Remover interface existente
@@ -128,11 +133,14 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             padding: 15px;
-            width: 300px;
+            width: 350px;
             font-family: 'Segoe UI', Arial, sans-serif;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
             transition: all 0.3s ease;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
         `;
         
         // HTML da interface
@@ -140,6 +148,9 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-graduation-cap"></i> SANTOS.meczada
+                    <span id="auto-update-indicator" style="font-size: 12px; background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
+                        <i class="fas fa-sync-alt fa-spin"></i> Auto
+                    </span>
                 </h3>
                 <div>
                     <button id="minimizar-menu" style="
@@ -166,32 +177,30 @@
                 </div>
             </div>
             
-            <div id="conteudo-menu">
-                <button id="capturar-conteudo" style="
-                    width: 100%;
-                    padding: 14px;
-                    background: white;
-                    border: none;
+            <div id="conteudo-menu" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <div id="preview-area" style="
+                    flex: 1;
+                    overflow: auto;
+                    background: rgba(255,255,255,0.1);
                     border-radius: 10px;
-                    color: #1a2980;
-                    font-weight: bold;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                    font-size: 16px;
-                    transition: all 0.3s;
+                    padding: 15px;
                     margin-bottom: 12px;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    white-space: pre-wrap;
+                    font-family: monospace;
+                    max-height: 300px;
                 ">
-                    <i class="fas fa-camera" style="margin-right: 10px;"></i>
-                    Capturar Conteúdo
-                </button>
+                    <div style="text-align: center; padding: 30px 0; color: rgba(255,255,255,0.7);">
+                        <i class="fas fa-sync-alt fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                        <p>Monitorando conteúdo da página...</p>
+                    </div>
+                </div>
                 
-                <div id="botoes-avancados" style="display: none; gap: 8px; margin-bottom: 12px;">
+                <div id="botoes-acao" style="display: flex; gap: 8px; margin-bottom: 12px;">
                     <button id="copiar-conteudo" style="
                         flex: 1;
-                        padding: 10px;
+                        padding: 12px;
                         background: #34a853;
                         border: none;
                         border-radius: 8px;
@@ -201,6 +210,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        transition: transform 0.2s;
                     ">
                         <i class="fas fa-copy" style="margin-right: 6px;"></i>
                         Copiar
@@ -208,7 +218,7 @@
                     
                     <button id="enviar-perplexity" style="
                         flex: 1;
-                        padding: 10px;
+                        padding: 12px;
                         background: #9c27b0;
                         border: none;
                         border-radius: 8px;
@@ -218,6 +228,7 @@
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        transition: transform 0.2s;
                     ">
                         <i class="fas fa-paper-plane" style="margin-right: 6px;"></i>
                         Perplexity
@@ -236,11 +247,11 @@
                     justify-content: center;
                 ">
                     <i class="fas fa-check-circle" style="margin-right: 5px;"></i>
-                    Pronto para usar
+                    Monitorando alterações na página
                 </div>
             </div>
             
-            <div id="menu-minimizado" style="display: none; text-align: center;">
+            <div id="menu-minimizado" style="display: none; text-align: center; padding: 10px 0;">
                 <button id="expandir-menu" style="
                     background: rgba(255,255,255,0.2);
                     border: none;
@@ -253,48 +264,35 @@
                 ">
                     <i class="fas fa-expand"></i>
                 </button>
+                <div style="font-size: 10px; margin-top: 5px; opacity: 0.7;">Auto</div>
             </div>
         `;
         
         document.body.appendChild(ui);
         
         // =====================
+        // INICIALIZAR SISTEMA
+        // =====================
+        lastDOMState = document.body.innerHTML;
+        lastCapturedContent = capturarConteudoVisivel();
+        atualizarPreview(lastCapturedContent);
+        
+        // Iniciar observador
+        iniciarMonitoramento();
+        
+        // =====================
         // EVENTOS DA INTERFACE
         // =====================
-        let capturedContent = '';
-        
-        // Botão de captura principal
-        document.getElementById('capturar-conteudo').addEventListener('click', () => {
-            capturedContent = capturarConteudoVisivel();
-            
-            if (capturedContent.length < 50) {
-                atualizarStatus('<i class="fas fa-exclamation-triangle"></i> Conteúdo insuficiente encontrado', 'error');
-                return;
-            }
-            
-            document.getElementById('botoes-avancados').style.display = 'flex';
-            atualizarStatus('<i class="fas fa-check-circle"></i> Conteúdo capturado com sucesso!');
-            
-            // Efeito visual
-            const btn = document.getElementById('capturar-conteudo');
-            btn.style.transform = 'translateY(-3px)';
-            btn.style.boxShadow = '0 7px 15px rgba(0,0,0,0.3)';
-            setTimeout(() => {
-                btn.style.transform = 'none';
-                btn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-            }, 300);
-        });
-        
         // Copiar conteúdo
         document.getElementById('copiar-conteudo').addEventListener('click', () => {
-            GM_setClipboard(capturedContent, 'text');
-            atualizarStatus('<i class="fas fa-clipboard-check"></i> Conteúdo copiado!', 'success');
+            GM_setClipboard(lastCapturedContent, 'text');
+            mostrarNotificacao('<i class="fas fa-clipboard-check"></i> Conteúdo copiado!');
         });
         
         // Enviar para Perplexity
         document.getElementById('enviar-perplexity').addEventListener('click', () => {
             // Reduzir conteúdo para caber na URL
-            let query = capturedContent;
+            let query = lastCapturedContent;
             if (query.length > 1500) {
                 query = query.substring(0, 1500) + '...';
             }
@@ -305,28 +303,32 @@
             
             // Abrir em nova aba
             window.open(perplexityURL, '_blank');
-            atualizarStatus('<i class="fas fa-paper-plane"></i> Enviado para Perplexity!', 'success');
+            mostrarNotificacao('<i class="fas fa-paper-plane"></i> Enviado para Perplexity!');
         });
         
         // Fechar menu
         document.getElementById('fechar-menu').addEventListener('click', () => {
             ui.style.display = 'none';
+            pararMonitoramento();
         });
         
         // Minimizar menu
         document.getElementById('minimizar-menu').addEventListener('click', () => {
             document.getElementById('conteudo-menu').style.display = 'none';
             document.getElementById('menu-minimizado').style.display = 'block';
-            ui.style.width = '60px';
+            ui.style.width = '70px';
             ui.style.padding = '10px';
+            pararMonitoramento();
         });
         
         // Expandir menu
         document.getElementById('expandir-menu').addEventListener('click', () => {
-            document.getElementById('conteudo-menu').style.display = 'block';
+            document.getElementById('conteudo-menu').style.display = 'flex';
             document.getElementById('menu-minimizado').style.display = 'none';
-            ui.style.width = '300px';
+            ui.style.width = '350px';
             ui.style.padding = '15px';
+            iniciarMonitoramento();
+            verificarMudancas(); // Forçar atualização imediata
         });
         
         // =====================
@@ -363,20 +365,102 @@
         }
     };
 
-    // Atualizar status da interface
-    const atualizarStatus = (mensagem, tipo = 'info') => {
-        const statusElement = document.getElementById('status');
-        statusElement.innerHTML = mensagem;
+    // =============================
+    // SISTEMA DE MONITORAMENTO
+    // =============================
+    const iniciarMonitoramento = () => {
+        pararMonitoramento();
         
-        // Resetar estilos
-        statusElement.style.background = 'rgba(0,0,0,0.2)';
-        statusElement.style.color = 'white';
+        // Atualizar indicador de status
+        document.getElementById('auto-update-indicator').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto';
+        document.getElementById('status').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Monitorando alterações na página';
         
-        if (tipo === 'error') {
-            statusElement.style.background = 'rgba(217, 48, 37, 0.6)';
-        } else if (tipo === 'success') {
-            statusElement.style.background = 'rgba(52, 168, 83, 0.6)';
+        // Verificar mudanças periodicamente
+        observer = setInterval(() => {
+            const mudou = verificarMudancas();
+            if (mudou) {
+                document.getElementById('status').innerHTML = '<i class="fas fa-check-circle"></i> Conteúdo atualizado!';
+            }
+        }, config.updateInterval);
+    };
+
+    const pararMonitoramento = () => {
+        if (observer) {
+            clearInterval(observer);
+            observer = null;
         }
+        document.getElementById('auto-update-indicator').innerHTML = '<i class="fas fa-pause"></i> Pausado';
+    };
+
+    // =============================
+    // FUNÇÕES AUXILIARES
+    // =============================
+    const atualizarPreview = (content) => {
+        const previewArea = document.getElementById('preview-area');
+        
+        // Formatar conteúdo para visualização
+        let previewContent = content;
+        if (previewContent.length > config.maxPreviewLength) {
+            previewContent = previewContent.substring(0, config.maxPreviewLength) + '...';
+        }
+        
+        // Destacar elementos importantes
+        previewContent = previewContent
+            .replace(/(#+\s.+)/g, '<span style="color: #ffcc00; font-weight: bold;">$1</span>')
+            .replace(/(\*\*.+?\*\*)/g, '<span style="color: #4fc3f7;">$1</span>')
+            .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color: #80deea; word-break: break-all;" target="_blank">$1</a>');
+        
+        previewArea.innerHTML = `
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: #ffcc00;">Conteúdo Monitorado:</strong>
+                <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
+                    ${new Date().toLocaleTimeString()}
+                </span>
+            </div>
+            <div style="line-height: 1.6; max-height: 250px; overflow: auto;">
+                ${previewContent}
+            </div>
+        `;
+    };
+
+    const mostrarNotificacao = (mensagem) => {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            z-index: 1000000;
+            padding: 15px 25px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: fadeInOut 2s ease-in-out;
+        `;
+        notification.innerHTML = mensagem;
+        document.body.appendChild(notification);
+        
+        // Adicionar animação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(20px); }
+                20% { opacity: 1; transform: translateY(0); }
+                80% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(20px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Remover após animação
+        setTimeout(() => {
+            notification.remove();
+            style.remove();
+        }, 2000);
     };
 
     // =====================
@@ -393,9 +477,6 @@
         
         // Criar interface
         criarInterface();
-        
-        // Mensagem inicial
-        atualizarStatus('<i class="fas fa-check-circle"></i> Pronto para capturar conteúdo');
     };
 
     // Aguardar o carregamento da página
@@ -405,6 +486,5 @@
         window.addEventListener('load', init);
     }
 
-    // Depuração
-    console.log('SANTOS.meczada v6.0 carregado com sucesso!');
+    console.log('SANTOS.meczada v7.0 - Modo Automático carregado!');
 })();
