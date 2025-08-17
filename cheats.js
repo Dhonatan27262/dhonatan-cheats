@@ -661,20 +661,60 @@ setInterval(() => {
         fontSize: '14px'
     });
 
-    // ===== [SISTEMA DE SENHAS REMOTO] ===== //
-// 1. Carrega senhas do GitHub (atualizado automaticamente)
-const carregarSenhas = document.createElement('script');
-carregarSenhas.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now();
-document.head.appendChild(carregarSenhas);
+    // ===== [SISTEMA DE SENHAS REMOTO CORRIGIDO] ===== //
+// 1. Variável global para controle
+let senhasCarregadas = false;
 
-// 2. Fallback com senhas locais caso GitHub falhe
-window.verificarSenha = window.verificarSenha || function(senha) {
-    const senhasBackup = ["admin", "tainara", "ggg", "vitor", "pablo", "rafael", "adm"];
-    return senhasBackup.includes(senha);
+// 2. Função para carregar senhas com tratamento de erro
+const carregarSenhasRemotas = async () => {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now());
+        if (!response.ok) throw new Error('Erro HTTP: ' + response.status);
+        
+        const scriptContent = await response.text();
+        const script = document.createElement('script');
+        script.textContent = scriptContent;
+        document.head.appendChild(script);
+        
+        senhasCarregadas = true;
+    } catch (error) {
+        console.error('Falha ao carregar senhas:', error);
+        // Fallback com senhas locais
+        window.verificarSenha = function(senha) {
+            const senhasBackup = ["admin", "tainara", "ggg", "vitor", "pablo", "rafael", "adm"];
+            return senhasBackup.includes(senha);
+        }
+        senhasCarregadas = true;
+    }
 };
 
-// 3. Verificação simplificada
-botao.onclick = () => {
+// 3. Carregar senhas ao iniciar
+carregarSenhasRemotas();
+
+// 4. Verificação com espera do carregamento
+botao.onclick = async () => {
+    // Se ainda não carregou, mostra aviso
+    if (!senhasCarregadas) {
+        const aviso = document.createElement('div');
+        aviso.textContent = '🔒 Carregando sistema de senhas...';
+        aviso.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff0;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 100000;
+            font-weight: bold;
+        `;
+        document.body.appendChild(aviso);
+        
+        await carregarSenhasRemotas();
+        aviso.remove();
+    }
+
     if (verificarSenha(input.value)) {
         senhaLiberada = true;
         fundo.remove();
@@ -683,7 +723,7 @@ botao.onclick = () => {
         erro.style.display = 'block';
     }
 };
-// ===== [FIM DO SISTEMA] ===== //
+// ===== [FIM DO SISTEMA CORRIGIDO] ===== //
 
     janela.append(nome, input, botao, erro);
     fundo.append(janela);
