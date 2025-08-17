@@ -681,7 +681,7 @@ const carregarSenhasRemotas = async () => {
         console.error('Falha ao carregar senhas:', error);
         // Fallback com senhas locais
         window.verificarSenha = function(senha) {
-            const senhasBackup = ["admin", "tainara", "ggg", "vitor", "pablo", "rafael", "adm"];
+            const senhasBackup = ["admin", "adm"];
             return senhasBackup.includes(senha);
         }
         senhasCarregadas = true;
