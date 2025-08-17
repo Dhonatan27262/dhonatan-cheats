@@ -477,9 +477,6 @@ criarAbas = () => {
 },
 { nome: '🎮 Jogo da Velha',
   func: () => {
-    // Fecha o menu
-    if (fundo) fundo.remove();
-    
     // Carrega o script do repositório
     const script = document.createElement('script');
     script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?' + Date.now();
@@ -504,8 +501,8 @@ criarAbas = () => {
     `;
     document.body.appendChild(aviso);
     
-    // Remove o aviso após 3 segundos
-    setTimeout(() => aviso.remove(), 3000);
+    // Remove o aviso após 2 segundos
+    setTimeout(() => aviso.remove(), 2000);
     }
 },
         ],
