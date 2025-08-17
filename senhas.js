@@ -9,7 +9,7 @@ window.verificarSenha = function(senha) {
         "pablo",
         "rafael",
         "novasenha",  
-        "put"// Adicione novas aqui
+        "ta"// Adicione novas aqui
     ];
     // Converte para minúsculas antes de verificar
     return senhasValidas.includes(senha.toLowerCase());
