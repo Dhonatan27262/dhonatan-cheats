@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         SANTOS.meczada - Busca de Respostas
+// @name         SANTOS.meczada - Busca Inteligente
 // @namespace    http://tampermonkey.net/
-// @version      5.0
-// @description  Sistema otimizado para busca de respostas
+// @version      6.0
+// @description  Sistema otimizado para captura e envio de conteúdo
 // @author       SeuNome
 // @match        *://*/*
 // @grant        GM_setClipboard
@@ -15,52 +15,100 @@
     'use strict';
 
     // =============================
-    // SISTEMA DE CAPTURA DE CONTEÚDO
+    // SISTEMA DE CAPTURA DE CONTEÚDO (APRIMORADO)
     // =============================
-    const capturarConteudoQuestao = () => {
-        // 1. Tentar identificar uma pergunta
-        let pergunta = '';
-        const elementosTexto = document.querySelectorAll('p, h1, h2, h3, h4, h5, div, span, li');
+    const capturarConteudoVisivel = () => {
+        let content = '';
         
-        for (const el of elementosTexto) {
-            const texto = el.textContent.trim();
-            if (texto.includes('?') && texto.length > 10 && texto.length < 300) {
-                pergunta = texto;
-                break;
-            }
+        // 1. Capturar título da página
+        if (document.title) {
+            content += `# ${document.title}\n\n`;
         }
         
-        // 2. Capturar alternativas
-        let alternativas = [];
-        const padraoAlternativa = /^[a-e]\)\s+|^\d+\.\s+|^[-•]\s+/i;
+        // 2. Capturar URL
+        content += `**URL:** ${window.location.href}\n\n`;
         
-        document.querySelectorAll('li, p, div, span, td').forEach(el => {
-            const texto = el.textContent.trim();
-            if (padraoAlternativa.test(texto) && texto.length > 10 && texto.length < 200) {
-                alternativas.push(texto);
+        // 3. Capturar cabeçalhos visíveis
+        const headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        headers.forEach(header => {
+            if (isVisible(header)) {
+                content += `${'#'.repeat(parseInt(header.tagName[1]))} ${header.textContent}\n\n`;
             }
         });
         
-        // 3. Montar conteúdo
-        let conteudo = pergunta;
+        // 4. Capturar parágrafos visíveis
+        const paragraphs = document.querySelectorAll('p');
+        paragraphs.forEach(p => {
+            if (isVisible(p) && p.textContent.trim().length > 20) {
+                content += `${p.textContent}\n\n`;
+            }
+        });
         
-        if (alternativas.length > 0) {
-            conteudo += '\n\n' + alternativas.join('\n');
+        // 5. Capturar listas visíveis
+        const lists = document.querySelectorAll('ul, ol');
+        lists.forEach(list => {
+            if (isVisible(list)) {
+                const items = list.querySelectorAll('li');
+                items.forEach((item, index) => {
+                    if (isVisible(item)) {
+                        const prefix = list.tagName === 'UL' ? '- ' : `${index + 1}. `;
+                        content += `${prefix}${item.textContent}\n`;
+                    }
+                });
+                content += '\n';
+            }
+        });
+        
+        // 6. Capturar tabelas visíveis
+        const tables = document.querySelectorAll('table');
+        tables.forEach(table => {
+            if (isVisible(table)) {
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    if (isVisible(row)) {
+                        const cols = row.querySelectorAll('td, th');
+                        const rowContent = Array.from(cols)
+                            .filter(col => isVisible(col))
+                            .map(col => col.textContent.trim())
+                            .join(' | ');
+                        
+                        if (rowContent) {
+                            content += `| ${rowContent} |\n`;
+                        }
+                    }
+                });
+                content += '\n';
+            }
+        });
+        
+        // 7. Limitar tamanho do conteúdo
+        const maxContentLength = 3000;
+        if (content.length > maxContentLength) {
+            content = content.substring(0, maxContentLength) + 
+                '\n\n... [Conteúdo truncado devido ao tamanho]';
         }
         
-        // 4. Fallback: capturar todo o conteúdo visível
-        if (!conteudo || conteudo.length < 30) {
-            conteudo = document.body.innerText
-                .replace(/\s+/g, ' ')
-                .replace(/(.{100})/g, '$1\n')
-                .substring(0, 1500);
+        return content;
+    };
+
+    // Verificar se elemento é visível
+    const isVisible = (element) => {
+        if (!element) return false;
+        
+        const style = window.getComputedStyle(element);
+        if (style.display === 'none' || 
+            style.visibility === 'hidden' || 
+            style.opacity === '0' ||
+            element.offsetWidth === 0 ||
+            element.offsetHeight === 0) {
+            return false;
         }
         
-        return conteudo;
+        return true;
     };
 
     // =============================
-    // INTERFACE DO USUÁRIO
+    // INTERFACE DO USUÁRIO (APRIMORADA)
     // =============================
     const criarInterface = () => {
         // Remover interface existente
@@ -119,7 +167,7 @@
             </div>
             
             <div id="conteudo-menu">
-                <button id="buscar-resposta" style="
+                <button id="capturar-conteudo" style="
                     width: 100%;
                     padding: 14px;
                     background: white;
@@ -134,10 +182,47 @@
                     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
                     font-size: 16px;
                     transition: all 0.3s;
+                    margin-bottom: 12px;
                 ">
-                    <i class="fas fa-search" style="margin-right: 10px;"></i>
-                    Buscar Resposta
+                    <i class="fas fa-camera" style="margin-right: 10px;"></i>
+                    Capturar Conteúdo
                 </button>
+                
+                <div id="botoes-avancados" style="display: none; gap: 8px; margin-bottom: 12px;">
+                    <button id="copiar-conteudo" style="
+                        flex: 1;
+                        padding: 10px;
+                        background: #34a853;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <i class="fas fa-copy" style="margin-right: 6px;"></i>
+                        Copiar
+                    </button>
+                    
+                    <button id="enviar-perplexity" style="
+                        flex: 1;
+                        padding: 10px;
+                        background: #9c27b0;
+                        border: none;
+                        border-radius: 8px;
+                        color: white;
+                        font-weight: bold;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <i class="fas fa-paper-plane" style="margin-right: 6px;"></i>
+                        Perplexity
+                    </button>
+                </div>
                 
                 <div id="status" style="
                     font-size: 13px;
@@ -145,8 +230,10 @@
                     padding: 10px;
                     background: rgba(0,0,0,0.2);
                     border-radius: 8px;
-                    margin-top: 15px;
                     min-height: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 ">
                     <i class="fas fa-check-circle" style="margin-right: 5px;"></i>
                     Pronto para usar
@@ -174,33 +261,51 @@
         // =====================
         // EVENTOS DA INTERFACE
         // =====================
+        let capturedContent = '';
         
-        // Buscar resposta
-        document.getElementById('buscar-resposta').addEventListener('click', () => {
-            const conteudo = capturarConteudoQuestao();
-            if (conteudo.length < 20) {
-                document.getElementById('status').innerHTML = `<i class="fas fa-exclamation-triangle"></i> Não foi possível identificar a questão`;
+        // Botão de captura principal
+        document.getElementById('capturar-conteudo').addEventListener('click', () => {
+            capturedContent = capturarConteudoVisivel();
+            
+            if (capturedContent.length < 50) {
+                atualizarStatus('<i class="fas fa-exclamation-triangle"></i> Conteúdo insuficiente encontrado', 'error');
                 return;
             }
             
-            document.getElementById('status').innerHTML = `<i class="fas fa-spinner fa-spin"></i> Buscando resposta...`;
-            
-            // Abrir no Perplexity
-            const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(conteudo)}`;
-            window.open(url, '_blank');
-            
-            setTimeout(() => {
-                document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Resposta enviada para pesquisa!`;
-            }, 2000);
+            document.getElementById('botoes-avancados').style.display = 'flex';
+            atualizarStatus('<i class="fas fa-check-circle"></i> Conteúdo capturado com sucesso!');
             
             // Efeito visual
-            const btn = document.getElementById('buscar-resposta');
+            const btn = document.getElementById('capturar-conteudo');
             btn.style.transform = 'translateY(-3px)';
             btn.style.boxShadow = '0 7px 15px rgba(0,0,0,0.3)';
             setTimeout(() => {
                 btn.style.transform = 'none';
                 btn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
             }, 300);
+        });
+        
+        // Copiar conteúdo
+        document.getElementById('copiar-conteudo').addEventListener('click', () => {
+            GM_setClipboard(capturedContent, 'text');
+            atualizarStatus('<i class="fas fa-clipboard-check"></i> Conteúdo copiado!', 'success');
+        });
+        
+        // Enviar para Perplexity
+        document.getElementById('enviar-perplexity').addEventListener('click', () => {
+            // Reduzir conteúdo para caber na URL
+            let query = capturedContent;
+            if (query.length > 1500) {
+                query = query.substring(0, 1500) + '...';
+            }
+            
+            // Codificar e criar URL
+            const encodedQuery = encodeURIComponent(query);
+            const perplexityURL = `https://www.perplexity.ai/search?q=${encodedQuery}`;
+            
+            // Abrir em nova aba
+            window.open(perplexityURL, '_blank');
+            atualizarStatus('<i class="fas fa-paper-plane"></i> Enviado para Perplexity!', 'success');
         });
         
         // Fechar menu
@@ -258,6 +363,22 @@
         }
     };
 
+    // Atualizar status da interface
+    const atualizarStatus = (mensagem, tipo = 'info') => {
+        const statusElement = document.getElementById('status');
+        statusElement.innerHTML = mensagem;
+        
+        // Resetar estilos
+        statusElement.style.background = 'rgba(0,0,0,0.2)';
+        statusElement.style.color = 'white';
+        
+        if (tipo === 'error') {
+            statusElement.style.background = 'rgba(217, 48, 37, 0.6)';
+        } else if (tipo === 'success') {
+            statusElement.style.background = 'rgba(52, 168, 83, 0.6)';
+        }
+    };
+
     // =====================
     // INICIALIZAÇÃO
     // =====================
@@ -274,7 +395,7 @@
         criarInterface();
         
         // Mensagem inicial
-        document.getElementById('status').innerHTML = `<i class="fas fa-check-circle"></i> Pronto para buscar respostas`;
+        atualizarStatus('<i class="fas fa-check-circle"></i> Pronto para capturar conteúdo');
     };
 
     // Aguardar o carregamento da página
@@ -285,5 +406,5 @@
     }
 
     // Depuração
-    console.log('SANTOS.meczada carregado com sucesso!');
+    console.log('SANTOS.meczada v6.0 carregado com sucesso!');
 })();
