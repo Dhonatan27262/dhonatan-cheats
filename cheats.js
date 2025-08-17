@@ -471,7 +471,10 @@ criarAbas = () => {
             }}
         ],
         outros: [
-            { nome: 'Extensão vpn (libera bloqueio wifi)', func: () => { fundo.remove(); iniciarMod(); } },
+            { 
+  nome: 'Extensão libera bloqueio Wifi', 
+  func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') 
+},
         ],
         config: [
             { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
