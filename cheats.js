@@ -475,8 +475,7 @@ criarAbas = () => {
   nome: 'Extensão libera bloqueio Wifi', 
   func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') 
 },
-{
-  nome: '🎮 Jogo da Velha',
+{ nome: '🎮 Jogo da Velha',
   func: () => {
     // Fecha o menu
     if (fundo) fundo.remove();
@@ -507,6 +506,7 @@ criarAbas = () => {
     
     // Remove o aviso após 3 segundos
     setTimeout(() => aviso.remove(), 3000);
+    }
 },
         ],
         config: [
