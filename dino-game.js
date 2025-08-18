@@ -254,7 +254,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            ">Jogar Novamente</button>
+            ">Reiniciar</button>
         `;
         
         gameContainer.appendChild(gameOverElement);
