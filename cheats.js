@@ -69,11 +69,11 @@
         container.style.transform = 'translate(-50%, -50%)';
         
         const titulo = document.createElement('div');
-        titulo.textContent = '👑 Criado por Dhonatan';
+        titulo.textContent = '👑';
         aplicarEstiloTexto(titulo, '20px');
         
         const insta = document.createElement('div');
-        insta.textContent = '📱 Instagram: @santos.mec996';
+        insta.textContent = 'VERSÃO 1.0';
         aplicarEstiloTexto(insta);
         
         const info = document.createElement('div');
