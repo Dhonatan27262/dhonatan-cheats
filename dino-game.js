@@ -357,7 +357,7 @@
         }
     }
     
-    // Controles
+    // Controles de teclado
     document.addEventListener('keydown', (e) => {
         if (!gameRunning) return;
         
@@ -375,6 +375,19 @@
             dino.stand();
         }
     });
+    
+    // Controle por toque na tela (para dispositivos móveis)
+    gameContainer.addEventListener('touchstart', function(e) {
+        if (!gameRunning) return;
+        
+        // Verifica se não é um toque no botão de fechar
+        if (!e.target.closest('button')) {
+            if (!dino.jumping) {
+                dino.jump();
+            }
+            e.preventDefault(); // Previne comportamento padrão do toque
+        }
+    }, { passive: false });
     
     // Iniciar o jogo
     startGame();
