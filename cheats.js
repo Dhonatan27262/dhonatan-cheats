@@ -508,37 +508,84 @@ criarAbas = () => {
                         });
     }
 },
-{ nome: '🎮 Jogo dino',
-  func: () => {
-                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogo.js?" + Date.now();
-                    fetch(scriptURL)
-                        .then(response => response.text())
-                        .then(scriptContent => {
-                            const script = document.createElement('script');
-                            script.textContent = scriptContent;
-                            document.head.appendChild(script);
-
-                            const aviso = document.createElement('div');
-                            aviso.textContent = 'Carregado!';
-                            aplicarEstiloTexto(aviso, '16px');
-                            Object.assign(aviso.style, {
-                                position: 'fixed',
-                                top: '20%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                padding: '12px 20px',
-                                borderRadius: '10px',
-                                zIndex: '999999',
-                                border: '1px solid #ff1e00',
-                                background: 'rgba(0,0,0,0.9)'
-                            });
-                            document.body.appendChild(aviso);
-                            setTimeout(() => aviso.remove(), 3000);
-                        })
-                        .catch(error => {
-                            console.error('Erro ao carregar Kahoot script:', error);
-                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
-                        });
+{
+    nome: '🎮 Jogo dino',
+    func: () => {
+        // Fecha o menu
+        if (fundo) fundo.remove();
+        
+        // Cria o container do jogo
+        const gameContainer = document.createElement('div');
+        gameContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        // Botão fechar
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'X';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1000001;
+        `;
+        closeBtn.onclick = () => {
+            gameContainer.remove();
+            criarBotaoFlutuante();
+        };
+        gameContainer.appendChild(closeBtn);
+        
+        // Iframe com o jogo
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/dino-game.html';
+        iframe.style.cssText = `
+            width: 90%;
+            height: 90%;
+            border: none;
+            border-radius: 10px;
+        `;
+        gameContainer.appendChild(iframe);
+        
+        document.body.appendChild(gameContainer);
+        
+        // Feedback
+        const aviso = document.createElement('div');
+        aviso.textContent = 'Carregando Jogo do Dinossauro...';
+        aplicarEstiloTexto(aviso, '16px');
+        Object.assign(aviso.style, {
+            position: 'fixed',
+            top: '20%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            zIndex: '1000001',
+            border: '1px solid #0f0',
+            background: 'rgba(0,0,0,0.9)'
+        });
+        document.body.appendChild(aviso);
+        
+        // Remove o aviso após o jogo carregar
+        iframe.onload = () => {
+            aviso.remove();
+        };
     }
 },
         ],
