@@ -514,56 +514,9 @@ criarAbas = () => {
         // Fecha o menu
         if (fundo) fundo.remove();
         
-        // Cria o container do jogo
-        const gameContainer = document.createElement('div');
-        gameContainer.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        `;
-        
-        // Botão fechar
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = 'X';
-        closeBtn.style.cssText = `
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 1000001;
-        `;
-        closeBtn.onclick = () => {
-            gameContainer.remove();
-            criarBotaoFlutuante();
-        };
-        gameContainer.appendChild(closeBtn);
-        
-        // Iframe com o jogo
-        const iframe = document.createElement('iframe');
-        iframe.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/dino-game.html';
-        iframe.style.cssText = `
-            width: 90%;
-            height: 90%;
-            border: none;
-            border-radius: 10px;
-        `;
-        gameContainer.appendChild(iframe);
-        
-        document.body.appendChild(gameContainer);
+        // Cria o script do jogo
+        const script = document.createElement('script');
+        script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/dino-game.js?' + Date.now();
         
         // Feedback
         const aviso = document.createElement('div');
@@ -582,10 +535,20 @@ criarAbas = () => {
         });
         document.body.appendChild(aviso);
         
-        // Remove o aviso após o jogo carregar
-        iframe.onload = () => {
+        // Quando carregar, remove o aviso
+        script.onload = () => {
             aviso.remove();
         };
+        
+        // Em caso de erro
+        script.onerror = () => {
+            aviso.textContent = 'Erro ao carregar o jogo. Tente novamente.';
+            aviso.style.border = '1px solid #f00';
+            setTimeout(() => aviso.remove(), 3000);
+        };
+        
+        // Adiciona o script ao documento
+        document.head.appendChild(script);
     }
 },
         ],
