@@ -511,44 +511,35 @@ criarAbas = () => {
 {
     nome: '🎮 Jogo dino',
     func: () => {
-        // Fecha o menu
-        if (fundo) fundo.remove();
-        
-        // Cria o script do jogo
-        const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/dino-game.js?' + Date.now();
-        
-        // Feedback
-        const aviso = document.createElement('div');
-        aviso.textContent = 'Carregando Jogo do Dinossauro...';
-        aplicarEstiloTexto(aviso, '16px');
-        Object.assign(aviso.style, {
-            position: 'fixed',
-            top: '20%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            zIndex: '1000001',
-            border: '1px solid #0f0',
-            background: 'rgba(0,0,0,0.9)'
-        });
-        document.body.appendChild(aviso);
-        
-        // Quando carregar, remove o aviso
-        script.onload = () => {
-            aviso.remove();
-        };
-        
-        // Em caso de erro
-        script.onerror = () => {
-            aviso.textContent = 'Erro ao carregar o jogo. Tente novamente.';
-            aviso.style.border = '1px solid #f00';
-            setTimeout(() => aviso.remove(), 3000);
-        };
-        
-        // Adiciona o script ao documento
-        document.head.appendChild(script);
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/dino-game.js?" + Date.now();
+                    fetch(scriptURL)
+                        .then(response => response.text())
+                        .then(scriptContent => {
+                            const script = document.createElement('script');
+                            script.textContent = scriptContent;
+                            document.head.appendChild(script);
+
+                            const aviso = document.createElement('div');
+                            aviso.textContent = 'Carregado!';
+                            aplicarEstiloTexto(aviso, '16px');
+                            Object.assign(aviso.style, {
+                                position: 'fixed',
+                                top: '20%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                padding: '12px 20px',
+                                borderRadius: '10px',
+                                zIndex: '999999',
+                                border: '1px solid #ff1e00',
+                                background: 'rgba(0,0,0,0.9)'
+                            });
+                            document.body.appendChild(aviso);
+                            setTimeout(() => aviso.remove(), 3000);
+                        })
+                        .catch(error => {
+                            console.error('Erro ao carregar Kahoot script:', error);
+                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
+                        });
     }
 },
         ],
