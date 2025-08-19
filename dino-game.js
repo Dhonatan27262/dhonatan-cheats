@@ -408,49 +408,44 @@
         }
     });
     
-    // Controle por toque na tela (para dispositivos móveis)
+    // Função unificada para tratar toques
     function handleTouch(e) {
         if (!gameRunning) return;
-        
-        // Verifica se não é um toque no botão de fechar
-        if (!e.target.closest('button')) {
-            if (!dino.jumping) {
-                dino.jump();
+
+        const target = e.target;
+        // Verifica se o toque foi em um botão
+        if (target.closest('button')) {
+            // Se foi no botão de pular, então faz o dino pular
+            if (jumpButton && (target === jumpButton || target.closest('button') === jumpButton)) {
+                if (!dino.jumping) {
+                    dino.jump();
+                }
+                e.preventDefault();
+                return;
             }
-            e.preventDefault();
-            return false;
+            // Para outros botões (fechar e reiniciar), não faz nada
+            return;
         }
+
+        // Se não foi em um botão, faz o dino pular
+        if (!dino.jumping) {
+            dino.jump();
+        }
+        e.preventDefault();
     }
     
     // Adiciona os listeners de toque
     gameContainer.addEventListener('touchstart', handleTouch, { passive: false });
     canvas.addEventListener('touchstart', handleTouch, { passive: false });
     
-    // Adiciona também eventos de clique para compatibilidade
+    // Adiciona evento de clique para compatibilidade com desktop
     gameContainer.addEventListener('click', function(e) {
+        if (!gameRunning) return;
+        // Verifica se não foi em um botão (exceto o botão de pular, que é tratado no touch para mobile)
         if (!e.target.closest('button') && !dino.jumping) {
             dino.jump();
         }
     });
-    
-    // Adiciona evento de clique ao botão de pular (se existir)
-    if (jumpButton) {
-        jumpButton.addEventListener('touchstart', function(e) {
-            if (!gameRunning) return;
-            if (!dino.jumping) {
-                dino.jump();
-            }
-            e.preventDefault();
-        }, { passive: false });
-        
-        jumpButton.addEventListener('click', function(e) {
-            if (!gameRunning) return;
-            if (!dino.jumping) {
-                dino.jump();
-            }
-            e.preventDefault();
-        });
-    }
     
     // Iniciar o jogo
     startGame();
