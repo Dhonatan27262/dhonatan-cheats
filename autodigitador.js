@@ -1,5 +1,9 @@
+// Sistema de Digitação Automática V2
+// Arquivo: digitador-auto.js
+
 // Função principal para iniciar o modo de digitação automática
 const iniciarModV2 = () => {
+    console.log("Digitador Automático V2 iniciado");
     alert("✍️ Toque no campo onde deseja digitar o texto.");
     
     const handler = (e) => {
@@ -20,52 +24,56 @@ const iniciarModV2 = () => {
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 12px;
             z-index: 10001;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            min-width: 350px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            min-width: 400px;
             max-width: 90%;
             font-family: Arial, sans-serif;
+            color: #333;
         `;
         
         // Conteúdo do modal
         modal.innerHTML = `
-            <h2 style="margin-top: 0; color: #2c3e50;">📋 Digitador Auto V2</h2>
+            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📋 Digitador Auto V2</h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Digite ou cole o texto abaixo (Ctrl+V para colar):</p>
             <textarea 
                 id="textoInput" 
                 placeholder="Digite ou cole o texto aqui..." 
                 style="
                     width: 100%;
-                    height: 150px;
-                    margin-bottom: 15px;
-                    padding: 10px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
+                    height: 180px;
+                    margin-bottom: 20px;
+                    padding: 15px;
+                    border: 2px solid #3498db;
+                    border-radius: 8px;
                     resize: vertical;
                     font-family: Arial, sans-serif;
+                    font-size: 16px;
                 "
             ></textarea>
             
-            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">Velocidade de digitação:</label>
+            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50;">Velocidade de digitação:</label>
             <select id="velocidade" style="
                 width: 100%;
-                padding: 8px;
-                margin-bottom: 15px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
+                padding: 10px;
+                margin-bottom: 20px;
+                border: 2px solid #3498db;
+                border-radius: 8px;
                 background: white;
+                font-size: 16px;
             ">
-                <option value="100">Muito Devagar</option>
-                <option value="60" selected>Devagar</option>
-                <option value="40">Normal</option>
-                <option value="20">Rápido</option>
-                <option value="10">Muito Rápido</option>
+                <option value="100">Muito Devagar (100ms)</option>
+                <option value="60" selected>Devagar (60ms)</option>
+                <option value="40">Normal (40ms)</option>
+                <option value="20">Rápido (20ms)</option>
+                <option value="10">Muito Rápido (10ms)</option>
             </select>
             
-            <div style="display: flex; gap: 10px; justify-content: flex-end">
-                <button id="cancelarBtn" style="padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">Cancelar</button>
-                <button id="confirmarBtn" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Iniciar</button>
+            <div style="display: flex; gap: 12px; justify-content: flex-end">
+                <button id="cancelarBtn" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">Cancelar</button>
+                <button id="confirmarBtn" style="padding: 10px 20px; background: #2ecc71; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;">Iniciar Digitação</button>
             </div>
         `;
         
@@ -90,6 +98,11 @@ const iniciarModV2 = () => {
         
         // Adicionar modal ao documento
         document.body.appendChild(modal);
+        
+        // Focar no textarea imediatamente
+        setTimeout(() => {
+            modal.querySelector('#textoInput').focus();
+        }, 100);
     };
 
     document.addEventListener('click', handler, true);
@@ -108,8 +121,8 @@ const iniciarDigitacao = (el, texto, velocidade) => {
         transform: 'translate(-50%, -50%)',
         background: 'rgba(0,0,0,0.8)', 
         color: '#fff',
-        padding: '10px 20px', 
-        borderRadius: '8px',
+        padding: '15px 25px', 
+        borderRadius: '10px',
         zIndex: 9999999, 
         fontSize: '20px',
         fontFamily: 'Arial, sans-serif'
