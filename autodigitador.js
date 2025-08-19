@@ -1,34 +1,47 @@
+// ===============================
 // Sistema de Digitação Automática V2
 // Arquivo: digitador-auto.js
+// ===============================
 
-// Função principal para iniciar o modo de digitação automática
-const iniciarModV2 = () => {
-    alert("✍️ Toque no campo onde deseja digitar o texto.");
-    
-    const handler = (e) => {
-        e.preventDefault();
-        document.removeEventListener('click', handler, true);
-        
-        const el = e.target;
-        if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-            alert("❌ Esse não é um campo válido.");
-            return;
-        }
+// ===== Estado global =====
+if (!window.__digitadorV2__) {
+    window.__digitadorV2__ = { aguardandoCampo: false, listenerInstalado: false };
+}
 
-        // Primeiro, usar o prompt tradicional para permitir colagem fácil
-        const texto = prompt("📋 Cole ou digite o texto:");
-        if (!texto) return;
+// ===== Listener único de clique =====
+const onDocClick = (e) => {
+    if (!window.__digitadorV2__.aguardandoCampo) return;
+    window.__digitadorV2__.aguardandoCampo = false;
+    e.preventDefault();
 
-        // Depois, mostrar a interface com opções de velocidade
-        criarModalConfiguracao(el, texto);
-    };
+    const el = e.target;
+    if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        alert("❌ Esse não é um campo válido.");
+        return;
+    }
 
-    document.addEventListener('click', handler, true);
+    const texto = prompt("📋 Cole ou digite o texto:");
+    if (!texto) return;
+
+    criarModalConfiguracao(el, texto);
 };
 
+// Instala o listener apenas uma vez
+if (!window.__digitadorV2__.listenerInstalado) {
+    document.addEventListener('click', onDocClick, true);
+    window.__digitadorV2__.listenerInstalado = true;
+}
+
+// ===== Função de início =====
+const iniciarModV2 = () => {
+    window.__digitadorV2__.aguardandoCampo = true;
+    alert("✍️ Toque no campo onde deseja digitar o texto.");
+};
+
+// ===============================
 // Função para criar o modal de configuração
+// ===============================
 const criarModalConfiguracao = (el, texto) => {
-    // Criar modal para seleção de velocidade
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed;
@@ -46,7 +59,6 @@ const criarModalConfiguracao = (el, texto) => {
         color: #333;
     `;
     
-    // Conteúdo do modal
     modal.innerHTML = `
         <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📋 Configurações de Digitação</h2>
         <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Texto que será digitado (${texto.length} caracteres):</p>
@@ -87,23 +99,22 @@ const criarModalConfiguracao = (el, texto) => {
         </div>
     `;
     
-    // Adicionar evento para o botão cancelar
     modal.querySelector('#cancelarBtn').addEventListener('click', () => {
         document.body.removeChild(modal);
     });
     
-    // Adicionar evento para o botão confirmar
     modal.querySelector('#confirmarBtn').addEventListener('click', () => {
         const velocidade = parseInt(modal.querySelector('#velocidade').value);
         document.body.removeChild(modal);
         iniciarDigitacao(el, texto, velocidade);
     });
     
-    // Adicionar modal ao documento
     document.body.appendChild(modal);
 };
 
-// Função para iniciar a digitação automática (baseada no código original)
+// ===============================
+// Função para iniciar a digitação automática
+// ===============================
 const iniciarDigitacao = (el, texto, velocidade) => {
     el.focus();
     let i = 0;
@@ -128,12 +139,12 @@ const iniciarDigitacao = (el, texto, velocidade) => {
     const intervalo = setInterval(() => {
         if (i < texto.length) {
             const c = texto[i++];
-            document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
+            document.execCommand('insertText', false, c);
             progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
         } else {
             clearInterval(intervalo);
             progresso.remove();
-            el.blur();  // fechar
+            el.blur();
             
             setTimeout(() => {
                 el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -164,7 +175,9 @@ const iniciarDigitacao = (el, texto, velocidade) => {
     }, velocidade);
 };
 
-// Iniciar a aplicação quando o documento estiver pronto
+// ===============================
+// Inicialização automática
+// ===============================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', iniciarModV2);
 } else {
