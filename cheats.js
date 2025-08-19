@@ -462,6 +462,7 @@ criarAbas = () => {
   nome: '😶‍🌫️ Digitador Auto V2',
   func: async () => {
     fundo.remove();
+    criarBotaoFlutuante();
     
     // Carrega o script externo
     try {
