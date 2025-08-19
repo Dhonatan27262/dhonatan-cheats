@@ -462,22 +462,13 @@ criarAbas = () => {
   nome: '😶‍🌫️ Digitador Auto v2',
   func: () => {
     fundo.remove();
-    
-    // Criar elemento script para carregar o código externo
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/autodigitador.js';
-    script.onload = () => {
-      if (typeof iniciarMod === 'function') {
-        iniciarMod();
-      } else {
-        console.error('Função iniciarMod não encontrada no script carregado.');
-      }
-    };
-    script.onerror = () => {
-      console.error('Erro ao carregar o script do Digitador Automático.');
-    };
-    
-    document.head.appendChild(script);
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
+                    fetch(scriptURL)
+                        .then(response => response.text())
+                        .then(scriptContent => {
+                            const script = document.createElement('script');
+                            script.textContent = scriptContent;
+                            document.head.appendChild(script);
   }
 },
             { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
