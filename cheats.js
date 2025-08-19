@@ -461,6 +461,7 @@ criarAbas = () => {
             {
     nome: 'V2 DIGITAR',
     func: () => {
+        fundo.remove();
         const avisoCarregando = document.createElement('div');
         avisoCarregando.textContent = '⏳ Carregando...';
         aplicarEstiloTexto(avisoCarregando, '16px');
