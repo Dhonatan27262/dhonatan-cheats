@@ -1,5 +1,8 @@
 // dino-game.js
 (function() {
+    // Detecta se é um dispositivo móvel
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
     // Cria o container principal do jogo
     const gameContainer = document.createElement('div');
     gameContainer.style.cssText = `
@@ -14,7 +17,7 @@
         justify-content: center;
         align-items: center;
         flex-direction: column;
-        touch-action: manipulation; /* Importante para dispositivos móveis */
+        touch-action: manipulation;
     `;
     
     // Cria o botão de fechar
@@ -50,7 +53,7 @@
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         max-width: 95%;
-        touch-action: none; /* Impede comportamentos de toque padrão no canvas */
+        touch-action: none;
     `;
     gameContainer.appendChild(canvas);
     
@@ -67,6 +70,33 @@
     `;
     scoreElement.textContent = 'Score: 0';
     gameContainer.appendChild(scoreElement);
+    
+    // Cria o botão de pular para dispositivos móveis
+    let jumpButton = null;
+    if (isMobile) {
+        jumpButton = document.createElement('button');
+        jumpButton.textContent = 'PULAR';
+        jumpButton.style.cssText = `
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(66, 133, 244, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000001;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        gameContainer.appendChild(jumpButton);
+    }
     
     // Adiciona ao documento
     document.body.appendChild(gameContainer);
@@ -379,7 +409,6 @@
     });
     
     // Controle por toque na tela (para dispositivos móveis)
-    // Adiciona evento de toque tanto no container quanto no canvas
     function handleTouch(e) {
         if (!gameRunning) return;
         
@@ -388,8 +417,8 @@
             if (!dino.jumping) {
                 dino.jump();
             }
-            e.preventDefault(); // Previne comportamento padrão do toque
-            return false; // Adicional para prevenir comportamento padrão
+            e.preventDefault();
+            return false;
         }
     }
     
@@ -403,6 +432,25 @@
             dino.jump();
         }
     });
+    
+    // Adiciona evento de clique ao botão de pular (se existir)
+    if (jumpButton) {
+        jumpButton.addEventListener('touchstart', function(e) {
+            if (!gameRunning) return;
+            if (!dino.jumping) {
+                dino.jump();
+            }
+            e.preventDefault();
+        }, { passive: false });
+        
+        jumpButton.addEventListener('click', function(e) {
+            if (!gameRunning) return;
+            if (!dino.jumping) {
+                dino.jump();
+            }
+            e.preventDefault();
+        });
+    }
     
     // Iniciar o jogo
     startGame();
