@@ -75,7 +75,7 @@
     let jumpButton = null;
     if (isMobile) {
         jumpButton = document.createElement('button');
-        jumpButton.textContent = 'pul';
+        jumpButton.textContent = 'PULAR';
         jumpButton.style.cssText = `
             position: absolute;
             bottom: 40px;
@@ -125,6 +125,7 @@
         ducking: false,
         velocityY: 0,
         jumpPower: 15,
+        groundY: GAME_HEIGHT - 80,
         
         draw() {
             ctx.fillStyle = '#202124';
@@ -143,11 +144,12 @@
         
         update() {
             if (this.jumping) {
-                this.y -= this.velocityY;
                 this.velocityY -= gravity;
+                this.y -= this.velocityY;
                 
-                if (this.y >= GAME_HEIGHT - 80) {
-                    this.y = GAME_HEIGHT - 80;
+                // Verifica se atingiu o chão
+                if (this.y >= this.groundY) {
+                    this.y = this.groundY;
                     this.jumping = false;
                     this.velocityY = 0;
                 }
@@ -158,15 +160,16 @@
                 this.y = GAME_HEIGHT - 50;
             } else {
                 this.height = 60;
-                this.y = GAME_HEIGHT - 80;
+                this.y = this.groundY;
             }
         },
         
         jump() {
-            if (!this.jumping) {
+            console.log('Tentando pular...');
+            if (!this.jumping && !this.ducking) {
+                console.log('Pulou!');
                 this.jumping = true;
                 this.velocityY = this.jumpPower;
-                console.log('Dino pulou!'); // Debug
             }
         },
         
@@ -407,12 +410,19 @@
         }
     }
     
+    // CONTROLES SIMPLIFICADOS
+    function handleJump() {
+        if (gameRunning && !dino.jumping) {
+            dino.jump();
+        }
+    }
+    
     // Controles de teclado
     document.addEventListener('keydown', (e) => {
         if (!gameRunning) return;
         
-        if ((e.code === 'Space' || e.key === 'ArrowUp') && !dino.jumping) {
-            dino.jump();
+        if (e.code === 'Space' || e.key === 'ArrowUp') {
+            handleJump();
         }
         
         if (e.key === 'ArrowDown') {
@@ -426,47 +436,35 @@
         }
     });
     
-    // Função simplificada para tratar toques
-    function handleJump() {
-        if (!gameRunning) return;
-        if (!dino.jumping) {
-            dino.jump();
-        }
+    // Controles de toque/clique - SIMPLIFICADO
+    canvas.addEventListener('click', handleJump);
+    canvas.addEventListener('touchstart', handleJump, { passive: true });
+    
+    // Botão de pular móvel
+    if (jumpButton) {
+        jumpButton.addEventListener('click', handleJump);
+        jumpButton.addEventListener('touchstart', handleJump, { passive: true });
     }
     
-    // Adiciona os listeners de toque no canvas
-    canvas.addEventListener('touchstart', function(e) {
-        handleJump();
-        e.preventDefault();
-    }, { passive: false });
-    
-    canvas.addEventListener('click', function(e) {
-        handleJump();
-        e.preventDefault();
+    // Toque em qualquer lugar da tela (exceto botões)
+    gameContainer.addEventListener('click', (e) => {
+        if (!e.target.closest('button')) {
+            handleJump();
+        }
     });
     
-    // Adiciona evento de toque no botão de pular (se existir)
-    if (jumpButton) {
-        jumpButton.addEventListener('touchstart', function(e) {
+    gameContainer.addEventListener('touchstart', (e) => {
+        if (!e.target.closest('button')) {
             handleJump();
-            e.preventDefault();
-        }, { passive: false });
-        
-        jumpButton.addEventListener('click', function(e) {
-            handleJump();
-            e.preventDefault();
-        });
-    }
-    
-    // Adiciona evento de toque no container (para áreas fora do canvas)
-    gameContainer.addEventListener('touchstart', function(e) {
-        // Só permite pulo se não for em botões (exceto o botão de pular)
-        if (!e.target.closest('button') || e.target === jumpButton) {
-            handleJump();
-            e.preventDefault();
         }
-    }, { passive: false });
+    }, { passive: true });
     
     // Iniciar o jogo
     startGame();
+    
+    // Debug: verificar se os event listeners estão funcionando
+    console.log('Jogo iniciado. Event listeners configurados.');
+    console.log('Mobile:', isMobile);
+    console.log('Jump button exists:', jumpButton !== null);
+    
 })();
