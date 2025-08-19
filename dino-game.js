@@ -75,7 +75,7 @@
     let jumpButton = null;
     if (isMobile) {
         jumpButton = document.createElement('button');
-        jumpButton.textContent = 'PULAR';
+        jumpButton.textContent = 'pul';
         jumpButton.style.cssText = `
             position: absolute;
             bottom: 40px;
