@@ -460,25 +460,36 @@ criarAbas = () => {
             { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
             {
   nome: '😶‍🌫️ Digitador Auto V2',
-  func: () => { 
-    fundo.remove(); 
-    criarBotaoFlutuante();
-    // Verifica se a função já está disponível
+  func: function() {
+    fundo.remove();
+    
+    // Verificar se a função já está carregada
     if (typeof window.iniciarModV2 === 'function') {
         window.iniciarModV2();
-    } else {
-        // Se não estiver, carrega o script
-        const script = document.createElement('script');
-        script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?' + Date.now();
-        script.onload = () => {
-            if (typeof window.iniciarModV2 === 'function') {
-                window.iniciarModV2();
-            } else {
-                alert('Erro ao carregar o digitador automático.');
-            }
-        };
-        document.head.appendChild(script);
+        return;
     }
+    
+    // Se não estiver carregada, carregar o script
+    const script = document.createElement('script');
+    script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?' + Date.now();
+    
+    script.onload = function() {
+        // Marcar que foi carregado pelo menu para não iniciar automaticamente
+        window.digitadorCarregadoPorMenu = true;
+        
+        // Agora executar a função
+        if (typeof window.iniciarModV2 === 'function') {
+            window.iniciarModV2();
+        } else {
+            alert('Erro: função não encontrada após carregamento do script.');
+        }
+    };
+    
+    script.onerror = function() {
+        alert('Erro ao carregar o script do digitador.');
+    };
+    
+    document.head.appendChild(script);
   }
 },
             { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
