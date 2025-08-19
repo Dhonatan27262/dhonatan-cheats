@@ -181,5 +181,32 @@ const iniciarDigitacao = (el, texto, velocidade) => {
     }, velocidade);
 };
 
-// Não iniciar automaticamente - apenas quando a função for chamada
-// Removemos a inicialização automática para que só execute quando chamada explicitamente
+// Adicionar um botão flutuante para iniciar o digitador
+const adicionarBotaoIniciar = () => {
+    const botao = document.createElement('button');
+    botao.textContent = '🚀 Iniciar Digitador';
+    botao.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        z-index: 10000;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    `;
+    
+    botao.onclick = iniciarModV2;
+    document.body.appendChild(botao);
+};
+
+// Iniciar a aplicação quando o documento estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', adicionarBotaoIniciar);
+} else {
+    adicionarBotaoIniciar();
+}
