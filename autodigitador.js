@@ -1,17 +1,8 @@
 // Sistema de Digitação Automática V2
 // Arquivo: digitador-auto.js
 
-// Variável para controlar se o digitador está ativo
-let digitadorAtivo = false;
-
 // Função principal para iniciar o modo de digitação automática
 const iniciarModV2 = () => {
-    if (digitadorAtivo) {
-        alert("O digitador já está ativo. Aguarde a conclusão ou cancele a operação atual.");
-        return;
-    }
-    
-    digitadorAtivo = true;
     alert("✍️ Toque no campo onde deseja digitar o texto.");
     
     const handler = (e) => {
@@ -21,16 +12,12 @@ const iniciarModV2 = () => {
         const el = e.target;
         if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
             alert("❌ Esse não é um campo válido.");
-            digitadorAtivo = false;
             return;
         }
 
         // Primeiro, usar o prompt tradicional para permitir colagem fácil
         const texto = prompt("📋 Cole ou digite o texto:");
-        if (!texto) {
-            digitadorAtivo = false;
-            return;
-        }
+        if (!texto) return;
 
         // Depois, mostrar a interface com opções de velocidade
         criarModalConfiguracao(el, texto);
@@ -103,7 +90,6 @@ const criarModalConfiguracao = (el, texto) => {
     // Adicionar evento para o botão cancelar
     modal.querySelector('#cancelarBtn').addEventListener('click', () => {
         document.body.removeChild(modal);
-        digitadorAtivo = false;
     });
     
     // Adicionar evento para o botão confirmar
@@ -172,41 +158,15 @@ const iniciarDigitacao = (el, texto, velocidade) => {
                 });
                 
                 document.body.appendChild(msg);
-                setTimeout(() => {
-                    msg.remove();
-                    digitadorAtivo = false;
-                }, 3000);
+                setTimeout(() => msg.remove(), 3000);
             }, 100);
         }
     }, velocidade);
 };
 
-// Adicionar um botão flutuante para iniciar o digitador
-const adicionarBotaoIniciar = () => {
-    const botao = document.createElement('button');
-    botao.textContent = '🚀 Iniciar Digitador';
-    botao.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        background: #3498db;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 16px;
-        z-index: 10000;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    `;
-    
-    botao.onclick = iniciarModV2;
-    document.body.appendChild(botao);
-};
-
 // Iniciar a aplicação quando o documento estiver pronto
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', adicionarBotaoIniciar);
+    document.addEventListener('DOMContentLoaded', iniciarModV2);
 } else {
-    adicionarBotaoIniciar();
+    iniciarModV2();
 }
