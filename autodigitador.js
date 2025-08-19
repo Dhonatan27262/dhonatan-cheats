@@ -12,12 +12,22 @@ const iniciarModV2 = () => {
         const el = e.target;
         if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
             alert("❌ Esse não é um campo válido.");
+            // Reativa a escuta por cliques para tentar novamente
+            setTimeout(() => {
+                document.addEventListener('click', handler, true);
+            }, 100);
             return;
         }
 
         // Primeiro, usar o prompt tradicional para permitir colagem fácil
         const texto = prompt("📋 Cole ou digite o texto:");
-        if (!texto) return;
+        if (!texto) {
+            // Reativa a escuta por cliques se o usuário cancelar
+            setTimeout(() => {
+                document.addEventListener('click', handler, true);
+            }, 100);
+            return;
+        }
 
         // Depois, mostrar a interface com opções de velocidade
         criarModalConfiguracao(el, texto);
@@ -90,6 +100,10 @@ const criarModalConfiguracao = (el, texto) => {
     // Adicionar evento para o botão cancelar
     modal.querySelector('#cancelarBtn').addEventListener('click', () => {
         document.body.removeChild(modal);
+        // Reativa a escuta por cliques após cancelar
+        setTimeout(() => {
+            iniciarModV2();
+        }, 100);
     });
     
     // Adicionar evento para o botão confirmar
@@ -158,7 +172,13 @@ const iniciarDigitacao = (el, texto, velocidade) => {
                 });
                 
                 document.body.appendChild(msg);
-                setTimeout(() => msg.remove(), 3000);
+                setTimeout(() => {
+                    msg.remove();
+                    // Reativa a escuta por cliques após a digitação
+                    setTimeout(() => {
+                        iniciarModV2();
+                    }, 100);
+                }, 3000);
             }, 100);
         }
     }, velocidade);
