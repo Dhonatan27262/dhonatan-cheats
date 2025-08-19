@@ -461,22 +461,8 @@ criarAbas = () => {
             {
     nome: 'V2 DIGITAR',
     func: () => {
-        fundo.remove();
-        const avisoCarregando = document.createElement('div');
-        avisoCarregando.textContent = '⏳ Carregando...';
-        aplicarEstiloTexto(avisoCarregando, '16px');
-        Object.assign(avisoCarregando.style, {
-            position: 'fixed',
-            top: '20%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            zIndex: '1000001',
-            border: '1px solid #ff0',
-            background: 'rgba(0,0,0,0.9)'
-        });
-        document.body.appendChild(avisoCarregando);
+        // Remove apenas o menu (fundo) mas mantém o botão flutuante
+        if (fundo) fundo.remove();
 
         const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
         
@@ -486,23 +472,45 @@ criarAbas = () => {
                 const script = document.createElement('script');
                 script.textContent = scriptContent;
                 document.head.appendChild(script);
-
-                avisoCarregando.textContent = '✅ Carregado!';
-                avisoCarregando.style.border = '1px solid #0f0';
                 
-                setTimeout(() => {
-                    avisoCarregando.remove();
-                    criarBotaoFlutuante(); // Recria o botão após carregar
-                }, 2000);
+                // Feedback visual sem remover o botão flutuante
+                const aviso = document.createElement('div');
+                aviso.textContent = '✅ Script carregado com sucesso!';
+                aplicarEstiloTexto(aviso, '16px');
+                Object.assign(aviso.style, {
+                    position: 'fixed',
+                    top: '20%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    zIndex: '999999',
+                    border: '1px solid #0f0',
+                    background: 'rgba(0,0,0,0.9)'
+                });
+                document.body.appendChild(aviso);
+                setTimeout(() => aviso.remove(), 3000);
             })
             .catch(error => {
                 console.error('Erro ao carregar script:', error);
-                avisoCarregando.textContent = '❌ Erro ao carregar';
-                avisoCarregando.style.border = '1px solid #f00';
-                setTimeout(() => {
-                    avisoCarregando.remove();
-                    criarBotaoFlutuante(); // Recria o botão mesmo em caso de erro
-                }, 2000);
+                
+                // Feedback de erro sem remover o botão flutuante
+                const aviso = document.createElement('div');
+                aviso.textContent = '❌ Erro ao carregar o script';
+                aplicarEstiloTexto(aviso, '16px');
+                Object.assign(aviso.style, {
+                    position: 'fixed',
+                    top: '20%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    zIndex: '999999',
+                    border: '1px solid #f00',
+                    background: 'rgba(0,0,0,0.9)'
+                });
+                document.body.appendChild(aviso);
+                setTimeout(() => aviso.remove(), 3000);
             });
     }
 },
