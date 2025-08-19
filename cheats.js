@@ -461,6 +461,7 @@ criarAbas = () => {
             {
                 nome: '❌',
                 func: () => {
+                    fundo.remove();
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
                     fetch(scriptURL)
                         .then(response => response.text())
