@@ -42,7 +42,7 @@ function initAutoDigitador() {
             <div style="padding: 25px;">
                 <div style="margin-bottom: 20px;">
                     <p style="font-size: 16px; margin-bottom: 10px; color: #333; font-weight: bold;">
-                        Cole seu texto abaixo:
+                        Cole seu kkkk abaixo:
                     </p>
                     <textarea 
                         id="digitador-texto" 
