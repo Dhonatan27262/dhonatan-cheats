@@ -1,8 +1,17 @@
 // Sistema de Digitação Automática V2
 // Arquivo: digitador-auto.js
 
+// Variável para controlar se o digitador está ativo
+let digitadorAtivo = false;
+
 // Função principal para iniciar o modo de digitação automática
 const iniciarModV2 = () => {
+    if (digitadorAtivo) {
+        alert("O digitador já está ativo. Aguarde a conclusão ou cancele a operação atual.");
+        return;
+    }
+    
+    digitadorAtivo = true;
     alert("✍️ Toque no campo onde deseja digitar o texto.");
     
     const handler = (e) => {
@@ -12,20 +21,14 @@ const iniciarModV2 = () => {
         const el = e.target;
         if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
             alert("❌ Esse não é um campo válido.");
-            // Reativa a escuta por cliques para tentar novamente
-            setTimeout(() => {
-                document.addEventListener('click', handler, true);
-            }, 100);
+            digitadorAtivo = false;
             return;
         }
 
         // Primeiro, usar o prompt tradicional para permitir colagem fácil
         const texto = prompt("📋 Cole ou digite o texto:");
         if (!texto) {
-            // Reativa a escuta por cliques se o usuário cancelar
-            setTimeout(() => {
-                document.addEventListener('click', handler, true);
-            }, 100);
+            digitadorAtivo = false;
             return;
         }
 
@@ -100,10 +103,7 @@ const criarModalConfiguracao = (el, texto) => {
     // Adicionar evento para o botão cancelar
     modal.querySelector('#cancelarBtn').addEventListener('click', () => {
         document.body.removeChild(modal);
-        // Reativa a escuta por cliques após cancelar
-        setTimeout(() => {
-            iniciarModV2();
-        }, 100);
+        digitadorAtivo = false;
     });
     
     // Adicionar evento para o botão confirmar
@@ -174,19 +174,12 @@ const iniciarDigitacao = (el, texto, velocidade) => {
                 document.body.appendChild(msg);
                 setTimeout(() => {
                     msg.remove();
-                    // Reativa a escuta por cliques após a digitação
-                    setTimeout(() => {
-                        iniciarModV2();
-                    }, 100);
+                    digitadorAtivo = false;
                 }, 3000);
             }, 100);
         }
     }, velocidade);
 };
 
-// Iniciar a aplicação quando o documento estiver pronto
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciarModV2);
-} else {
-    iniciarModV2();
-}
+// Não iniciar automaticamente - apenas quando a função for chamada
+// Removemos a inicialização automática para que só execute quando chamada explicitamente
