@@ -1,194 +1,293 @@
 // autodigitador.js
-function criarBotaoFlutuante() {
-    const btn = document.createElement('button');
-    btn.innerHTML = '✍️';
-    btn.style = `
+// Função para iniciar o processo de digitação automática
+function iniciarDigitador() {
+    // Criar o modal para inserir texto
+    const modal = document.createElement('div');
+    modal.id = 'modal-digitador';
+    modal.style = `
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
         z-index: 999999;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: #007bff;
-        color: white;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
     `;
-    btn.addEventListener('click', iniciarMod);
-    document.body.appendChild(btn);
-}
 
-function iniciarMod() {
-    alert("✍️ Toque no campo onde deseja digitar o texto.");
-    const handler = (e) => {
-        e.preventDefault();
-        document.removeEventListener('click', handler, true);
-        const el = e.target;
-        
-        if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-            alert("❌ Esse não é um campo válido.");
-            criarBotaoFlutuante();
-            return;
-        }
-
-        // Modal para colar o texto
-        const modalTexto = document.createElement('div');
-        modalTexto.style = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+    modal.innerHTML = `
+        <div style="
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
-            z-index: 9999999;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            min-width: 300px;
-        `;
-
-        modalTexto.innerHTML = `
-            <h3 style="margin-top: 0;">📋 Cole seu texto:</h3>
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        ">
+            <h2 style="margin-top: 0; color: #2c3e50;">Digitador Automático</h2>
+            <p style="margin-bottom: 15px; color: #7f8c8d;">Cole o texto que deseja digitar automaticamente:</p>
             <textarea 
-                id="textoInput" 
+                id="texto-digitador" 
                 style="
                     width: 100%;
-                    height: 150px;
-                    margin-bottom: 15px;
-                    padding: 10px;
-                    box-sizing: border-box;
-                    border: 1px solid #ccc;
+                    height: 200px;
+                    padding: 12px;
+                    border: 1px solid #ddd;
                     border-radius: 5px;
                     resize: vertical;
+                    font-size: 16px;
+                    margin-bottom: 15px;
                 "
                 placeholder="Cole ou digite o texto aqui..."
             ></textarea>
-            <div style="display: flex; justify-content: space-between;">
-                <button id="cancelarBtn" style="padding: 8px 16px;">Cancelar</button>
-                <button id="confirmarBtn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 5px;">OK</button>
+            
+            <div style="margin-bottom: 15px;">
+                <p style="margin-bottom: 8px; font-weight: bold; color: #2c3e50;">Velocidade de digitação:</p>
+                <label style="display: block; margin: 5px 0;">
+                    <input type="radio" name="velocidade" value="100" checked> 
+                    Normal (100ms por caractere)
+                </label>
+                <label style="display: block; margin: 5px 0;">
+                    <input type="radio" name="velocidade" value="60"> 
+                    Rápido (60ms por caractere)
+                </label>
+                <label style="display: block; margin: 5px 0;">
+                    <input type="radio" name="velocidade" value="30"> 
+                    Muito Rápido (30ms por caractere)
+                </label>
+                <label style="display: block; margin: 5px 0;">
+                    <input type="radio" name="velocidade" value="10"> 
+                    Máxima velocidade (10ms por caractere)
+                </label>
             </div>
-        `;
-
-        document.body.appendChild(modalTexto);
-
-        // Modal para selecionar velocidade
-        const criarModalVelocidade = () => {
-            const modalVel = document.createElement('div');
-            modalVel.style = modalTexto.style;
-            modalVel.innerHTML = `
-                <h3 style="margin-top: 0;">⏱️ Selecione a velocidade:</h3>
-                <div style="margin-bottom: 15px;">
-                    <input type="radio" name="velocidade" value="100" id="lento">
-                    <label for="lento">Lento (100ms)</label><br>
-                    
-                    <input type="radio" name="velocidade" value="60" id="medio">
-                    <label for="medio">Médio (60ms)</label><br>
-                    
-                    <input type="radio" name="velocidade" value="40" id="rapido" checked>
-                    <label for="rapido">Rápido (40ms)</label><br>
-                    
-                    <input type="radio" name="velocidade" value="20" id="muitoRapido">
-                    <label for="muitoRapido">Muito Rápido (20ms)</label>
-                </div>
-                <div style="display: flex; justify-content: flex-end;">
-                    <button id="iniciarBtn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 5px;">Iniciar</button>
-                </div>
-            `;
-            document.body.appendChild(modalVel);
-            return modalVel;
-        };
-
-        // Event listeners para o modal de texto
-        document.getElementById('cancelarBtn').addEventListener('click', () => {
-            modalTexto.remove();
-            criarBotaoFlutuante();
-        });
-
-        document.getElementById('confirmarBtn').addEventListener('click', () => {
-            const texto = document.getElementById('textoInput').value.trim();
-            if (!texto) {
-                alert('Por favor, insira algum texto');
-                return;
-            }
-            modalTexto.remove();
             
-            const modalVelocidade = criarModalVelocidade();
-            
-            document.getElementById('iniciarBtn').addEventListener('click', () => {
-                const velocidade = parseInt(
-                    document.querySelector('input[name="velocidade"]:checked').value
-                );
-                modalVelocidade.remove();
-                iniciarDigitacao(el, texto, velocidade);
-            });
-        });
-    };
-    document.addEventListener('click', handler, true);
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="cancelar-digitador" style="
+                    padding: 10px 20px;
+                    background: #95a5a6;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                ">Cancelar</button>
+                <button id="iniciar-digitador" style="
+                    padding: 10px 20px;
+                    background: #2ecc71;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-weight: bold;
+                ">Iniciar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners para os botões
+    document.getElementById('cancelar-digitador').addEventListener('click', function() {
+        document.body.removeChild(modal);
+    });
+
+    document.getElementById('iniciar-digitador').addEventListener('click', function() {
+        const texto = document.getElementById('texto-digitador').value.trim();
+        if (!texto) {
+            alert('Por favor, insira algum texto');
+            return;
+        }
+
+        const velocidade = parseInt(document.querySelector('input[name="velocidade"]:checked').value);
+        document.body.removeChild(modal);
+        
+        // Solicitar que o usuário selecione o campo de destino
+        selecionarCampoTexto(texto, velocidade);
+    });
 }
 
+// Função para selecionar o campo de texto onde será feita a digitação
+function selecionarCampoTexto(texto, velocidade) {
+    const overlay = document.createElement('div');
+    overlay.style = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(41, 128, 185, 0.3);
+        z-index: 999998;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    `;
+    
+    const message = document.createElement('div');
+    message.style = `
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        max-width: 80%;
+    `;
+    message.innerHTML = `
+        <h3 style="margin: 0 0 10px 0;">Clique no campo onde deseja digitar o texto</h3>
+        <p style="margin: 0; font-size: 14px;">O processo será cancelado automaticamente em 30 segundos</p>
+    `;
+    
+    overlay.appendChild(message);
+    document.body.appendChild(overlay);
+    
+    // Timer para cancelamento automático
+    const timeout = setTimeout(() => {
+        document.body.removeChild(overlay);
+        alert('Tempo esgotado. O processo foi cancelado.');
+    }, 30000);
+    
+    // Event listener para seleção do campo
+    const selecionarCampo = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const el = e.target;
+        if (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            clearTimeout(timeout);
+            document.body.removeChild(overlay);
+            document.removeEventListener('click', selecionarCampo, true);
+            iniciarDigitacao(el, texto, velocidade);
+        } else {
+            alert('Por favor, selecione um campo de texto válido (input, textarea ou conteúdo editável)');
+        }
+    };
+    
+    document.addEventListener('click', selecionarCampo, true);
+}
+
+// Função para iniciar a digitação automática
 function iniciarDigitacao(el, texto, velocidade) {
     el.focus();
+    
+    // Criar overlay de progresso
+    const progressOverlay = document.createElement('div');
+    progressOverlay.style = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+    
+    const progressContent = document.createElement('div');
+    progressContent.style = `
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        min-width: 300px;
+    `;
+    progressContent.innerHTML = `
+        <h3 style="margin-top: 0;">Digitando texto...</h3>
+        <div style="background: #f0f0f0; border-radius: 5px; height: 20px; margin: 15px 0;">
+            <div id="progress-bar" style="background: #3498db; height: 100%; width: 0%; border-radius: 5px;"></div>
+        </div>
+        <p id="progress-text">0%</p>
+        <button id="cancelar-digitacao" style="
+            padding: 8px 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        ">Cancelar</button>
+    `;
+    
+    progressOverlay.appendChild(progressContent);
+    document.body.appendChild(progressOverlay);
+    
     let i = 0;
-    const progresso = document.createElement('div');
-    Object.assign(progresso.style, {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: 'rgba(0,0,0,0.8)',
-        color: '#fff',
-        padding: '10px 20px',
-        borderRadius: '8px',
-        zIndex: 9999999,
-        fontSize: '20px'
+    let digitacaoAtiva = true;
+    
+    // Event listener para o botão de cancelar
+    document.getElementById('cancelar-digitacao').addEventListener('click', function() {
+        digitacaoAtiva = false;
+        document.body.removeChild(progressOverlay);
     });
-    document.body.appendChild(progresso);
-
-    const intervalo = setInterval(() => {
+    
+    // Função para digitar o próximo caractere
+    function digitarProximo() {
+        if (!digitacaoAtiva) return;
+        
         if (i < texto.length) {
-            const c = texto[i++];
-            document.execCommand('insertText', false, c);
-            progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
-        } else {
-            clearInterval(intervalo);
-            progresso.remove();
-            el.blur();
+            const char = texto.charAt(i);
             
-            setTimeout(() => {
+            // Inserir caractere no elemento
+            if (el.isContentEditable) {
+                document.execCommand('insertText', false, char);
+            } else {
+                el.value += char;
+                
+                // Disparar eventos para atualizar qualquer listener
                 el.dispatchEvent(new Event('input', { bubbles: true }));
                 el.dispatchEvent(new Event('change', { bubbles: true }));
-                
-                const msg = document.createElement('div');
-                msg.textContent = "✅ Texto digitado com sucesso!";
-                Object.assign(msg.style, {
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: '#000',
-                    color: '#0f0',
-                    padding: '15px',
-                    borderRadius: '10px',
-                    fontSize: '18px',
-                    zIndex: 9999999,
-                    fontWeight: 'bold',
-                    textAlign: 'center'
-                });
-                document.body.appendChild(msg);
-                setTimeout(() => {
-                    msg.remove();
-                    criarBotaoFlutuante();
-                }, 3000);
-            }, 100);
+            }
+            
+            i++;
+            
+            // Atualizar barra de progresso
+            const progresso = (i / texto.length) * 100;
+            document.getElementById('progress-bar').style.width = progresso + '%';
+            document.getElementById('progress-text').textContent = Math.round(progresso) + '%';
+            
+            // Agendar próximo caractere
+            setTimeout(digitarProximo, velocidade);
+        } else {
+            // Finalizado
+            document.body.removeChild(progressOverlay);
+            
+            // Mostrar mensagem de conclusão
+            const conclusao = document.createElement('div');
+            conclusao.style = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                z-index: 999999;
+                text-align: center;
+            `;
+            conclusao.innerHTML = `
+                <h3 style="margin: 0 0 10px 0;">✅ Texto digitado com sucesso!</h3>
+                <p style="margin: 0;">O texto foi inserido automaticamente no campo selecionado.</p>
+            `;
+            
+            document.body.appendChild(conclusao);
+            setTimeout(() => {
+                document.body.removeChild(conclusao);
+            }, 3000);
         }
-    }, velocidade);
+    }
+    
+    // Iniciar o processo de digitação
+    digitarProximo();
 }
 
-// Inicializar o botão quando a página carregar
+// Inicializar o digitador quando a página carregar
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', criarBotaoFlutuante);
+    document.addEventListener('DOMContentLoaded', iniciarDigitador);
 } else {
-    criarBotaoFlutuante();
+    iniciarDigitador();
 }
