@@ -1,8 +1,14 @@
 // Sistema de Digitação Automática V2
 // Arquivo: digitador-auto.js
 
+// Variável para controlar o estado do digitador
+let digitadorAtivo = false;
+
 // Função principal para iniciar o modo de digitação automática
 const iniciarModV2 = () => {
+    if (digitadorAtivo) return;
+    digitadorAtivo = true;
+    
     console.log("Digitador Automático V2 iniciado");
     alert("✍️ Toque no campo onde deseja digitar o texto.");
     
@@ -13,6 +19,7 @@ const iniciarModV2 = () => {
         const el = e.target;
         if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
             alert("❌ Esse não é um campo válido.");
+            digitadorAtivo = false;
             return;
         }
 
@@ -80,6 +87,7 @@ const iniciarModV2 = () => {
         // Adicionar evento para o botão cancelar
         modal.querySelector('#cancelarBtn').addEventListener('click', () => {
             document.body.removeChild(modal);
+            digitadorAtivo = false;
         });
         
         // Adicionar evento para o botão confirmar
@@ -99,16 +107,22 @@ const iniciarModV2 = () => {
         // Adicionar modal ao documento
         document.body.appendChild(modal);
         
-        // Focar no textarea imediatamente
+        // Focar no textarea e permitir colar
         setTimeout(() => {
-            modal.querySelector('#textoInput').focus();
+            const textarea = modal.querySelector('#textoInput');
+            textarea.focus();
+            
+            // Permitir todos os comandos de edição (incluindo colar)
+            textarea.onpaste = null;
+            textarea.oncut = null;
+            textarea.oncopy = null;
         }, 100);
     };
 
     document.addEventListener('click', handler, true);
 };
 
-// Função para iniciar a digitação automática (baseada no código original)
+// Função para iniciar a digitação automática
 const iniciarDigitacao = (el, texto, velocidade) => {
     el.focus();
     let i = 0;
@@ -133,38 +147,79 @@ const iniciarDigitacao = (el, texto, velocidade) => {
     const intervalo = setInterval(() => {
         if (i < texto.length) {
             const c = texto[i++];
-            document.execCommand('insertText', false, c);  // insere texto como se fosse teclado
+            
+            // Inserir texto de forma simulada
+            if (el.isContentEditable) {
+                document.execCommand('insertText', false, c);
+            } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                // Para campos de input/textarea, adicionar o caractere ao valor
+                el.value += c;
+                
+                // Disparar eventos para que os frameworks JavaScript detectem a mudança
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            
             progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
         } else {
             clearInterval(intervalo);
             progresso.remove();
-            el.blur();  // fechar
             
+            // Disparar eventos finais
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            // Mensagem de sucesso
+            const msg = document.createElement('div');
+            msg.textContent = "✅ Texto digitado com sucesso!";
+            Object.assign(msg.style, {
+                position: 'fixed', 
+                top: '50%', 
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: '#000', 
+                color: '#0f0',
+                padding: '15px', 
+                borderRadius: '10px',
+                fontSize: '18px', 
+                zIndex: 9999999,
+                fontWeight: 'bold', 
+                textAlign: 'center',
+                fontFamily: 'Arial, sans-serif'
+            });
+            
+            document.body.appendChild(msg);
+            
+            // Resetar após 3 segundos
             setTimeout(() => {
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
+                msg.remove();
+                digitadorAtivo = false;
                 
-                const msg = document.createElement('div');
-                msg.textContent = "✅ Texto digitado com sucesso!";
-                Object.assign(msg.style, {
-                    position: 'fixed', 
-                    top: '50%', 
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: '#000', 
-                    color: '#0f0',
-                    padding: '15px', 
-                    borderRadius: '10px',
-                    fontSize: '18px', 
-                    zIndex: 9999999,
-                    fontWeight: 'bold', 
-                    textAlign: 'center',
-                    fontFamily: 'Arial, sans-serif'
-                });
+                // Adicionar botão para reiniciar
+                const reiniciarBtn = document.createElement('button');
+                reiniciarBtn.textContent = "🔄 Usar Novamente";
+                reiniciarBtn.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    background: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    z-index: 10000;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                `;
                 
-                document.body.appendChild(msg);
-                setTimeout(() => msg.remove(), 3000);
-            }, 100);
+                reiniciarBtn.onclick = () => {
+                    document.body.removeChild(reiniciarBtn);
+                    iniciarModV2();
+                };
+                
+                document.body.appendChild(reiniciarBtn);
+            }, 3000);
         }
     }, velocidade);
 };
@@ -175,3 +230,21 @@ if (document.readyState === 'loading') {
 } else {
     iniciarModV2();
 }
+
+// Adicionar estilos para garantir que a colagem funcione
+const estilo = document.createElement('style');
+estilo.textContent = `
+    /* Permitir colar em todos os campos de texto */
+    textarea, input[type="text"] {
+        user-select: all;
+        -webkit-user-select: all;
+        -moz-user-select: all;
+        -ms-user-select: all;
+    }
+    
+    /* Remover qualquer bloqueio de eventos */
+    #textoInput {
+        pointer-events: all !important;
+    }
+`;
+document.head.appendChild(estilo);
