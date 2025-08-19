@@ -55,7 +55,7 @@ function initAutoDigitador() {
                             font-size: 16px;
                             resize: vertical;
                         "
-                        placeholder="Cole ou digite o texto que será digitado automaticamente..."
+                        placeholder="Cole ou digite o 🤣texto que será digitado automaticamente..."
                     ></textarea>
                 </div>
                 
