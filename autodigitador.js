@@ -1,17 +1,13 @@
 // Sistema de Digitação Automática V2
-// Arquivo: autodigitador.js
+// Arquivo: digitador-auto.js
 
 // Função principal para iniciar o modo de digitação automática
-function iniciarModV2() {
-    // Remover event listeners anteriores para evitar duplicação
-    document.removeEventListener('click', window.digitadorHandler);
-    
+const iniciarModV2 = () => {
     alert("✍️ Toque no campo onde deseja digitar o texto.");
     
-    // Handler para capturar o clique no campo de texto
-    window.digitadorHandler = function(e) {
+    const handler = (e) => {
         e.preventDefault();
-        document.removeEventListener('click', window.digitadorHandler);
+        document.removeEventListener('click', handler, true);
         
         const el = e.target;
         if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
@@ -27,11 +23,11 @@ function iniciarModV2() {
         criarModalConfiguracao(el, texto);
     };
 
-    document.addEventListener('click', window.digitadorHandler);
-}
+    document.addEventListener('click', handler, true);
+};
 
 // Função para criar o modal de configuração
-function criarModalConfiguracao(el, texto) {
+const criarModalConfiguracao = (el, texto) => {
     // Criar modal para seleção de velocidade
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -105,10 +101,10 @@ function criarModalConfiguracao(el, texto) {
     
     // Adicionar modal ao documento
     document.body.appendChild(modal);
-}
+};
 
-// Função para iniciar a digitação automática
-function iniciarDigitacao(el, texto, velocidade) {
+// Função para iniciar a digitação automática (baseada no código original)
+const iniciarDigitacao = (el, texto, velocidade) => {
     el.focus();
     let i = 0;
     
@@ -166,12 +162,11 @@ function iniciarDigitacao(el, texto, velocidade) {
             }, 100);
         }
     }, velocidade);
-}
+};
 
-// Torna a função disponível globalmente
-window.iniciarModV2 = iniciarModV2;
-
-// Iniciar automaticamente se for carregado sozinho
-if (!window.digitadorCarregadoPorMenu) {
+// Iniciar a aplicação quando o documento estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarModV2);
+} else {
     iniciarModV2();
 }
