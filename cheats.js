@@ -458,10 +458,8 @@ criarAbas = () => {
         ],
         textos: [
             { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
-            {
-  nome: '😶‍🌫️ Digitador Auto v2',
-  func: () => {
-    fundo.remove();
+            { nome: '😶‍🌫️ Digitador Auto v2',
+    func: () => {
                     const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
                     fetch(scriptURL)
                         .then(response => response.text())
