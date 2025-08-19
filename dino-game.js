@@ -166,6 +166,7 @@
             if (!this.jumping) {
                 this.jumping = true;
                 this.velocityY = this.jumpPower;
+                console.log('Dino pulou!'); // Debug
             }
         },
         
@@ -185,6 +186,7 @@
             this.height = 45 + Math.random() * 15;
             this.x = GAME_WIDTH;
             this.y = GAME_HEIGHT - this.height - 30;
+            this.passed = false;
         }
         
         draw() {
@@ -310,6 +312,7 @@
         dino.jumping = false;
         dino.ducking = false;
         dino.y = GAME_HEIGHT - 80;
+        dino.velocityY = 0;
         
         gameLoop();
     }
@@ -349,6 +352,16 @@
         ctx.lineTo(800, GAME_HEIGHT - 30);
         ctx.lineTo(0, GAME_HEIGHT - 30);
         ctx.fill();
+        
+        // Chão
+        ctx.fillStyle = '#5a3921';
+        ctx.fillRect(0, GAME_HEIGHT - 30, GAME_WIDTH, 30);
+        
+        // Textura do chão
+        ctx.fillStyle = '#7a5a3b';
+        for (let i = 0; i < GAME_WIDTH; i += 20) {
+            ctx.fillRect(i, GAME_HEIGHT - 30, 10, 5);
+        }
     }
     
     function gameLoop() {
@@ -360,9 +373,14 @@
             
             // Atualizar e desenhar nuvens
             createCloud();
-            clouds.forEach(cloud => {
+            clouds.forEach((cloud, index) => {
                 cloud.update();
                 cloud.draw();
+                
+                // Remover nuvens que saíram da tela
+                if (cloud.x + cloud.width < 0) {
+                    clouds.splice(index, 1);
+                }
             });
             
             // Atualizar e desenhar dino
@@ -408,44 +426,46 @@
         }
     });
     
-    // Função unificada para tratar toques
-    function handleTouch(e) {
+    // Função simplificada para tratar toques
+    function handleJump() {
         if (!gameRunning) return;
-
-        const target = e.target;
-        // Verifica se o toque foi em um botão
-        if (target.closest('button')) {
-            // Se foi no botão de pular, então faz o dino pular
-            if (jumpButton && (target === jumpButton || target.closest('button') === jumpButton)) {
-                if (!dino.jumping) {
-                    dino.jump();
-                }
-                e.preventDefault();
-                return;
-            }
-            // Para outros botões (fechar e reiniciar), não faz nada
-            return;
-        }
-
-        // Se não foi em um botão, faz o dino pular
         if (!dino.jumping) {
             dino.jump();
         }
-        e.preventDefault();
     }
     
-    // Adiciona os listeners de toque
-    gameContainer.addEventListener('touchstart', handleTouch, { passive: false });
-    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    // Adiciona os listeners de toque no canvas
+    canvas.addEventListener('touchstart', function(e) {
+        handleJump();
+        e.preventDefault();
+    }, { passive: false });
     
-    // Adiciona evento de clique para compatibilidade com desktop
-    gameContainer.addEventListener('click', function(e) {
-        if (!gameRunning) return;
-        // Verifica se não foi em um botão (exceto o botão de pular, que é tratado no touch para mobile)
-        if (!e.target.closest('button') && !dino.jumping) {
-            dino.jump();
-        }
+    canvas.addEventListener('click', function(e) {
+        handleJump();
+        e.preventDefault();
     });
+    
+    // Adiciona evento de toque no botão de pular (se existir)
+    if (jumpButton) {
+        jumpButton.addEventListener('touchstart', function(e) {
+            handleJump();
+            e.preventDefault();
+        }, { passive: false });
+        
+        jumpButton.addEventListener('click', function(e) {
+            handleJump();
+            e.preventDefault();
+        });
+    }
+    
+    // Adiciona evento de toque no container (para áreas fora do canvas)
+    gameContainer.addEventListener('touchstart', function(e) {
+        // Só permite pulo se não for em botões (exceto o botão de pular)
+        if (!e.target.closest('button') || e.target === jumpButton) {
+            handleJump();
+            e.preventDefault();
+        }
+    }, { passive: false });
     
     // Iniciar o jogo
     startGame();
