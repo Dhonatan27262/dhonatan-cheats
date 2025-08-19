@@ -462,6 +462,7 @@ criarAbas = () => {
   nome: '😶‍🌫️ Digitador Auto V2',
   func: () => { 
     fundo.remove(); 
+    criarBotaoFlutuante();
     // Verifica se a função já está disponível
     if (typeof window.iniciarModV2 === 'function') {
         window.iniciarModV2();
