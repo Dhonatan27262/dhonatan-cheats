@@ -7,61 +7,60 @@ function initAutoDigitador() {
 
 // Função para iniciar a seleção do campo de texto
 function iniciarSelecaoCampo() {
-    // Criar overlay de seleção
-    const overlay = document.createElement('div');
-    overlay.id = 'digitador-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(41, 128, 185, 0.3);
-        z-index: 99999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-    `;
+    alert("✍️ Toque no campo onde deseja digitar o texto.");
     
-    // Mensagem de instrução
-    const message = document.createElement('div');
-    message.style.cssText = `
-        background: rgba(0, 0, 0, 0.85);
-        color: white;
-        padding: 25px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 80%;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    `;
-    message.innerHTML = `
-        <h3 style="margin: 0 0 15px 0; font-size: 20px;">Selecione o campo de texto</h3>
-        <p style="margin: 0; font-size: 16px; line-height: 1.5;">
-            Clique no campo onde deseja que o texto seja digitado automaticamente.
-        </p>
-    `;
-    
-    overlay.appendChild(message);
-    document.body.appendChild(overlay);
-    
-    // Event listener para seleção de campo
-    const selecionarCampo = function(e) {
+    const handler = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        document.removeEventListener('click', handler, true);
         
         const el = e.target;
         if (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            document.body.removeChild(overlay);
-            document.removeEventListener('click', selecionarCampo, true);
             // Após selecionar o campo, mostrar o modal de texto
             mostrarModalTexto(el);
         } else {
-            alert('Por favor, selecione um campo de texto válido (input, textarea ou conteúdo editável).');
+            alert("❌ Esse não é um campo válido.");
+            // Recriar o botão flutuante para tentar novamente
+            criarBotaoFlutuante();
         }
     };
     
-    document.addEventListener('click', selecionarCampo, true);
+    document.addEventListener('click', handler, true);
+}
+
+// Função para criar botão flutuante de tentar novamente
+function criarBotaoFlutuante() {
+    // Remove qualquer botão existente
+    const botaoExistente = document.getElementById('digitador-tentar-novamente');
+    if (botaoExistente) {
+        document.body.removeChild(botaoExistente);
+    }
+    
+    const botao = document.createElement('button');
+    botao.id = 'digitador-tentar-novamente';
+    botao.textContent = 'Tentar Novamente';
+    botao.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: #4a6bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 99999;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    `;
+    
+    botao.addEventListener('click', function() {
+        document.body.removeChild(botao);
+        iniciarSelecaoCampo();
+    });
+    
+    document.body.appendChild(botao);
 }
 
 // Função para mostrar o modal de texto
