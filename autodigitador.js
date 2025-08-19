@@ -1,6 +1,71 @@
 // digitador-automatico.js
 // Função principal para inicializar o digitador automático
 function initAutoDigitador() {
+    // Primeiro, iniciar a seleção do campo de texto
+    iniciarSelecaoCampo();
+}
+
+// Função para iniciar a seleção do campo de texto
+function iniciarSelecaoCampo() {
+    // Criar overlay de seleção
+    const overlay = document.createElement('div');
+    overlay.id = 'digitador-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(41, 128, 185, 0.3);
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    `;
+    
+    // Mensagem de instrução
+    const message = document.createElement('div');
+    message.style.cssText = `
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 25px;
+        border-radius: 12px;
+        text-align: center;
+        max-width: 80%;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    `;
+    message.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; font-size: 20px;">Selecione o campo de texto</h3>
+        <p style="margin: 0; font-size: 16px; line-height: 1.5;">
+            Clique no campo onde deseja que o texto seja digitado automaticamente.
+        </p>
+    `;
+    
+    overlay.appendChild(message);
+    document.body.appendChild(overlay);
+    
+    // Event listener para seleção de campo
+    const selecionarCampo = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const el = e.target;
+        if (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            document.body.removeChild(overlay);
+            document.removeEventListener('click', selecionarCampo, true);
+            // Após selecionar o campo, mostrar o modal de texto
+            mostrarModalTexto(el);
+        } else {
+            alert('Por favor, selecione um campo de texto válido (input, textarea ou conteúdo editável).');
+        }
+    };
+    
+    document.addEventListener('click', selecionarCampo, true);
+}
+
+// Função para mostrar o modal de texto
+function mostrarModalTexto(elementoAlvo) {
     // Criar o modal principal
     const modal = document.createElement('div');
     modal.id = 'auto-digitador-modal';
@@ -42,7 +107,7 @@ function initAutoDigitador() {
             <div style="padding: 25px;">
                 <div style="margin-bottom: 20px;">
                     <p style="font-size: 16px; margin-bottom: 10px; color: #333; font-weight: bold;">
-                        Cole seu # abaixo:
+                        Cole seu texto abaixo:
                     </p>
                     <textarea 
                         id="digitador-texto" 
@@ -55,7 +120,7 @@ function initAutoDigitador() {
                             font-size: 16px;
                             resize: vertical;
                         "
-                        placeholder="Cole ou digite o 🤣texto que será digitado automaticamente..."
+                        placeholder="Cole ou digite o texto que será digitado automaticamente..."
                     ></textarea>
                 </div>
                 
@@ -146,7 +211,7 @@ function initAutoDigitador() {
     document.body.appendChild(modal);
     
     // Inicializar seleção de velocidade
-    const speedOptions = document.querySelectorAll('.speed-option');
+    const speedOptions = modal.querySelectorAll('.speed-option');
     let selectedSpeed = 20;
     
     speedOptions.forEach(option => {
@@ -162,102 +227,21 @@ function initAutoDigitador() {
     });
     
     // Event listener para o botão cancelar
-    document.getElementById('digitador-cancelar').addEventListener('click', function() {
+    modal.querySelector('#digitador-cancelar').addEventListener('click', function() {
         document.body.removeChild(modal);
     });
     
     // Event listener para o botão iniciar
-    document.getElementById('digitador-iniciar').addEventListener('click', function() {
-        const texto = document.getElementById('digitador-texto').value.trim();
+    modal.querySelector('#digitador-iniciar').addEventListener('click', function() {
+        const texto = modal.querySelector('#digitador-texto').value.trim();
         if (!texto) {
             alert('Por favor, insira algum texto antes de continuar.');
             return;
         }
         
         document.body.removeChild(modal);
-        iniciarSelecaoCampo(texto, selectedSpeed);
+        iniciarDigitacao(elementoAlvo, texto, selectedSpeed);
     });
-}
-
-// Função para iniciar a seleção do campo de texto
-function iniciarSelecaoCampo(texto, velocidade) {
-    // Criar overlay de seleção
-    const overlay = document.createElement('div');
-    overlay.id = 'digitador-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(41, 128, 185, 0.3);
-        z-index: 99999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-    `;
-    
-    // Mensagem de instrução
-    const message = document.createElement('div');
-    message.style.cssText = `
-        background: rgba(0, 0, 0, 0.85);
-        color: white;
-        padding: 25px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 80%;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    `;
-    message.innerHTML = `
-        <h3 style="margin: 0 0 15px 0; font-size: 20px;">Selecione o campo de texto</h3>
-        <p style="margin: 0; font-size: 16px; line-height: 1.5;">
-            Clique no campo onde deseja que o texto seja digitado automaticamente.<br>
-            Você tem 30 segundos para selecionar.
-        </p>
-        <div style="margin-top: 20px; background: #333; border-radius: 5px; height: 10px; width: 100%; overflow: hidden;">
-            <div id="digitador-tempo-progresso" style="height: 100%; width: 100%; background: #4a6bff;"></div>
-        </div>
-        <p id="digitador-tempo-texto" style="margin: 10px 0 0 0; font-size: 14px;">Tempo restante: 30s</p>
-    `;
-    
-    overlay.appendChild(message);
-    document.body.appendChild(overlay);
-    
-    // Configurar temporizador
-    let tempoRestante = 30;
-    const progresso = document.getElementById('digitador-tempo-progresso');
-    const textoTempo = document.getElementById('digitador-tempo-texto');
-    
-    const temporizador = setInterval(() => {
-        tempoRestante--;
-        progresso.style.width = (tempoRestante / 30 * 100) + '%';
-        textoTempo.textContent = `Tempo restante: ${tempoRestante}s`;
-        
-        if (tempoRestante <= 0) {
-            clearInterval(temporizador);
-            document.body.removeChild(overlay);
-            alert('Tempo esgotado. Por favor, inicie o processo novamente.');
-        }
-    }, 1000);
-    
-    // Event listener para seleção de campo
-    const selecionarCampo = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const el = e.target;
-        if (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            clearInterval(temporizador);
-            document.body.removeChild(overlay);
-            document.removeEventListener('click', selecionarCampo, true);
-            iniciarDigitacao(el, texto, velocidade);
-        } else {
-            alert('Por favor, selecione um campo de texto válido (input, textarea ou conteúdo editável).');
-        }
-    };
-    
-    document.addEventListener('click', selecionarCampo, true);
 }
 
 // Função para iniciar a digitação automática
@@ -316,7 +300,7 @@ function iniciarDigitacao(elemento, texto, velocidade) {
     let digitacaoAtiva = true;
     
     // Event listener para o botão de cancelar
-    document.getElementById('digitador-cancelar-digitacao').addEventListener('click', function() {
+    overlay.querySelector('#digitador-cancelar-digitacao').addEventListener('click', function() {
         digitacaoAtiva = false;
         document.body.removeChild(overlay);
     });
@@ -343,8 +327,8 @@ function iniciarDigitacao(elemento, texto, velocidade) {
             
             // Atualizar barra de progresso
             const progresso = (indice / texto.length) * 100;
-            document.getElementById('digitador-progresso-barra').style.width = progresso + '%';
-            document.getElementById('digitador-progresso-texto').textContent = Math.round(progresso) + '% concluído';
+            overlay.querySelector('#digitador-progresso-barra').style.width = progresso + '%';
+            overlay.querySelector('#digitador-progresso-texto').textContent = Math.round(progresso) + '% concluído';
             
             // Agendar próximo caractere
             setTimeout(digitar, velocidade);
