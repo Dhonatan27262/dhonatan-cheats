@@ -459,39 +459,27 @@ criarAbas = () => {
         textos: [
             { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
             {
-                nome: '❌',
-                func: () => {
-                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
-                    fetch(scriptURL)
-                        .then(response => response.text())
-                        .then(scriptContent => {
-                            const script = document.createElement('script');
-                            script.textContent = scriptContent;
-                            document.head.appendChild(script);
-
-                            const aviso = document.createElement('div');
-                            aviso.textContent = 'Nada Carregado!';
-                            aplicarEstiloTexto(aviso, '16px');
-                            Object.assign(aviso.style, {
-                                position: 'fixed',
-                                top: '20%',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                padding: '12px 20px',
-                                borderRadius: '10px',
-                                zIndex: '999999',
-                                border: '1px solid #ff1e00',
-                                background: 'rgba(0,0,0,0.9)'
-                            });
-                            document.body.appendChild(aviso);
-                            setTimeout(() => aviso.remove(), 3000);
-                        })
-                        .catch(error => {
-                            console.error('Erro ao carregar Kahoot script:', error);
-                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
-                        });
-                }
-            },
+  nome: '😶‍🌫️ Digitador Auto',
+  func: () => {
+    fundo.remove();
+    
+    // Criar elemento script para carregar o código externo
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/autodigitador.js';
+    script.onload = () => {
+      if (typeof iniciarMod === 'function') {
+        iniciarMod();
+      } else {
+        console.error('Função iniciarMod não encontrada no script carregado.');
+      }
+    };
+    script.onerror = () => {
+      console.error('Erro ao carregar o script do Digitador Automático.');
+    };
+    
+    document.head.appendChild(script);
+  }
+},
             { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
             { nome: '🔁 Reescrever Texto', func: abrirReescritor }
         ],
