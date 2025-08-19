@@ -459,39 +459,39 @@ criarAbas = () => {
         textos: [
             { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
             {
-  nome: '😶‍🌫️ Digitador Auto V2',
-  func: function() {
-    fundo.remove();
-    
-    // Verificar se a função já está carregada
-    if (typeof window.iniciarModV2 === 'function') {
-        window.iniciarModV2();
-        return;
-    }
-    
-    // Se não estiver carregada, carregar o script
-    const script = document.createElement('script');
-    script.src = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?' + Date.now();
-    
-    script.onload = function() {
-        // Marcar que foi carregado pelo menu para não iniciar automaticamente
-        window.digitadorCarregadoPorMenu = true;
-        
-        // Agora executar a função
-        if (typeof window.iniciarModV2 === 'function') {
-            window.iniciarModV2();
-        } else {
-            alert('Erro: função não encontrada após carregamento do script.');
-        }
-    };
-    
-    script.onerror = function() {
-        alert('Erro ao carregar o script do digitador.');
-    };
-    
-    document.head.appendChild(script);
-  }
-},
+                nome: 'v2 dig',
+                func: () => {
+                    const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
+                    fetch(scriptURL)
+                        .then(response => response.text())
+                        .then(scriptContent => {
+                            const script = document.createElement('script');
+                            script.textContent = scriptContent;
+                            document.head.appendChild(script);
+
+                            const aviso = document.createElement('div');
+                            aviso.textContent = 'Nada Carregado!';
+                            aplicarEstiloTexto(aviso, '16px');
+                            Object.assign(aviso.style, {
+                                position: 'fixed',
+                                top: '20%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                padding: '12px 20px',
+                                borderRadius: '10px',
+                                zIndex: '999999',
+                                border: '1px solid #ff1e00',
+                                background: 'rgba(0,0,0,0.9)'
+                            });
+                            document.body.appendChild(aviso);
+                            setTimeout(() => aviso.remove(), 3000);
+                        })
+                        .catch(error => {
+                            console.error('Erro ao carregar Kahoot script:', error);
+                            alert('❌ Erro ao carregar o Kahoot script. Verifique o console.');
+                        });
+                }
+            },
             { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
             { nome: '🔁 Reescrever Texto', func: abrirReescritor }
         ],
