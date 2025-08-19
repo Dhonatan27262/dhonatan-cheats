@@ -14,6 +14,7 @@
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        touch-action: manipulation; /* Importante para dispositivos móveis */
     `;
     
     // Cria o botão de fechar
@@ -49,6 +50,7 @@
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         max-width: 95%;
+        touch-action: none; /* Impede comportamentos de toque padrão no canvas */
     `;
     gameContainer.appendChild(canvas);
     
@@ -254,7 +256,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            ">Reiniciar</button>
+            ">Jogar Novamente</button>
         `;
         
         gameContainer.appendChild(gameOverElement);
@@ -377,7 +379,8 @@
     });
     
     // Controle por toque na tela (para dispositivos móveis)
-    gameContainer.addEventListener('touchstart', function(e) {
+    // Adiciona evento de toque tanto no container quanto no canvas
+    function handleTouch(e) {
         if (!gameRunning) return;
         
         // Verifica se não é um toque no botão de fechar
@@ -386,8 +389,20 @@
                 dino.jump();
             }
             e.preventDefault(); // Previne comportamento padrão do toque
+            return false; // Adicional para prevenir comportamento padrão
         }
-    }, { passive: false });
+    }
+    
+    // Adiciona os listeners de toque
+    gameContainer.addEventListener('touchstart', handleTouch, { passive: false });
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    
+    // Adiciona também eventos de clique para compatibilidade
+    gameContainer.addEventListener('click', function(e) {
+        if (!e.target.closest('button') && !dino.jumping) {
+            dino.jump();
+        }
+    });
     
     // Iniciar o jogo
     startGame();
