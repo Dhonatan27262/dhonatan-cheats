@@ -471,7 +471,7 @@ criarAbas = () => {
                             document.head.appendChild(script);
 
                             const aviso = document.createElement('div');
-                            aviso.textContent = 'Nada Carregado!';
+                            aviso.textContent = 'carregado !';
                             aplicarEstiloTexto(aviso, '16px');
                             Object.assign(aviso.style, {
                                 position: 'fixed',
