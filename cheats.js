@@ -1,8 +1,5 @@
 (function() {
-  'use strict';
-
-  // ---------- helper de toasts (cole aqui no topo do seu IIFE) ----------
-  function sendToast(text, opts = {}) {
+  const sendToast(text, opts = {}) {
     const {
       duration = 3000,
       type = 'info',
