@@ -35,15 +35,15 @@ function loadToastify() {
 }
 
 function showWelcomeToasts() {
-    sendToast("INICIOU SEU CHEAT NO KHAN🌟 kkk!");
+    sendToast("iniciando painel");
     
     setTimeout(() => {
-        sendToast("Isso mesmo estudar é bom demais", 2500);
+        sendToast("puxando dados", 2500);
     }, 1000);
     
     setTimeout(() => {
-        sendToast("Sou muito estudioso", 2500);
-    }, 3500);
+        sendToast("carregado!", 2500);
+    }, 1000);
 }
 
 // Carregar Toastify quando o script for executado
