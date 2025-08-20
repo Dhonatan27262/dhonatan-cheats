@@ -81,6 +81,7 @@
     toast.style.opacity = '0';
     setTimeout(() => toast.remove(), 240);
   }
+  
     let fundo, janela, nome, relogio;
     let senhaLiberada = false;
     let abaAtiva = 'textos';
