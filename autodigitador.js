@@ -1,7 +1,5 @@
 // ===============================
-// Sistema de Digitação Automática V2 (idempotente)
-// Arquivo: autodigitador.js
-// Funciona toda vez que for injetado pelo seu botão (fetch + script.textContent)
+// Sistema de Digitação Automática V2 (atualizado)
 // ===============================
 (function () {
   'use strict';
@@ -11,16 +9,13 @@
   // ---- Limpeza de execuções anteriores ----
   if (window[NS]) {
     try {
-      // Remover listener antigo, se existir
       if (window[NS].listenerInstalado && window[NS].onDocClick) {
         document.removeEventListener('click', window[NS].onDocClick, true);
       }
-      // Cancelar digitação em andamento
       if (window[NS].typingIntervalId) {
         clearInterval(window[NS].typingIntervalId);
       }
     } catch (_) {}
-    // Remover UI antiga (se ficou na tela)
     document.getElementById('digitadorV2-modal')?.remove();
     document.getElementById('digitadorV2-progresso')?.remove();
     document.getElementById('digitadorV2-toast')?.remove();
@@ -59,9 +54,8 @@
     setTimeout(() => aviso.remove(), 2200);
   }
 
-  // ---- Listener único de clique (sempre substituído em nova injeção) ----
+  // ---- Listener único de clique ----
   function ensureListenerInstalled() {
-    // Se tinha um antigo, remove para evitar duplicidade
     if (window[NS].listenerInstalado && window[NS].onDocClick) {
       document.removeEventListener('click', window[NS].onDocClick, true);
       window[NS].listenerInstalado = false;
@@ -69,17 +63,12 @@
 
     const onDocClick = (e) => {
       if (!window[NS].aguardandoCampo) return;
-
-      // Ignora cliques nos elementos da nossa própria UI
       const path = e.composedPath ? e.composedPath() : [];
       if (path.some(n => n && n.id && String(n.id).startsWith('digitadorV2-'))) return;
-
-      // Captura o alvo, evita que outras lógicas da página disparem
       e.preventDefault();
       e.stopPropagation();
 
       window[NS].aguardandoCampo = false;
-
       const el = e.target;
       if (!(el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'))) {
         alert('❌ Esse não é um campo válido.');
@@ -97,7 +86,7 @@
     window[NS].listenerInstalado = true;
   }
 
-  // ---- API pública para seu painel chamar quando quiser ----
+  // ---- API pública ----
   window.iniciarModV2 = function () {
     ensureListenerInstalled();
     window[NS].aguardandoCampo = true;
@@ -105,12 +94,10 @@
   };
 
   // ===============================
-  // Modal de configuração
+  // Modal de configuração (sem alterações relevantes)
   // ===============================
   function criarModalConfiguracao(el, texto) {
-    // Garante que só exista um modal
     document.getElementById('digitadorV2-modal')?.remove();
-
     const modal = document.createElement('div');
     modal.id = 'digitadorV2-modal';
     modal.style.cssText = `
@@ -128,7 +115,6 @@
       font-family: Arial, sans-serif;
       color: #333;
     `;
-
     modal.innerHTML = `
       <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
         📋 Configurações de Digitação
@@ -149,7 +135,6 @@
         font-size: 16px;
         white-space: pre-wrap;
       ">${texto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-
       <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50;">
         Velocidade de digitação:
       </label>
@@ -168,7 +153,6 @@
         <option value="20">Rápido (20ms)</option>
         <option value="10">Muito Rápido (10ms)</option>
       </select>
-
       <div style="display: flex; gap: 12px; justify-content: flex-end">
         <button id="digitadorV2-cancelar" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
           Cancelar
@@ -178,55 +162,34 @@
         </button>
       </div>
     `;
-
     modal.querySelector('#digitadorV2-cancelar').addEventListener('click', () => {
       modal.remove();
-      // Se quiser, rearmar para escolher outro campo sem chamar iniciarModV2 de novo:
-      // window[NS].aguardandoCampo = true;
     });
-
     modal.querySelector('#digitadorV2-confirmar').addEventListener('click', () => {
       const velocidade = parseInt(modal.querySelector('#digitadorV2-velocidade').value, 10);
       modal.remove();
       iniciarDigitacao(el, texto, velocidade);
     });
-
     document.body.appendChild(modal);
   }
 
   // ===============================
-  // Digitação automática (com fallback para inputs)
+  // Função de digitação automática (atualizada)
   // ===============================
   function typeChar(el, ch) {
-    if (el.isContentEditable) {
-      // Conteúdo editável (div[contenteditable])
-      document.execCommand('insertText', false, ch);
-    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      const start = el.selectionStart ?? el.value.length;
-      const end = el.selectionEnd ?? el.value.length;
-      const v = el.value || '';
-      el.value = v.slice(0, start) + ch + v.slice(end);
-      const pos = start + ch.length;
-      try { el.setSelectionRange(pos, pos); } catch (_) {}
-    } else {
-      // Fallback genérico
-      document.execCommand('insertText', false, ch);
-    }
+    // Insere o caractere como se fosse digitado pelo usuário
+    document.execCommand('insertText', false, ch);
   }
 
   function iniciarDigitacao(el, texto, velocidade) {
-    // Se havia uma digitação anterior, cancela
     if (window[NS].typingIntervalId) {
       clearInterval(window[NS].typingIntervalId);
       window[NS].typingIntervalId = null;
     }
-
-    // Remove qualquer overlay antigo
     document.getElementById('digitadorV2-progresso')?.remove();
 
     el.focus();
     let i = 0;
-
     const progresso = document.createElement('div');
     progresso.id = 'digitadorV2-progresso';
     Object.assign(progresso.style, {
@@ -249,7 +212,6 @@
         const c = texto[i++];
         typeChar(el, c);
         progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
-        // Dispara "input" de tempos em tempos para frameworks reativos
         if (i % 20 === 0) {
           el.dispatchEvent(new Event('input', { bubbles: true }));
         }
@@ -257,12 +219,12 @@
         clearInterval(intervalId);
         window[NS].typingIntervalId = null;
         progresso.remove();
-        el.blur();
+        el.blur();  // opcional: remove o foco ao terminar
 
         setTimeout(() => {
+          // Dispara eventos para notificar mudança de valor
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
-
           toast('✅ Texto digitado com sucesso!');
         }, 80);
       }
@@ -274,6 +236,6 @@
   // ===============================
   // Início imediato a cada injeção
   // ===============================
-  window.iniciarModV2(); // toda vez que o botão do painel injeta, começa de novo
+  window.iniciarModV2();
 
 })();
