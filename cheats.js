@@ -622,11 +622,14 @@ loadToastify();
         nome.appendChild(textoCima);
         nome.appendChild(textoBaixo);
 
-        // Mantém a animação de cores apenas no texto inferior
-        let hue = 0;
-        setInterval(() => {
-            textoBaixo.style.color = `hsl(${hue++ % 360},100%,60%)`;
-        }, 30);
+        // Mantém a animação de cores nos dois textos
+let hue = 0;
+setInterval(() => {
+    const corAtual = `hsl(${hue % 360}, 100%, 60%)`;
+    textoCima.style.color = corAtual;  // Agora o texto superior também muda de cor
+    textoBaixo.style.color = corAtual; // Texto inferior continua animado
+    hue++;
+}, 30);
 
         const input = document.createElement('input');
         Object.assign(input.style, {
