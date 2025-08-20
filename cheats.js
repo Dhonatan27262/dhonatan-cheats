@@ -627,6 +627,11 @@ loadToastify();
         setInterval(() => {
             textoBaixo.style.color = `hsl(${hue++ % 360},100%,60%)`;
         }, 30);
+        
+        let hue = 0;
+        setInterval(() => {
+            textoCima.style.color = `hsl(${hue++ % 360},100%,60%)`;
+        }, 30);
 
         const input = document.createElement('input');
         Object.assign(input.style, {
