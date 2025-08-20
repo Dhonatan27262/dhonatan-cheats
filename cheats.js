@@ -699,6 +699,7 @@ const criarInterface = () => {
         backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
         display: 'flex', alignItems: 'center', justifyContent: 'center'
     });
+    if (typeof sendToast === 'function') sendToast("👋 Bem-vindo!", 3000);
 
     janela = document.createElement('div');
     aplicarEstiloContainer(janela);
