@@ -1,46 +1,45 @@
-// Script autocontido (IIFE)
 (function(){
-    // Carrega Toastify CSS a partir do CDN
-    var toastifyCss = document.createElement('link');
-    toastifyCss.rel = 'stylesheet';
-    toastifyCss.type = 'text/css';
-    toastifyCss.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
-    document.head.appendChild(toastifyCss);
-
-    // Carrega Toastify JS a partir do CDN (síncrono)
-    var toastifyScript = document.createElement('script');
-    toastifyScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
-    toastifyScript.async = false;
-    document.head.appendChild(toastifyScript);
-
-    // Define a função sendToast de forma segura (verifica se Toastify foi carregado)
-    window.sendToast = function(options){
-        if (typeof Toastify === 'function') {
-            Toastify(options).showToast();
-        } else {
-            console.error('Toastify ainda não está carregado.');
-        }
-    };
-
-    // Inicializa variáveis globais do script
-    window.fundo = '#ffffff';         // Exemplo de cor de fundo
-    window.senhaLiberada = false;    // Exemplo de flag boolean
-    window.posX = 0;                 // Posição X inicial
-    window.posY = 0;                 // Posição Y inicial
-    window.corBotao = '#000000';     // Cor padrão do botão
-    // ... outras variáveis globais se necessário
-
-})();
-
-// Garante que criarBotaoFlutuante() seja chamado normalmente, fora de onload
-criarBotaoFlutuante();
-    
     let fundo, janela, nome, relogio;
     let senhaLiberada = false;
     let abaAtiva = 'textos';
     let posX = localStorage.getItem("dhonatanX") || "20px";
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
+    
+    // =================== TOASTIFY ===================
+  // Adiciona CSS do Toastify
+  if (!document.getElementById("toastify-css")) {
+    const toastifyCSS = document.createElement("link");
+    toastifyCSS.id = "toastify-css";
+    toastifyCSS.rel = "stylesheet";
+    toastifyCSS.href = "https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css";
+    document.head.appendChild(toastifyCSS);
+  }
+
+  // Adiciona JS do Toastify e define a função sendToast
+  if (!document.getElementById("toastify-js")) {
+    const toastifyScript = document.createElement("script");
+    toastifyScript.id = "toastify-js";
+    toastifyScript.src = "https://cdn.jsdelivr.net/npm/toastify-js";
+    toastifyScript.onload = () => {
+      defineSendToast();
+    };
+    document.head.appendChild(toastifyScript);
+  }
+
+  function defineSendToast() {
+    window.sendToast = function(text, duration = 3000, gravity = "top") {
+      Toastify({
+        text: text,
+        duration: duration,
+        gravity: gravity,
+        position: "center"
+      }).showToast();
+    };
+
+    // Exibe toast de boas-vindas na tela de login
+    sendToast("👋 Bem-vindo!", 3000, "top");
+  }
 
     // Estilo moderno para todos os botões
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
@@ -712,11 +711,9 @@ const criarInterface = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'center'
     });
     
-       // Mostra aviso ao abrir o menu
-    if (typeof sendToast === 'function') {
-        sendToast("👋 Bem-vindo!", 3000, "top");
-    }
-};
+       // Exemplo: ao abrir a tela de login
+criarInterface(); // sua função que abre a tela
+sendToast("👋 Bem-vindo!", 3000, "top"); // aparece o aviso
 
     janela = document.createElement('div');
     aplicarEstiloContainer(janela);
