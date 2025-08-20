@@ -686,7 +686,7 @@ setInterval(() => {
 
         const carregarSenhasRemotas = async () => {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now());
+                const response = await fetch('https://raw.githubusercontent.com/auxpainel/2050/main/senhas.js?' + Date.now());
                 if (!response.ok) throw new Error('Erro HTTP: ' + response.status);
                 
                 const scriptContent = await response.text();
