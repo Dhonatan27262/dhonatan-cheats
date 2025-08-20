@@ -169,17 +169,6 @@
                 criarMenu();
             }, 2000);
         };
-        
-        function sendToast(text, duration = 5000, gravity = 'bottom') {
-  Toastify({
-    text,
-    duration,
-    gravity,
-    position: "center",
-    stopOnFocus: true,
-    style: { background: "#000000" }
-  }).showToast();
-}
 
         const btnCancelar = document.createElement('button');
         btnCancelar.textContent = '❌ Cancelar';
@@ -812,7 +801,6 @@ botao.onclick = async () => {
     if (verificarSenha(input.value)) {
         senhaLiberada = true;
         fundo.remove();
-        sendToast("Bem vindo ao Painel de Funções! 👋", 3000); // ← AQUI O NOVO TOAST
         criarMenu();
     } else {
         erro.style.display = 'block';
