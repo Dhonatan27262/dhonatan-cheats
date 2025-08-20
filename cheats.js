@@ -238,7 +238,7 @@ loadToastify();
     const encontrarRespostaColar = () => {
         sendToast('⏳ Carregando script...', 3000);
 
-        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
 
         fetch(scriptURL)
             .then(response => {
@@ -355,7 +355,7 @@ loadToastify();
                 {
                     nome: 'Khan Academy',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/script.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -373,7 +373,7 @@ loadToastify();
                 {
                     nome: '❌',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/quizziz.js" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/quizziz.js" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -391,7 +391,7 @@ loadToastify();
                 {
                     nome: '❌',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/kahoot.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/kahoot.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -414,7 +414,7 @@ loadToastify();
                     func: () => {
                         fundo.remove();
                         criarBotaoFlutuante();
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -449,7 +449,7 @@ loadToastify();
                 { 
                     nome: '🎮 Jogo da Velha',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
