@@ -6,42 +6,7 @@
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
     
-    // =================== TOASTIFY ===================
-  // Adiciona CSS do Toastify
-  if (!document.getElementById("toastify-css")) {
-    const toastifyCSS = document.createElement("link");
-    toastifyCSS.id = "toastify-css";
-    toastifyCSS.rel = "stylesheet";
-    toastifyCSS.href = "https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css";
-    document.head.appendChild(toastifyCSS);
-  }
-
-  // Adiciona JS do Toastify e define a função sendToast
-  if (!document.getElementById("toastify-js")) {
-    const toastifyScript = document.createElement("script");
-    toastifyScript.id = "toastify-js";
-    toastifyScript.src = "https://cdn.jsdelivr.net/npm/toastify-js";
-    toastifyScript.onload = () => {
-      defineSendToast();
-    };
-    document.head.appendChild(toastifyScript);
-  }
-
-  function defineSendToast() {
-    window.sendToast = function(text, duration = 3000, gravity = "top") {
-      Toastify({
-        text: text,
-        duration: duration,
-        gravity: gravity,
-        position: "center"
-      }).showToast();
-    };
-
-    // Exibe toast de boas-vindas na tela de login
-    sendToast("👋 Bem-vindo!", 3000, "top");
-  }
-
-    // Estilo moderno para todos os botões
+      // Estilo moderno para todos os botões
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
         Object.assign(elemento.style, {
             padding: '10px 15px',
@@ -711,10 +676,6 @@ const criarInterface = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'center'
     });
     
-       // Exemplo: ao abrir a tela de login
-criarInterface(); // sua função que abre a tela
-sendToast("👋 Bem-vindo!", 3000, "top"); // aparece o aviso
-
     janela = document.createElement('div');
     aplicarEstiloContainer(janela);
 
