@@ -1,5 +1,5 @@
 (function() {
-  const sendToast(text, opts = {}) {
+  function sendToast(text, opts = {}) {
     const {
       duration = 3000,
       type = 'info',
