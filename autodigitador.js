@@ -174,12 +174,3 @@ const iniciarDigitacao = (el, texto, velocidade) => {
         }
     }, velocidade);
 };
-
-// ===============================
-// Inicialização automática
-// ===============================
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciarModV2);
-} else {
-    iniciarModV2();
-}
