@@ -1,30 +1,39 @@
-(function() {
-    // Carregar Toastify CSS
-  const toastifyCSS = document.createElement('link');
-  toastifyCSS.rel = 'stylesheet';
-  toastifyCSS.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
-  document.head.appendChild(toastifyCSS);
+// Script autocontido (IIFE)
+(function(){
+    // Carrega Toastify CSS a partir do CDN
+    var toastifyCss = document.createElement('link');
+    toastifyCss.rel = 'stylesheet';
+    toastifyCss.type = 'text/css';
+    toastifyCss.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+    document.head.appendChild(toastifyCss);
 
-  // Carregar Toastify JS
-  const toastifyScript = document.createElement('script');
-  toastifyScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
-  document.head.appendChild(toastifyScript);
+    // Carrega Toastify JS a partir do CDN (síncrono)
+    var toastifyScript = document.createElement('script');
+    toastifyScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+    toastifyScript.async = false;
+    document.head.appendChild(toastifyScript);
 
-  // Função segura de toast (não trava mesmo que Toastify ainda esteja carregando)
-  window.sendToast = function(text, duration = 3000, gravity = 'bottom') {
-    if (typeof Toastify === 'function') {
-      Toastify({
-        text,
-        duration,
-        gravity,
-        position: \"center\",
-        stopOnFocus: true,
-        style: { background: \"#000000\" }
-      }).showToast();
-    } else {
-      console.warn(\"Toastify ainda não carregou: \", text);
-    }
-  };
+    // Define a função sendToast de forma segura (verifica se Toastify foi carregado)
+    window.sendToast = function(options){
+        if (typeof Toastify === 'function') {
+            Toastify(options).showToast();
+        } else {
+            console.error('Toastify ainda não está carregado.');
+        }
+    };
+
+    // Inicializa variáveis globais do script
+    window.fundo = '#ffffff';         // Exemplo de cor de fundo
+    window.senhaLiberada = false;    // Exemplo de flag boolean
+    window.posX = 0;                 // Posição X inicial
+    window.posY = 0;                 // Posição Y inicial
+    window.corBotao = '#000000';     // Cor padrão do botão
+    // ... outras variáveis globais se necessário
+
+})();
+
+// Garante que criarBotaoFlutuante() seja chamado normalmente, fora de onload
+criarBotaoFlutuante();
     
     let fundo, janela, nome, relogio;
     let senhaLiberada = false;
