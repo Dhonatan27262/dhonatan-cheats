@@ -885,6 +885,13 @@ botao.onclick = async () => {
 
     if (verificarSenha(input.value)) {
         senhaLiberada = true;
+        
+        // 🔔 Mensagem de boas-vindas
+    sendToast("🎉 Bem-vindo ao Dhonatan Cheats!", { 
+        type: "success", 
+        duration: 4000 
+    });
+        
         fundo.remove();
         criarMenu();
     } else {
