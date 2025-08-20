@@ -611,12 +611,12 @@ loadToastify();
         // Texto SUPERIOR
         const textoCima = document.createElement('div');
         textoCima.textContent = 'Painel Funções';
-        aplicarEstiloTexto(textoCima, '18px');
+        aplicarEstiloTexto(textoCima, '20px');
 
         // Texto INFERIOR
         const textoBaixo = document.createElement('div');
         textoBaixo.textContent = 'tudo para suas atividades de escola aqui!';
-        aplicarEstiloTexto(textoBaixo, '16px');
+        aplicarEstiloTexto(textoBaixo, '17px');
 
         // Adiciona os textos ao container
         nome.appendChild(textoCima);
