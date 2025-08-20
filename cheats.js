@@ -649,6 +649,28 @@ setInterval(() => {
         const botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
+        
+        // ===== [BOTÃO ADQUIRIR SENHA - ADICIONE AQUI] ===== //
+    // Botão para adquirir senha
+    const btnAdquirirSenha = document.createElement('button');
+    btnAdquirirSenha.textContent = 'Adquirir Senha';
+    aplicarEstiloBotao(btnAdquirirSenha);
+    btnAdquirirSenha.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+    btnAdquirirSenha.onclick = () => {
+        window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+    };
+
+    // Container para os botões
+    const botoesContainer = document.createElement('div');
+    Object.assign(botoesContainer.style, {
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '10px',
+        width: '100%'
+    });
+
+    botoesContainer.append(botao, btnAdquirirSenha);
+    // ===== [FIM DO BOTÃO ADQUIRIR SENHA] ===== //
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
@@ -714,7 +736,7 @@ setInterval(() => {
         };
         // ===== [FIM DO SISTEMA CORRIGIDO] ===== //
 
-        janela.append(nome, input, botao, erro);
+        janela.append(nome, input, botoesContainer, erro);
         fundo.append(janela);
         document.body.append(fundo);
     };
