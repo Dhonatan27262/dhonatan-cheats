@@ -1,4 +1,28 @@
 (function() {
+    
+    // Carregar Toastify CSS
+const toastifyCSS = document.createElement('link');
+toastifyCSS.rel = 'stylesheet';
+toastifyCSS.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+document.head.appendChild(toastifyCSS);
+
+// Carregar Toastify script
+const toastifyScript = document.createElement('script');
+toastifyScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+toastifyScript.onload = () => {
+  window.sendToast = function(text, duration = 3000, gravity = 'bottom') {
+    Toastify({
+      text,
+      duration,
+      gravity,
+      position: "center",
+      stopOnFocus: true,
+      style: { background: "#000000" }
+    }).showToast();
+  };
+};
+document.head.appendChild(toastifyScript);
+    
     let fundo, janela, nome, relogio;
     let senhaLiberada = false;
     let abaAtiva = 'textos';
