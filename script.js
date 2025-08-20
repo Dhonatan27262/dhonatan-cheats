@@ -55,7 +55,7 @@ function sendToast(text, duration = 5000, gravity = 'bottom') {
 
 async function showSplashScreen() {
   splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">@SANTOS</span><span style="color:#ff1717;">.MECZADA</span>';
+  splashScreen.innerHTML = '<span style="color:white;">KHAN.</span><span style="color:#ff1717;">mod</span>';
   document.body.appendChild(splashScreen);
   setTimeout(() => splashScreen.style.opacity = '1', 10);
 }
@@ -99,7 +99,7 @@ function createFloatingMenu() {
   // Botão principal
   const mainButton = document.createElement('button');
   mainButton.id = 'santos-main-btn';
-  mainButton.innerHTML = 'Santos.Mec996';
+  mainButton.innerHTML = 'PainelV2';
   
   mainButton.style.cssText = `
     padding: 12px 20px;
@@ -664,7 +664,7 @@ function setupMain() {
             zTable: false
           };
           
-          itemData.question.content = "Desenvolvido por: @santos.mec996 " + `[[☃ radio 1]]`;
+          itemData.question.content = "Assinale abaixo " + `[[☃ radio 1]]`;
           itemData.question.widgets = {
             "radio 1": {
               type: "radio",
@@ -742,7 +742,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     createFloatingMenu();
     setupMain();
     
-    sendToast("DHONATAN MODDER INICIOU SEU CHEAT NO KHAN🌟 kkk!");
+    sendToast("INICIOU SEU CHEAT NO KHAN🌟 kkk!");
     setTimeout(() => {
         sendToast("Isso mesmo estudar é bom demais", 2500);
     }, 1000);
