@@ -1,14 +1,11 @@
-// ===============================
-// Sistema de Digitação Automática V2
-// Arquivo: digitador-auto.js
-// ===============================
-
-// ===== Estado global =====
-if (!window.__digitadorV2__) {
-    window.__digitadorV2__ = { aguardandoCampo: false, listenerInstalado: false };
+// ===== Estado global (reinicializado a cada injeção) =====
+if (window.__digitadorV2__ && window.__digitadorV2__.listenerInstalado) {
+    // Remove o listener antigo antes de reiniciar
+    document.removeEventListener('click', window.__digitadorV2__.onDocClick, true);
 }
+window.__digitadorV2__ = { aguardandoCampo: false, listenerInstalado: false };
 
-// ===== Listener único de clique =====
+// ===== Função de clique =====
 const onDocClick = (e) => {
     if (!window.__digitadorV2__.aguardandoCampo) return;
     window.__digitadorV2__.aguardandoCampo = false;
@@ -26,18 +23,16 @@ const onDocClick = (e) => {
     criarModalConfiguracao(el, texto);
 };
 
-// Instala o listener apenas uma vez
-if (!window.__digitadorV2__.listenerInstalado) {
-    document.addEventListener('click', onDocClick, true);
-    window.__digitadorV2__.listenerInstalado = true;
-}
+// Guarda a referência do listener e instala
+window.__digitadorV2__.onDocClick = onDocClick;
+document.addEventListener('click', onDocClick, true);
+window.__digitadorV2__.listenerInstalado = true;
 
 // ===== Função de início =====
 const iniciarModV2 = () => {
     window.__digitadorV2__.aguardandoCampo = true;
     alert("✍️ Toque no campo onde deseja digitar o texto.");
 };
-
 // ===============================
 // Função para criar o modal de configuração
 // ===============================
@@ -174,3 +169,11 @@ const iniciarDigitacao = (el, texto, velocidade) => {
         }
     }, velocidade);
 };
+
+// ===============================
+// Inicialização automática
+// ===============================
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarModV2);
+} else {
+iniciarModV2();
