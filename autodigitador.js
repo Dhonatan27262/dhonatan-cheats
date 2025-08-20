@@ -1,7 +1,3 @@
-// ===============================
-// Sistema de Digitação Automática V2 (idempotente, com editor no modal)
-// Arquivo: autodigitador.js
-// ===============================
 (function () {
   'use strict';
 
@@ -243,10 +239,7 @@
         clearInterval(intervalId);
         window[NS].typingIntervalId = null;
         progresso.remove();
-
-        // (opcional) evitar blur em páginas que limpam o campo ao perder foco
-        // el.blur();
-
+        el.blur();
         // Garante que frameworks reajam
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
