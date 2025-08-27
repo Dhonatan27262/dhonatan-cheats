@@ -389,9 +389,9 @@ loadToastify();
                     }
                 },
                 {
-                    nome: '❌',
+                    nome: 'Leia',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/kahoot.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/leiapr.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
