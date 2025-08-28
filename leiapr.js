@@ -66,7 +66,7 @@
     const ui = document.createElement("div");
     ui.className = "gemini-box";
     ui.innerHTML = `
-        <h1>📘 Leia-me Cheat</h1>
+        <h1>📘 ia-me Cheat</h1>
         <h2>🦇 by @mzzvxm</h2>
         <button id="toggleAuto" class="auto-off">⚙️ Auto: OFF</button>
         <div id="status" style="font-size:13px; color:#ccc; text-align:center; margin-top:6px;">Aguardando</div>
