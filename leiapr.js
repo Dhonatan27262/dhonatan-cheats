@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Leia-me Auto Gemini Cheat (Automático)
+// @name         Leia-me Auto Gemini Cheat (Atualizado)
 // @namespace    http://tampermonkey.net/
 // @version      4.7
 // @description  Responde perguntas e avança automaticamente no Leia-me/Odilo com Gemini AI 😎
@@ -66,7 +66,7 @@
     const ui = document.createElement("div");
     ui.className = "gemini-box";
     ui.innerHTML = `
-        <h1>📘 Leme Cheat</h1>
+        <h1>📘 Leia-me Cheat</h1>
         <h2>🦇 by @mzzvxm</h2>
         <button id="toggleAuto" class="auto-off">⚙️ Auto: OFF</button>
         <div id="status" style="font-size:13px; color:#ccc; text-align:center; margin-top:6px;">Aguardando</div>
@@ -211,48 +211,31 @@
 
     async function chamarGemini(pergunta, alternativas) {
         const prompt = `
-Você é um assistente especializado em responder perguntas de múltipla escolha. 
-Responda APENAS com a letra correta (A, B, C, D ou E) da alternativa mais adequada.
+Responda a seguinte pergunta do tipo múltipla escolha. Retorne apenas a letra correta.
 
 Pergunta: ${pergunta}
 
 Alternativas:
 ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\n")}
-
-Responda apenas com a letra da alternativa correta:
         `.trim();
 
         try {
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText?key=${API_KEY}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: prompt
-                            }]
-                        }],
-                        generationConfig: {
-                            temperature: 0.1,
-                            maxOutputTokens: 5,
-                            topP: 0.8,
-                            topK: 40
-                        }
+                        prompt: { text: prompt },
+                        temperature: 0.0,
+                        maxOutputTokens: 256
                     })
                 }
             );
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
-            console.log("Resposta completa da API:", data);
-
-            const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            const letra = texto.trim().match(/^[A-E]/i)?.[0]?.toUpperCase();
+            const texto = data?.candidates?.[0]?.output?.content?.[0]?.text || "";
+            const letra = texto.match(/[A-E]/i)?.[0]?.toUpperCase();
 
             console.log("💬 Resposta Gemini (raw):", texto);
             console.log("✅ Letra extraída:", letra);
@@ -261,7 +244,7 @@ Responda apenas com a letra da alternativa correta:
 
         } catch (error) {
             console.error("Erro na chamada Gemini:", error);
-            statusDiv.textContent = "Erro na API Gemini: " + error.message;
+            statusDiv.textContent = "Erro na API Gemini";
             return null;
         }
     }
@@ -333,6 +316,7 @@ Responda apenas com a letra da alternativa correta:
         statusDiv.textContent = "Modo automático desativado";
     }
 
+    // Nova função adicionada:
     function esperarEClicarFechar() {
         const tentarCliqueFechar = () => {
             const btnFechar = document.querySelector('md-toolbar button.md-icon-button[ng-click="close()"]');
@@ -354,7 +338,7 @@ Responda apenas com a letra da alternativa correta:
 
         obsFechar.observe(document.body, { childList: true, subtree: true });
 
-        setTimeout(() => obsFechar.disconnect(), 5000);
+        setTimeout(() => obsFechar.disconnect(), 5000); // segurança
     }
 
 })();
