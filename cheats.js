@@ -691,10 +691,19 @@ btncriadorpainel.onclick = () => {
 const botoesContainer = document.createElement('div');
 Object.assign(botoesContainer.style, {
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // alinhamento inicial à esquerda
     gap: '10px',
-    width: '100%'
+    width: '100%',
+    overflowX: 'auto',           // permite rolagem horizontal
+    paddingBottom: '5px',        // evita que barra de rolagem sobreponha conteúdo
+    scrollbarWidth: 'thin',      // Firefox
+    scrollbarColor: '#888 #333'  // cores da scrollbar
 });
+
+// Aqui adiciona as linhas extras para Chrome/Edge
+botoesContainer.style.msOverflowStyle = 'auto';
+botoesContainer.style.overflowY = 'hidden';
+botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
 botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
