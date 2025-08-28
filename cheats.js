@@ -1,37 +1,37 @@
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
-function sendToast(text, duration = 5000, gravity = 'bottom') {
-    // Verificar se o Toastify está disponível, se não, carregar dinamicamente
-    if (typeof Toastify === 'undefined') {
-        loadToastify();
-        // Tentar novamente após um breve delay
-        setTimeout(() => sendToast(text, duration, gravity), 300);
-        return;
-    }
-    
-    Toastify({
-        text,
-        duration,
-        gravity,
-        position: "center",
-        stopOnFocus: true,
-        style: { background: "#000000" }
-    }).showToast();
+async function loadToastify() {
+    if (typeof Toastify !== 'undefined') return Promise.resolve();
+
+    return new Promise((resolve, reject) => {
+        // Carregar CSS do Toastify
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+        document.head.appendChild(cssLink);
+
+        // Carregar JS do Toastify
+        const jsScript = document.createElement('script');
+        jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+        jsScript.onload = resolve;
+        jsScript.onerror = reject;
+        document.head.appendChild(jsScript);
+    });
 }
 
-function loadToastify() {
-    // Verificar se já está carregado
-    if (typeof Toastify !== 'undefined') return;
-    
-    // Carregar CSS do Toastify
-    const cssLink = document.createElement('link');
-    cssLink.rel = 'stylesheet';
-    cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
-    document.head.appendChild(cssLink);
-    
-    // Carregar JS do Toastify
-    const jsScript = document.createElement('script');
-    jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
-    document.head.appendChild(jsScript);
+async function sendToast(text, duration = 5000, gravity = 'bottom') {
+    try {
+        await loadToastify();
+        Toastify({
+            text,
+            duration,
+            gravity,
+            position: "center",
+            stopOnFocus: true,
+            style: { background: "#000000" }
+        }).showToast();
+    } catch (error) {
+        console.error('Erro ao carregar Toastify:', error);
+    }
 }
 
 function showWelcomeToasts() {
@@ -46,11 +46,11 @@ function showWelcomeToasts() {
     }, 1000);
 }
 
-// Carregar Toastify quando o script for executado
-loadToastify();
-
-// ===== [SEU CÓDIGO ORIGINAL A PARTIR DAQUI] ===== //
-(function(){
+// ===== [CÓDIGO PRINCIPAL] ===== //
+(async function(){
+    // Carregar Toastify quando o script for executado
+    await loadToastify();
+    
     // Mostrar toasts de boas-vindas após um breve delay
     setTimeout(showWelcomeToasts, 500);
     
@@ -111,12 +111,10 @@ loadToastify();
     };
 
     const mostrarInfoDono = () => {
-        // Fecha o menu atual antes de abrir o novo elemento
         if (fundo) fundo.remove();
         
         const container = document.createElement('div');
         aplicarEstiloContainer(container);
-        // Garante que o elemento apareça acima de tudo
         container.style.zIndex = '1000001';
         container.style.position = 'fixed';
         container.style.top = '50%';
@@ -128,7 +126,7 @@ loadToastify();
         aplicarEstiloTexto(titulo, '20px');
         
         const insta = document.createElement('div');
-        insta.textContent = 'VERSÃO 1.0';
+        insta.textContent = 'VERSÃO 1.1';
         aplicarEstiloTexto(insta);
         
         const info = document.createElement('div');
@@ -148,14 +146,12 @@ loadToastify();
     };
 
     const trocarCorBotao = () => {
-        // Fecha o menu atual antes de abrir o novo elemento
         if (fundo) fundo.remove();
         
         let novaCorTemp = corBotao;
 
         const container = document.createElement('div');
         aplicarEstiloContainer(container);
-        // Garante que o elemento apareça acima de tudo
         container.style.zIndex = '1000001';
         container.style.position = 'fixed';
         container.style.top = '50%';
@@ -178,7 +174,6 @@ loadToastify();
             margin: '15px 0'
         });
 
-        // Atualizar a cor temporária quando o seletor muda
         seletor.addEventListener("input", (e) => {
             novaCorTemp = e.target.value;
         });
@@ -203,7 +198,6 @@ loadToastify();
             });
             container.remove();
             
-            // Adicionar feedback visual usando toast
             sendToast('✅ Cor alterada com sucesso!', 2000);
             setTimeout(() => criarMenu(), 2000);
         };
@@ -234,28 +228,35 @@ loadToastify();
         return { pergunta, alternativas };
     };
 
-    // Função modificada para carregar o script do GitHub
     const encontrarRespostaColar = () => {
-        sendToast('⏳ Carregando script...', 3000);
+    sendToast('⏳ Carregando script...', 3000);
 
-        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+    const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
 
-        fetch(scriptURL)
-            .then(response => {
-                if (!response.ok) throw new Error('Falha ao carregar o script');
-                return response.text();
-            })
-            .then(scriptContent => {
-                const script = document.createElement('script');
-                script.textContent = scriptContent;
-                document.head.appendChild(script);
-                sendToast('✅ Script carregado com sucesso!', 3000);
-            })
-            .catch(error => {
-                console.error('Erro ao carregar script:', error);
-                sendToast('❌ Erro ao carregar o script. Verifique o console.', 3000);
-            });
-    };
+    fetch(scriptURL)
+        .then(response => {
+            if (!response.ok) throw new Error('Falha ao carregar o script');
+            return response.text();
+        })
+        .then(scriptContent => {
+            const script = document.createElement('script');
+            script.textContent = scriptContent;
+            document.head.appendChild(script);
+            sendToast('✅ Script carregado com sucesso!', 3000);
+
+            // 🔥 remove o fundo e recria o botão flutuante
+            if (typeof fundo !== "undefined" && fundo) {
+                fundo.remove();
+            }
+            if (typeof criarBotaoFlutuante === "function") {
+                criarBotaoFlutuante();
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar script:', error);
+            sendToast('❌ Erro ao carregar o script. Verifique o console.', 3000);
+        });
+};
 
     const encontrarRespostaDigitar = () => {
         const pergunta = prompt("Digite a pergunta:");
@@ -355,7 +356,7 @@ loadToastify();
                 {
                     nome: 'Khan Academy',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/script.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -369,59 +370,23 @@ loadToastify();
                                 sendToast('❌ Erro ao carregar script. Verifique o console.', 3000);
                             });
                     }
-                },
-                {
-                    nome: '❌',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/refs/heads/main/quizziz.js" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('❌ Nada ativo pois não existe script neste repositório!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar script:', error);
-                                sendToast('❌ Erro ao carregar script. Verifique o console.', 3000);
-                            });
-                    }
-                },
-                {
-                    nome: 'Leia',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/leiapr.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('Nada Carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar Kahoot script:', error);
-                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
-                            });
-                    }
                 }
             ],
             textos: [
-                { nome: '😶‍🌫️ Digitador Auto', func: () => { fundo.remove(); iniciarMod(); } },
+                { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
                 {
-                    nome: 'v2 dig',
+                    nome: 'Digitador v2',
                     func: () => {
                         fundo.remove();
                         criarBotaoFlutuante();
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
                                 const script = document.createElement('script');
                                 script.textContent = scriptContent;
                                 document.head.appendChild(script);
-                                sendToast('Nada Carregado!', 3000);
+                                sendToast('Carregado!', 3000);
                             })
                             .catch(error => {
                                 console.error('Erro ao carregar Kahoot script:', error);
@@ -449,7 +414,7 @@ loadToastify();
                 { 
                     nome: '🎮 Jogo da Velha',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/jogodavelha.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
@@ -608,27 +573,51 @@ loadToastify();
             gap: '5px'
         });
 
-        // Texto SUPERIOR
-        const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel Funções';
-        aplicarEstiloTexto(textoCima, '20px');
+// Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Funções';
+aplicarEstiloTexto(textoCima, '20px');
 
-        // Texto INFERIOR
-        const textoBaixo = document.createElement('div');
-        textoBaixo.textContent = 'tudo para suas atividades de escola aqui!';
-        aplicarEstiloTexto(textoBaixo, '17px');
+const textoCriador = document.createElement('div');
+textoCriador.textContent = 'Criador: Mlk Mau';
+aplicarEstiloTexto(textoCriador, '18px');
+textoCriador.style.margin = '5px 0'; // espaçamento
 
-        // Adiciona os textos ao container
-        nome.appendChild(textoCima);
-        nome.appendChild(textoBaixo);
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
 
-        // Mantém a animação de cores nos dois textos
-let hue = 0;
+// Adiciona os textos ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoCriador); // fica no meio
+nome.appendChild(textoBaixo);
+
+// ===== Animação fluida só no "Criador" =====
+let hue = 260;
+let direcao = 1; // 1 = indo pra frente, -1 = voltando
+
+function animarCriador() {
+    const corRoxa = `hsl(${hue}, 100%, 65%)`;
+    textoCriador.style.color = corRoxa;
+
+    hue += 0.3 * direcao; // velocidade suave
+
+    // Inverte a direção ao chegar nos limites
+    if (hue >= 300 || hue <= 260) {
+        direcao *= -1;
+    }
+
+    requestAnimationFrame(animarCriador);
+}
+animarCriador();
+
+// Mantém animação do texto inferior como estava
+let hueBaixo = 0;
 setInterval(() => {
-    const corAtual = `hsl(${hue % 360}, 100%, 60%)`;
-    textoCima.style.color = corAtual;  // Agora o texto superior também muda de cor
-    textoBaixo.style.color = corAtual; // Texto inferior continua animado
-    hue++;
+    const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+    textoBaixo.style.color = corAtual;
+    hueBaixo++;
 }, 30);
 
         const input = document.createElement('input');
@@ -646,34 +635,72 @@ setInterval(() => {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        const botao = document.createElement('button');
-        botao.textContent = 'Acessar';
-        aplicarEstiloBotao(botao, true);
-        
-        // ===== [BOTÃO ADQUIRIR SENHA - ADICIONE AQUI] ===== //
-    // Botão para adquirir senha
-    const btnAdquirirSenha = document.createElement('button');
-    btnAdquirirSenha.textContent = 'Adquirir Senha';
-    aplicarEstiloBotao(btnAdquirirSenha);
-    btnAdquirirSenha.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-    btnAdquirirSenha.onclick = () => {
-        window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
-    };
+        // Botão principal "Acessar"
+let botao = document.createElement('button');
+botao.textContent = 'Acessar';
+aplicarEstiloBotao(botao, true);
 
-    // Container para os botões
-    const botoesContainer = document.createElement('div');
-    Object.assign(botoesContainer.style, {
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: '10px',
-        width: '100%'
-    });
+// Botão do Discord
+const btnDiscord = document.createElement('button');
+btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+aplicarEstiloBotao(btnDiscord);
+btnDiscord.style.background = '#5865F2';
+btnDiscord.onclick = () => {
+    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+};
 
-    botoesContainer.append(botao, btnAdquirirSenha);
-    // ===== [FIM DO BOTÃO ADQUIRIR SENHA] ===== //
+// Botão do YouTube Manorick
+const btnmenor = document.createElement('button');
+btnmenor.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal ManoRick
+`;
+aplicarEstiloBotao(btnmenor);
+btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btnmenor.onclick = () => {
+    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+};
+
+// Botão do YouTube Mlk Mau
+const btncriadorpainel = document.createElement('button');
+btncriadorpainel.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal MlkMau
+`;
+aplicarEstiloBotao(btncriadorpainel);
+btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btncriadorpainel.onclick = () => {
+    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+};
+
+// Container para os botões
+const botoesContainer = document.createElement('div');
+Object.assign(botoesContainer.style, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '10px',
+    width: '100%'
+});
+
+// Adiciona todos os botões
+botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
-        erro.textContent = '❌ Senha incorreta. Se não tiver a senha procure um adm.';
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord para suporte.';
         Object.assign(erro.style, {
             display: 'none', 
             color: '#ff5555', 
@@ -681,12 +708,12 @@ setInterval(() => {
             fontSize: '14px'
         });
 
-        // ===== [SISTEMA DE SENHAS REMOTO CORRIGIDO] ===== //
+        // Sistema de senhas
         let senhasCarregadas = false;
 
         const carregarSenhasRemotas = async () => {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now());
+                const response = await fetch('https://raw.githubusercontent.com/auxpainel/2050/main/senhas.js?' + Date.now());
                 if (!response.ok) throw new Error('Erro HTTP: ' + response.status);
                 
                 const scriptContent = await response.text();
@@ -697,7 +724,7 @@ setInterval(() => {
                 senhasCarregadas = true;
             } catch (error) {
                 console.error('Falha ao carregar senhas:', error);
-                // Fallback com senhas locais (case sensitive)
+                // Fallback com senhas locais
                 window.verificarSenha = function(senha) {
                     const senhasBackup = [
                         "admin",
@@ -714,12 +741,9 @@ setInterval(() => {
             }
         };
 
-        // Carregar senhas ao iniciar
         carregarSenhasRemotas();
 
-        // Verificação com espera do carregamento
         botao.onclick = async () => {
-            // Se ainda não carregou, mostra aviso
             if (!senhasCarregadas) {
                 sendToast('🔒 Carregando sistema de senhas...', 2000);
                 await carregarSenhasRemotas();
@@ -734,7 +758,6 @@ setInterval(() => {
                 erro.style.display = 'block';
             }
         };
-        // ===== [FIM DO SISTEMA CORRIGIDO] ===== //
 
         janela.append(nome, input, botoesContainer, erro);
         fundo.append(janela);
@@ -816,7 +839,6 @@ setInterval(() => {
                 localStorage.setItem("dhonatanX", posX);
                 localStorage.setItem("dhonatanY", posY);
             } else {
-                // Se não estava arrastando, é um clique
                 b.remove();
                 senhaLiberada ? criarMenu() : criarInterface();
             }
