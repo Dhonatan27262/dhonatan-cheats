@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Leia-me Auto OpenAI Cheat
+// @name         Leia-me Auto OpenAI Cheat (Revisado)
 // @namespace    http://tampermonkey.net/
-// @version      4.8
-// @description  Responde perguntas e avança automaticamente no Leia-me/Odilo usando OpenAI 😎
+// @version      4.9
+// @description  Responde perguntas e avança automaticamente no Leia-me/Odilo usando OpenAI (versão confiável) 😎
 // @author       MZ
 // @match        *://*odilo*/*
 // @grant        none
@@ -35,7 +35,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            width: 240px;
+            width: 260px;
         }
         .gemini-box h1 {
             font-size: 16px;
@@ -66,7 +66,7 @@
     const ui = document.createElement("div");
     ui.className = "gemini-box";
     ui.innerHTML = `
-        <h1>📘 ia-me Cheat</h1>
+        <h1>📘 Leia-me Cheat</h1>
         <h2>🦇 by @mzzvxm</h2>
         <button id="toggleAuto" class="auto-off">⚙️ Auto: OFF</button>
         <div id="status" style="font-size:13px; color:#ccc; text-align:center; margin-top:6px;">Aguardando</div>
@@ -90,7 +90,7 @@
     };
 
     function temPerguntaAtiva() {
-        return !!document.querySelector('.question-quiz-text.ng-binding');
+        return !!document.querySelector('.question-quiz-text.ng-binding') || !!document.querySelector('.question-text');
     }
 
     function selecionarResposta(letra) {
@@ -99,7 +99,7 @@
         if (index === undefined) return false;
 
         const radios = document.querySelectorAll('md-radio-button.choice-radio-button');
-        const opcoesTexto = document.querySelectorAll('.choice-student.choice-new-styles__answer');
+        const opcoesTexto = document.querySelectorAll('.choice-student.choice-new-styles__answer, .answer-option');
 
         if (radios[index]) radios[index].click();
         if (opcoesTexto[index]) opcoesTexto[index].click();
@@ -205,10 +205,9 @@
         }
     }
 
-    // === Nova função OpenAI ===
     async function chamarOpenAI(pergunta, alternativas) {
         const prompt = `
-Responda a seguinte pergunta do tipo múltipla escolha. Retorne apenas a letra correta.
+Responda apenas a letra correta (A, B, C, D ou E) para a seguinte pergunta de múltipla escolha. Sem explicações.
 
 Pergunta: ${pergunta}
 
@@ -231,11 +230,13 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
                 })
             });
 
-            const data = await response.json();
+            const textRaw = await response.text(); // log detalhado
+            console.log("📤 OpenAI Raw Response:", textRaw);
+            const data = JSON.parse(textRaw);
             const texto = data?.choices?.[0]?.message?.content || "";
-            const letra = texto.match(/[A-E]/i)?.[0]?.toUpperCase();
+            const letra = (texto.match(/\b[A-E]\b/i) || [])[0]?.toUpperCase();
 
-            console.log("💬 Resposta OpenAI (raw):", texto);
+            console.log("💬 Resposta OpenAI:", texto);
             console.log("✅ Letra extraída:", letra);
 
             return letra || null;
@@ -252,7 +253,7 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
         processando = true;
 
         try {
-            const perguntaEl = document.querySelector('.question-quiz-text.ng-binding');
+            const perguntaEl = document.querySelector('.question-quiz-text.ng-binding') || document.querySelector('.question-text');
             if (!perguntaEl) {
                 statusDiv.textContent = "Nenhuma pergunta ativa";
                 processando = false;
@@ -260,7 +261,7 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
             }
 
             const pergunta = perguntaEl.innerText.trim();
-            const opcoes = [...document.querySelectorAll('.choice-student.choice-new-styles__answer')]
+            const opcoes = [...document.querySelectorAll('.choice-student.choice-new-styles__answer, .answer-option')]
                 .map(el => el.innerText.trim())
                 .filter(text => text.length > 0);
 
