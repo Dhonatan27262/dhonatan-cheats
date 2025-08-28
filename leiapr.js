@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Leia-me Auto Gemini Cheat (Atualizado)
+// @name         Leia-me Auto OpenAI Cheat
 // @namespace    http://tampermonkey.net/
-// @version      4.7
-// @description  Responde perguntas e avança automaticamente no Leia-me/Odilo com Gemini AI 😎
+// @version      4.8
+// @description  Responde perguntas e avança automaticamente no Leia-me/Odilo usando OpenAI 😎
 // @author       MZ
 // @match        *://*odilo*/*
 // @grant        none
@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const API_KEY = 'AIzaSyDzHvHcoBgfeNJf0iwM2AfjQM3mQ9sW-W8'; // sua API Key aqui
+    const API_KEY = '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';
     let autoMode = false;
     let processando = false;
 
@@ -115,16 +115,13 @@
 
                 const btnTerminar = container.querySelector('button[ng-click="finish()"]');
                 if (btnTerminar && btnTerminar.offsetParent !== null && !btnTerminar.disabled) {
-                    console.log("✅ Botão Terminar encontrado. Clicando...");
                     btnTerminar.click();
 
                     const obsEnviar = new MutationObserver((mutations, obs) => {
                         const btnEnviar = container.querySelector('button[ng-click="sendAnswer()"]');
                         if (btnEnviar && btnEnviar.offsetParent !== null && !btnEnviar.disabled) {
-                            console.log("✅ Botão Enviar apareceu. Clicando...");
                             btnEnviar.click();
                             obs.disconnect();
-
                             setTimeout(() => {
                                 esperarEClicarFechar();
                                 resolve(true);
@@ -144,7 +141,6 @@
 
                 const btnProximo = container.querySelector('button[ng-click="next()"]');
                 if (btnProximo && btnProximo.offsetParent !== null && !btnProximo.disabled) {
-                    console.log("✅ Botão Próximo encontrado. Clicando...");
                     btnProximo.click();
                     resolve(true);
                     return true;
@@ -209,7 +205,8 @@
         }
     }
 
-    async function chamarGemini(pergunta, alternativas) {
+    // === Nova função OpenAI ===
+    async function chamarOpenAI(pergunta, alternativas) {
         const prompt = `
 Responda a seguinte pergunta do tipo múltipla escolha. Retorne apenas a letra correta.
 
@@ -220,31 +217,32 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
         `.trim();
 
         try {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText?key=${API_KEY}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        prompt: { text: prompt },
-                        temperature: 0.0,
-                        maxOutputTokens: 256
-                    })
-                }
-            );
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [{ role: "user", content: prompt }],
+                    max_tokens: 10,
+                    temperature: 0
+                })
+            });
 
             const data = await response.json();
-            const texto = data?.candidates?.[0]?.output?.content?.[0]?.text || "";
+            const texto = data?.choices?.[0]?.message?.content || "";
             const letra = texto.match(/[A-E]/i)?.[0]?.toUpperCase();
 
-            console.log("💬 Resposta Gemini (raw):", texto);
+            console.log("💬 Resposta OpenAI (raw):", texto);
             console.log("✅ Letra extraída:", letra);
 
             return letra || null;
 
         } catch (error) {
-            console.error("Erro na chamada Gemini:", error);
-            statusDiv.textContent = "Erro na API Gemini";
+            console.error("Erro na chamada OpenAI:", error);
+            statusDiv.textContent = "Erro na API OpenAI";
             return null;
         }
     }
@@ -272,19 +270,17 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
                 return;
             }
 
-            statusDiv.textContent = "Pergunta detectada. Chamando Gemini...";
+            statusDiv.textContent = "Pergunta detectada. Chamando OpenAI...";
             console.log("📘 Pergunta:", pergunta);
             console.log("🔢 Opções:", opcoes);
 
-            const letra = await chamarGemini(pergunta, opcoes);
+            const letra = await chamarOpenAI(pergunta, opcoes);
 
             if (letra) {
-                statusDiv.textContent = `Resposta Gemini: ${letra}. Selecionando...`;
-                console.log("✅ Resposta Gemini:", letra);
+                statusDiv.textContent = `Resposta OpenAI: ${letra}. Selecionando...`;
 
                 if (selecionarResposta(letra)) {
                     statusDiv.textContent = "Resposta marcada. Avançando...";
-                    console.log("👍 Resposta marcada");
                     await new Promise(r => setTimeout(r, 1500));
                     await avancarPergunta();
                     await new Promise(r => setTimeout(r, 3000));
@@ -293,7 +289,7 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
                     console.warn("❌ Letra reconhecida mas não clicável:", letra);
                 }
             } else {
-                statusDiv.textContent = "Resposta Gemini não obtida";
+                statusDiv.textContent = "Resposta OpenAI não obtida";
                 console.warn("⚠️ Não foi possível identificar a resposta da IA");
             }
         } finally {
@@ -316,12 +312,10 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
         statusDiv.textContent = "Modo automático desativado";
     }
 
-    // Nova função adicionada:
     function esperarEClicarFechar() {
         const tentarCliqueFechar = () => {
             const btnFechar = document.querySelector('md-toolbar button.md-icon-button[ng-click="close()"]');
             if (btnFechar && btnFechar.offsetParent !== null && !btnFechar.disabled) {
-                console.log("✅ Botão Fechar (md-toolbar) encontrado. Clicando...");
                 btnFechar.click();
                 return true;
             }
@@ -337,8 +331,7 @@ ${alternativas.map((alt, i) => `${String.fromCharCode(65 + i)}) ${alt}`).join("\
         });
 
         obsFechar.observe(document.body, { childList: true, subtree: true });
-
-        setTimeout(() => obsFechar.disconnect(), 5000); // segurança
+        setTimeout(() => obsFechar.disconnect(), 5000);
     }
 
 })();
