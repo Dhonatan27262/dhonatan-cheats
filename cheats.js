@@ -231,9 +231,14 @@ function showWelcomeToasts() {
     const encontrarRespostaColar = () => {
     sendToast('⏳ Carregando script...', 3000);
 
-    const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+    // Link camuflado
+    const getScriptURL = () => {
+        const part1 = "https://painelpux.regdzin.workers.dev/";
+        const part2 = "coletarperguntaeresposta.js";
+        return part1 + part2 + "?" + Date.now();
+    };
 
-    fetch(scriptURL)
+    fetch(getScriptURL())
         .then(response => {
             if (!response.ok) throw new Error('Falha ao carregar o script');
             return response.text();
