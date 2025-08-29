@@ -560,25 +560,124 @@ async function encontrarRespostaColar(options = {}) {
             textos: [
                 { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
                 {
-                    nome: 'Digitador v2',
-                    func: () => {
-                        fundo.remove();
-                        criarBotaoFlutuante();
-                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('Carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar Kahoot script:', error);
-                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
-                            });
-                    }
-                },
+  nome: 'Digitador v2',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (m) => sendToast(m, 3000);
+    const toastLong = (m) => sendToast(m, 5000);
+
+    // Tenta remover o fundo e recriar o botão flutuante (seguro)
+    try {
+      if (typeof fundo !== 'undefined' && fundo) {
+        try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
+
+    try {
+      if (typeof criarBotaoFlutuante === 'function') {
+        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
+
+    toastShort('⏳ Carregando Digitador v2...');
+
+    // === OBFUSCAÇÃO: chunks invertidos e ordem para reconstruir o base64 ===
+    const primaryChunks = [
+      'wUDMy8Cb','1F2Lt92Y','iVHa0l2Z','v4Wah12L','pR2b0VXY','l5WahBHe','=8zcq5ic',
+      'vNmclNXd','uQnblRnb','6MHc0RHa','ucXYy9yL','vRWY0l2Z'
+    ];
+    const primaryOrder = [9,10,2,7,8,1,5,0,3,4,11,6];
+
+    const fallbackChunks = [
+      'vRWY0l2Z','pR2b0VXY','v4Wah1GQ','0VmbuInd','l5WahBHe','=8zcq5ic','pxWZkNna',
+      'wUDMy8Cb','u4GZj9yL','1F2Lod2L','6MHc0RHa'
+    ];
+    const fallbackOrder = [10,8,6,3,9,4,7,2,1,0,5];
+
+    // Reconstrói base64 a partir dos chunks e da ordem (cada chunk está invertido)
+    const rebuildBase64 = (chunks, order) =>
+      order.map(i => chunks[i].split('').reverse().join('')).join('');
+
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    const looksLikeHtmlError = txt => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+             t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+    };
+
+    // fetch com timeout
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    // tenta uma lista de URLs com retries por URL
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let ui = 0; ui < urls.length; ui++) {
+        const u = urls[ui];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando fetch (${ui+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
+        }
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      // Reconstrói e decodifica as URLs em memória (não aparecem no código fonte)
+      const primaryBase64 = rebuildBase64(primaryChunks, primaryOrder);
+      const fallbackBase64 = rebuildBase64(fallbackChunks, fallbackOrder);
+
+      // A string decodificada já contém o '?' no final, concatenamos Date.now() direto
+      const primaryURL = atob(primaryBase64) + Date.now();
+      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      // Faz o fetch com retries, timeouts e fallback
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+      // Remove anteriormente injetado (caso exista)
+      try {
+        const prev = document.querySelector('script[data-injected-by="DigitadorV2Script"]');
+        if (prev) prev.remove();
+      } catch (e) { if (debug) console.warn('Não consegui remover script anterior:', e.message); }
+
+      // Injeta o script recuperado
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'DigitadorV2Script';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Digitador v2 carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar Digitador v2:', err);
+      toastLong('❌ Erro ao carregar Digitador v2. Veja console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
+    }
+  }
+},
                 { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
                 { nome: '🔁 Reescrever Texto', func: abrirReescritor }
             ],
