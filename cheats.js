@@ -414,7 +414,7 @@ function showWelcomeToasts() {
                 { 
                     nome: '🎮 Jogo da Velha',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/leia.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
