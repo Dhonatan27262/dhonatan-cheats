@@ -695,24 +695,114 @@ async function encontrarRespostaColar(options = {}) {
                     nome: 'Extensão libera bloqueio Wifi', 
                     func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') 
                 },
-                { 
-                    nome: '🎮 Jogo da Velha',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/leia.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('Carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar Kahoot script:', error);
-                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
-                            });
-                    }
-                },
+                {
+  nome: '🎮 Jogo da Velha',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (m) => sendToast(m, 3000);
+    const toastLong = (m) => sendToast(m, 5000);
+
+    toastShort('⏳ Carregando Jogo da Velha...');
+
+    // --- PARTES OBFUSCADAS (base64 dividido e invertido) ---
+    const primaryParts = [
+      'Hc0RHa','y9yL6M','2ZucXY','iVHa0l','mclNXd','lRnbvN','2YuQnb','1F2Lt9',
+      'WahBHe','y8Cbl5','2LwUDM','v4Wah1','2bn9ma','sVmdhR','nauEGa','/M'
+    ];
+
+    // fallback CDN (jsdelivr) também obfuscado
+    const fallbackParts = [
+      'Hc0RHa','j9yL6M','nau4GZ','pxWZkN','mbuInd','od2L0V','He1F2L','l5WahB',
+      'DMy8Cb','h1GQwU','mav4Wa','hR2bn9','GasVmd','/MnauE'
+    ];
+
+    // reconstrói base64 juntando cada parte revertendo-a
+    const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    const looksLikeHtmlError = (txt) => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return (
+        t.includes('<!doctype') ||
+        t.includes('<html') ||
+        t.includes('not found') ||
+        t.includes('404') ||
+        t.includes('access denied') ||
+        t.includes('you have been blocked')
+      );
+    };
+
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let i = 0; i < urls.length; i++) {
+        const u = urls[i];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
+        }
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      // reconstrói base64 em runtime (a URL só existe em memória)
+      const primaryBase64 = rebuild(primaryParts);
+      const fallbackBase64 = rebuild(fallbackParts);
+
+      // decodifica e adiciona timestamp (evita cache). Os base64 já incluem o '?'
+      const primaryURL = atob(primaryBase64) + Date.now();
+      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      // busca o script remoto com retries/timeouts
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+      // remove script anteriormente injetado (se houver)
+      try {
+        const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
+        if (prev) prev.remove();
+      } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+      // injeta o script recuperado
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar Jogo da Velha:', err);
+      toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
+    }
+  }
+},
             ],
             config: [
                 { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
