@@ -231,35 +231,37 @@ function showWelcomeToasts() {
     const encontrarRespostaColar = () => {
     sendToast('⏳ Carregando script...', 3000);
 
-    // Link camuflado
-    const getScriptURL = () => {
-        const part1 = "https://painelpux.regdzin.workers.dev/";
-        const part2 = "coletarperguntaeresposta.js";
-        return part1 + part2 + "?" + Date.now();
-    };
+    // URL do script, pode ser do GitHub ou do seu Worker
+    const scriptURL = "https://painelpux.regdzin.workers.dev/?" + Date.now();
 
-    fetch(getScriptURL())
+    fetch(scriptURL)
         .then(response => {
-            if (!response.ok) throw new Error('Falha ao carregar o script');
+            if (!response.ok) throw new Error('Falha ao carregar o script.');
             return response.text();
         })
-        .then(scriptContent => {
-            const script = document.createElement('script');
-            script.textContent = scriptContent;
-            document.head.appendChild(script);
-            sendToast('✅ Script carregado com sucesso!', 3000);
+        .then(js => {
+            // Executa o script carregado
+            eval(js);
 
-            // 🔥 remove o fundo e recria o botão flutuante
-            if (typeof fundo !== "undefined" && fundo) {
-                fundo.remove();
-            }
-            if (typeof criarBotaoFlutuante === "function") {
-                criarBotaoFlutuante();
+            // Aqui você pode chamar a função principal do script
+            if (typeof coletarPerguntaEResposta === 'function') {
+                const resultado = coletarPerguntaEResposta(); // função do script do GitHub
+                if (resultado) {
+                    // Colar resposta no local correto
+                    const campoResposta = document.querySelector('input, textarea'); // ajusta se necessário
+                    if (campoResposta) {
+                        campoResposta.value = resultado;
+                        sendToast('✅ Resposta encontrada e colada!', 3000);
+                    } else {
+                        sendToast('⚠️ Campo de resposta não encontrado.', 3000);
+                    }
+                }
+            } else {
+                sendToast('❌ Função coletarPerguntaEResposta não encontrada no script.', 3000);
             }
         })
-        .catch(error => {
-            console.error('Erro ao carregar script:', error);
-            sendToast('❌ Erro ao carregar o script. Verifique o console.', 3000);
+        .catch(err => {
+            sendToast('❌ Erro: ' + err.message, 3000);
         });
 };
 
