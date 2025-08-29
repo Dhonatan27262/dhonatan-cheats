@@ -445,92 +445,116 @@ async function encontrarRespostaColar(options = {}) {
                     func: () => window.open('https://speakify.cupiditys.lol', '_blank')
                 },
                 {
-    nome: 'Khan Academy',
-    func: async () => {
-        sendToast('⏳ Carregando script Khan Academy...', 3000);
+  nome: 'Khan Academy',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (msg) => sendToast(msg, 3000);
+    const toastLong = (msg) => sendToast(msg, 5000);
 
-        // --- PARTES OBFUSCADAS (base64 dividido e invertido) ---
-        const primaryParts = [
-            's.jtp','rcs','mai','n/ts','05/0','len','iapx','ua/m','moct','net','nocu','tbhg','wur','a://','ph','stt'
-        ];
+    toastShort('⏳ Carregando script Khan Academy...');
 
-        // fallback (exemplo raw.githack) — também obfuscado
-        const fallbackParts = [
-            'js.tp','rcs','mai','n/ts','05/0','len','iapx','ua/m','moct','net','nocu','tbhg','wur','a://','ph','stt'
-        ];
+    // --- OBFUSCAÇÃO (chunks embaralhados) ---
+    // primary: base64 do URL principal (raw.githubusercontent)
+    const primaryChunks = [
+      'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
+      '5lbC8y','l0aHVi','dXNlcm','aHR0cH','M6Ly9y','MDUwL2'
+    ];
+    // ordem que reconstrói o base64 original a partir dos chunks acima
+    const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
 
-        // reconstrói a Base64 juntando partes invertidas
-        const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+    // fallback: base64 do CDN (jsdelivr) — útil caso raw.githubusercontent falhe / CORS
+    const fallbackChunks = [
+      'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
+      'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
+    ];
+    const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
 
-        const sleep = ms => new Promise(res => setTimeout(res, ms));
+    // reconstrói base64 a partir de chunks + order
+    const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
 
-        const looksLikeHtmlError = (txt) => {
-            if (!txt || typeof txt !== 'string') return true;
-            const t = txt.trim().toLowerCase();
-            if (t.length < 40) return true;
-            if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied')) return true;
-            return false;
-        };
+    // pequenas utilitárias
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+    const looksLikeHtmlError = txt => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+    };
 
-        const fetchWithTimeout = (resource, timeout = 15000) => {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-        };
+    // fetch com timeout
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
 
-        const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
-            let lastErr = null;
-            for (let i = 0; i < urls.length; i++) {
-                const u = urls[i];
-                for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-                    try {
-                        const res = await fetchWithTimeout(u, timeout);
-                        if (!res.ok) throw new Error('HTTP ' + res.status);
-                        const txt = await res.text();
-                        if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro');
-                        return txt;
-                    } catch (err) {
-                        lastErr = err;
-                        await sleep(backoff * attempt);
-                    }
-                }
-            }
-            throw lastErr || new Error('Falha ao buscar o script');
-        };
-
-        try {
-            // monta as bases
-            const primaryBase64 = rebuildFromParts(primaryParts);
-            const fallbackBase64 = rebuildFromParts(fallbackParts);
-
-            const primaryURL = atob(primaryBase64) + '?' + Date.now();
-            const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
-
-            const urlsToTry = [primaryURL, fallbackURL];
-
-            const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
-
-            if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo inválido ou vazio');
-
-            // remove script antigo se houver
-            try {
-                const prev = document.querySelector('script[data-injected-by="KhanAcademy"]');
-                if (prev) prev.remove();
-            } catch (e) {}
-
-            // injeta o novo script
-            const scriptEl = document.createElement('script');
-            scriptEl.type = 'text/javascript';
-            scriptEl.dataset.injectedBy = "KhanAcademy";
-            scriptEl.textContent = scriptContent;
-            document.head.appendChild(scriptEl);
-
-            sendToast('✅ Script Khan Academy carregado!', 3000);
-        } catch (err) {
-            console.error('Erro ao carregar script Khan Academy:', err);
-            sendToast('❌ Erro ao carregar script Khan Academy. Veja console.', 5000);
+    // tenta várias URLs (com retries por URL)
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let ui = 0; ui < urls.length; ui++) {
+        const u = urls[ui];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
         }
+        // espera curta antes do próximo URL
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      // reconstrói base64 em tempo de execução (não aparece em claro no código)
+      const primaryBase64 = rebuild(primaryChunks, primaryOrder);
+      const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
+
+      // decodifica só aqui, em memória
+      const primaryURL = atob(primaryBase64) + '?' + Date.now();
+      const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+      // lista de tentativas (prioridade: raw.githubusercontent -> jsdelivr)
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      // busca com retries/timeouts
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      // valida conteúdo
+      if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+
+      // remove script antigo (evita duplicação)
+      try {
+        const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+        if (prev) prev.remove();
+      } catch (e) {
+        if (debug) console.warn('Falha ao remover script anterior:', e.message);
+      }
+
+      // injeta o novo script
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Script Khan Academy carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar script Khan Academy:', err);
+      toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
     }
+  }
 }
             ],
             textos: [
