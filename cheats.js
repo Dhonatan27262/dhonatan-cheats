@@ -451,7 +451,7 @@ async function encontrarRespostaColar(options = {}) {
     const toastShort = (msg) => sendToast(msg, 3000);
     const toastLong = (msg) => sendToast(msg, 5000);
 
-    toastShort('⏳ Carregando script Khan Academy...');
+    toastShort('⏳ Carregooando script Khan Academy...');
 
     // --- OBFUSCAÇÃO (chunks embaralhados) ---
     // primary: base64 do URL principal (raw.githubusercontent)
