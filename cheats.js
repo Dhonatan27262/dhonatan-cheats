@@ -1004,35 +1004,142 @@ botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
         // Sistema de senhas
         let senhasCarregadas = false;
 
-        const carregarSenhasRemotas = async () => {
-            try {
-                const response = await fetch('https://raw.githubusercontent.com/auxpainel/2050/main/senhas.js?' + Date.now());
-                if (!response.ok) throw new Error('Erro HTTP: ' + response.status);
-                
-                const scriptContent = await response.text();
-                const script = document.createElement('script');
-                script.textContent = scriptContent;
-                document.head.appendChild(script);
-                
-                senhasCarregadas = true;
-            } catch (error) {
-                console.error('Falha ao carregar senhas:', error);
-                // Fallback com senhas locais
-                window.verificarSenha = function(senha) {
-                    const senhasBackup = [
-                        "admin",
-                        "Teste24",
-                        "adm",
-                        "tainara",
-                        "vitor",
-                        "pablo",
-                        "rafael"
-                    ];
-                    return senhasBackup.includes(senha);
-                };
-                senhasCarregadas = true;
-            }
-        };
+// === substituir somente esta função ===
+const carregarSenhasRemotas = async (opts = {}) => {
+  const debug = !!opts.debug;
+  sendToast('🔒 Carregando sistema de senhas...', 2000);
+
+  // --- PARTES OBFUSCADAS (base64 dividido em pedaços invertidos) ---
+  const primaryParts = [
+    '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
+    '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
+  ];
+
+  // fallback CDN (jsdelivr) também obfuscado
+  const fallbackParts = [
+    '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
+    'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
+  ];
+
+  // reconstrói a Base64 juntando partes e revertendo cada uma
+  const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  // detecta se a resposta é uma página HTML de erro (não um script)
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+        t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+    return false;
+  };
+
+  // fetch com timeout usando AbortController
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  // tenta uma lista de URLs, com retries por URL e backoff
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    // reconstrói base64 em runtime (a URL só existe em memória)
+    const primaryBase64 = rebuildFromParts(primaryParts);
+    const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+    // decodifica e adiciona timestamp (evita cache)
+    const primaryURL = atob(primaryBase64) + Date.now();
+    const fallbackURL = atob(fallbackBase64) + Date.now();
+
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    // busca o script remoto com retries/timeouts
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    // remove script anteriormente injetado (se houver)
+    try {
+      const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    // injeta o script recuperado
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'senhasRemotas';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    // checa se o script remoto definiu a função verificarSenha
+    if (typeof window.verificarSenha !== 'function') {
+      console.warn('Script remoto carregado, mas verificarSenha não foi definida. Usando fallback local.');
+      // fallback local (mesmas senhas de backup anteriores)
+      window.verificarSenha = function(senha) {
+        const senhasBackup = [
+          "admin",
+          "Teste24",
+          "adm",
+          "tainara",
+          "vitor",
+          "pablo",
+          "rafael"
+        ];
+        return senhasBackup.includes(String(senha));
+      };
+    }
+
+    senhasCarregadas = true;
+    if (debug) console.info('Senhas remotas carregadas com sucesso.');
+    return true;
+  } catch (err) {
+    console.error('Falha ao carregar senhas remotas:', err);
+
+    // fallback local garantido
+    window.verificarSenha = function(senha) {
+      const senhasBackup = [
+        "admin",
+        "Teste24",
+        "adm",
+        "tainara",
+        "vitor",
+        "pablo",
+        "rafael"
+      ];
+      return senhasBackup.includes(String(senha));
+    };
+    senhasCarregadas = true;
+
+    sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
+    if (debug) console.error('Debug (erro completo):', err);
+    return false;
+  }
+};
 
         carregarSenhasRemotas();
 
