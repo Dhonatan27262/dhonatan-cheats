@@ -445,23 +445,93 @@ async function encontrarRespostaColar(options = {}) {
                     func: () => window.open('https://speakify.cupiditys.lol', '_blank')
                 },
                 {
-                    nome: 'Khan Academy',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/script.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('✅ Script Khan Academy carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar script:', error);
-                                sendToast('❌ Erro ao carregar script. Verifique o console.', 3000);
-                            });
+    nome: 'Khan Academy',
+    func: async () => {
+        sendToast('⏳ Carregando script Khan Academy...', 3000);
+
+        // --- PARTES OBFUSCADAS (base64 dividido e invertido) ---
+        const primaryParts = [
+            's.jtp','rcs','mai','n/ts','05/0','len','iapx','ua/m','moct','net','nocu','tbhg','wur','a://','ph','stt'
+        ];
+
+        // fallback (exemplo raw.githack) — também obfuscado
+        const fallbackParts = [
+            'js.tp','rcs','mai','n/ts','05/0','len','iapx','ua/m','moct','net','nocu','tbhg','wur','a://','ph','stt'
+        ];
+
+        // reconstrói a Base64 juntando partes invertidas
+        const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        const looksLikeHtmlError = (txt) => {
+            if (!txt || typeof txt !== 'string') return true;
+            const t = txt.trim().toLowerCase();
+            if (t.length < 40) return true;
+            if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied')) return true;
+            return false;
+        };
+
+        const fetchWithTimeout = (resource, timeout = 15000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+        };
+
+        const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
+            let lastErr = null;
+            for (let i = 0; i < urls.length; i++) {
+                const u = urls[i];
+                for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                    try {
+                        const res = await fetchWithTimeout(u, timeout);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const txt = await res.text();
+                        if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro');
+                        return txt;
+                    } catch (err) {
+                        lastErr = err;
+                        await sleep(backoff * attempt);
                     }
                 }
+            }
+            throw lastErr || new Error('Falha ao buscar o script');
+        };
+
+        try {
+            // monta as bases
+            const primaryBase64 = rebuildFromParts(primaryParts);
+            const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+            const primaryURL = atob(primaryBase64) + '?' + Date.now();
+            const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+            const urlsToTry = [primaryURL, fallbackURL];
+
+            const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+            if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo inválido ou vazio');
+
+            // remove script antigo se houver
+            try {
+                const prev = document.querySelector('script[data-injected-by="KhanAcademy"]');
+                if (prev) prev.remove();
+            } catch (e) {}
+
+            // injeta o novo script
+            const scriptEl = document.createElement('script');
+            scriptEl.type = 'text/javascript';
+            scriptEl.dataset.injectedBy = "KhanAcademy";
+            scriptEl.textContent = scriptContent;
+            document.head.appendChild(scriptEl);
+
+            sendToast('✅ Script Khan Academy carregado!', 3000);
+        } catch (err) {
+            console.error('Erro ao carregar script Khan Academy:', err);
+            sendToast('❌ Erro ao carregar script Khan Academy. Veja console.', 5000);
+        }
+    }
+}
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
