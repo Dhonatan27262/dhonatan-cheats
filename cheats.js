@@ -569,12 +569,21 @@ function showWelcomeToasts() {
         justifyContent: 'center'
     });
 
+    // Container da borda RGB
+    let bordaRGB = document.createElement('div');
+    Object.assign(bordaRGB.style, {
+        padding: '2px', // largura da borda
+        borderRadius: '25px', // canto arredondado maior que o painel
+        background: 'linear-gradient(45deg, red, orange, yellow, green, blue, violet)',
+        display: 'flex'
+    });
+
     // Janela principal do painel
     let janela = document.createElement('div');
     Object.assign(janela.style, {
         width: '350px',
         padding: '30px',
-        borderRadius: '20px', // Canto redondo
+        borderRadius: '20px', // canto arredondado interno
         background: 'rgba(20,20,20,0.95)',
         boxShadow: '0 0 20px rgba(0,0,0,0.7)',
         display: 'flex',
@@ -582,29 +591,28 @@ function showWelcomeToasts() {
         alignItems: 'center',
         gap: '10px',
         position: 'relative',
-        overflow: 'hidden',
-        border: '2px solid', // Borda RGB mais fina
-        borderImageSlice: 1
+        overflow: 'hidden'
     });
 
-    // Animação RGB da borda
-    let hueRGB = 0;
-    const animarBordaRGB = () => {
-        janela.style.borderImageSource = `linear-gradient(45deg, 
-            hsl(${hueRGB},100%,50%), 
-            hsl(${(hueRGB+60)%360},100%,50%), 
-            hsl(${(hueRGB+120)%360},100%,50%), 
-            hsl(${(hueRGB+180)%360},100%,50%), 
-            hsl(${(hueRGB+240)%360},100%,50%), 
-            hsl(${(hueRGB+300)%360},100%,50%)
-        )`;
-        hueRGB = (hueRGB + 0.5) % 360; // Velocidade suave
-        requestAnimationFrame(animarBordaRGB);
-    };
-    animarBordaRGB();
-
-    fundo.appendChild(janela);
+    bordaRGB.appendChild(janela);
+    fundo.appendChild(bordaRGB);
     document.body.appendChild(fundo);
+
+    // Animação RGB
+    let hue = 0;
+    const animarRGB = () => {
+        bordaRGB.style.background = `linear-gradient(45deg, 
+            hsl(${hue}, 100%, 50%), 
+            hsl(${(hue+60)%360}, 100%, 50%), 
+            hsl(${(hue+120)%360}, 100%, 50%), 
+            hsl(${(hue+180)%360}, 100%, 50%), 
+            hsl(${(hue+240)%360}, 100%, 50%), 
+            hsl(${(hue+300)%360}, 100%, 50%)
+        )`;
+        hue = (hue + 0.5) % 360;
+        requestAnimationFrame(animarRGB);
+    };
+    animarRGB();
 
     return { fundo, janela };
 };
