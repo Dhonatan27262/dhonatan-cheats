@@ -554,86 +554,85 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-        fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-        });
-        
-        janela = document.createElement('div');
-        aplicarEstiloContainer(janela);
+    fundo = document.createElement('div');
+    Object.assign(fundo.style, {
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    });
 
-        // Container principal
-        nome = document.createElement('div');
-        Object.assign(nome.style, {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '5px'
-        });
+    janela = document.createElement('div');
+    aplicarEstiloContainer(janela);
 
-// Texto SUPERIOR
-const textoCima = document.createElement('div');
-textoCima.textContent = 'Painel Funções';
-aplicarEstiloTexto(textoCima, '20px');
+    // Borda RGB animada
+    janela.style.border = '5px solid';
+    janela.style.borderImageSlice = 1;
+    let hueRGB = 0;
+    const animarBordaRGB = () => {
+        janela.style.borderImageSource = `linear-gradient(45deg, hsl(${hueRGB},100%,50%), hsl(${(hueRGB+60)%360},100%,50%), hsl(${(hueRGB+120)%360},100%,50%), hsl(${(hueRGB+180)%360},100%,50%), hsl(${(hueRGB+240)%360},100%,50%), hsl(${(hueRGB+300)%360},100%,50%))`;
+        hueRGB = (hueRGB + 0.5) % 360; // velocidade suave
+        requestAnimationFrame(animarBordaRGB);
+    };
+    animarBordaRGB();
 
-const textoCriador = document.createElement('div');
-textoCriador.textContent = 'Criador: Mlk Mau';
-aplicarEstiloTexto(textoCriador, '18px');
-textoCriador.style.margin = '5px 0'; // espaçamento
+    // Container principal
+    nome = document.createElement('div');
+    Object.assign(nome.style, {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '5px'
+    });
 
-// Texto INFERIOR
-const textoBaixo = document.createElement('div');
-textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-aplicarEstiloTexto(textoBaixo, '17px');
+    // Texto SUPERIOR
+    const textoCima = document.createElement('div');
+    textoCima.textContent = 'Painel Funções';
+    aplicarEstiloTexto(textoCima, '20px');
 
-// Adiciona os textos ao container
-nome.appendChild(textoCima);
-nome.appendChild(textoCriador); // fica no meio
-nome.appendChild(textoBaixo);
+    const textoCriador = document.createElement('div');
+    textoCriador.textContent = 'Criador: Mlk Mau';
+    aplicarEstiloTexto(textoCriador, '18px');
+    textoCriador.style.margin = '5px 0';
 
-// ===== Animação fluida só no "Criador" =====
-let hue = 260;
-let direcao = 1; // 1 = indo pra frente, -1 = voltando
+    const textoBaixo = document.createElement('div');
+    textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+    aplicarEstiloTexto(textoBaixo, '17px');
 
-function animarCriador() {
-    const corRoxa = `hsl(${hue}, 100%, 65%)`;
-    textoCriador.style.color = corRoxa;
+    nome.append(textoCima, textoCriador, textoBaixo);
 
-    hue += 0.3 * direcao; // velocidade suave
+    // Animação suave do texto Criador
+    let hueCriador = 260;
+    let direcao = 1;
+    const animarCriador = () => {
+        textoCriador.style.color = `hsl(${hueCriador},100%,65%)`;
+        hueCriador += 0.3 * direcao;
+        if (hueCriador >= 300 || hueCriador <= 260) direcao *= -1;
+        requestAnimationFrame(animarCriador);
+    };
+    animarCriador();
 
-    // Inverte a direção ao chegar nos limites
-    if (hue >= 300 || hue <= 260) {
-        direcao *= -1;
-    }
+    // Texto inferior RGB
+    let hueBaixo = 0;
+    setInterval(() => {
+        textoBaixo.style.color = `hsl(${hueBaixo % 360},100%,60%)`;
+        hueBaixo++;
+    }, 30);
 
-    requestAnimationFrame(animarCriador);
-}
-animarCriador();
-
-// Mantém animação do texto inferior como estava
-let hueBaixo = 0;
-setInterval(() => {
-    const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-    textoBaixo.style.color = corAtual;
-    hueBaixo++;
-}, 30);
-
-        const input = document.createElement('input');
-        Object.assign(input.style, {
-            padding: '12px',
-            width: '80%',
-            margin: '15px 0',
-            background: '#222',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: '30px',
-            textAlign: 'center',
-            fontSize: '16px'
-        });
-        input.type = 'password';
-        input.placeholder = 'Digite a senha';
+    // Input de senha
+    const input = document.createElement('input');
+    Object.assign(input.style, {
+        padding: '12px',
+        width: '80%',
+        margin: '15px 0',
+        background: '#222',
+        color: '#fff',
+        border: '1px solid #444',
+        borderRadius: '30px',
+        textAlign: 'center',
+        fontSize: '16px'
+    });
+    input.type = 'password';
+    input.placeholder = 'Digite a senha';
 
         // Botão principal "Acessar"
 let botao = document.createElement('button');
