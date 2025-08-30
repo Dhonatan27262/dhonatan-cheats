@@ -569,21 +569,12 @@ function showWelcomeToasts() {
         justifyContent: 'center'
     });
 
-    // Container da borda RGB
-    let bordaRGB = document.createElement('div');
-    Object.assign(bordaRGB.style, {
-        padding: '2px', // largura da borda
-        borderRadius: '25px', // canto arredondado maior que o painel
-        background: 'linear-gradient(45deg, red, orange, yellow, green, blue, violet)',
-        display: 'flex'
-    });
-
-    // Janela principal do painel
+    // Janela principal com borda RGB via ::before
     let janela = document.createElement('div');
     Object.assign(janela.style, {
         width: '350px',
         padding: '30px',
-        borderRadius: '20px', // canto arredondado interno
+        borderRadius: '20px', // canto arredondado
         background: 'rgba(20,20,20,0.95)',
         boxShadow: '0 0 20px rgba(0,0,0,0.7)',
         display: 'flex',
@@ -594,14 +585,24 @@ function showWelcomeToasts() {
         overflow: 'hidden'
     });
 
-    bordaRGB.appendChild(janela);
-    fundo.appendChild(bordaRGB);
+    // Criar borda RGB via pseudo-elemento
+    let borda = document.createElement('div');
+    Object.assign(borda.style, {
+        position: 'absolute',
+        top: '-2px', left: '-2px', right: '-2px', bottom: '-2px',
+        borderRadius: '22px', // ligeiramente maior que o painel
+        padding: '2px',
+        background: 'linear-gradient(45deg, red, orange, yellow, green, blue, violet)',
+        zIndex: '-1'
+    });
+    janela.appendChild(borda);
+    fundo.appendChild(janela);
     document.body.appendChild(fundo);
 
     // Animação RGB
     let hue = 0;
     const animarRGB = () => {
-        bordaRGB.style.background = `linear-gradient(45deg, 
+        borda.style.background = `linear-gradient(45deg, 
             hsl(${hue}, 100%, 50%), 
             hsl(${(hue+60)%360}, 100%, 50%), 
             hsl(${(hue+120)%360}, 100%, 50%), 
@@ -613,6 +614,9 @@ function showWelcomeToasts() {
         requestAnimationFrame(animarRGB);
     };
     animarRGB();
+
+    return { fundo, janela }; // janela continua recebendo scripts normalmente
+};
 
     // Container de textos
     const nome = document.createElement('div');
