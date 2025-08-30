@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SANTOS.meczada - Busca Inteligente Automática
 // @namespace    http://tampermonkey.net/
-// @version      7.2
-// @description  Sistema automático para captura e envio de conteúdo
+// @version      8.0
+// @description  Sistema automático para captura e envio de conteúdo com melhorias para Quizizz
 // @author       SeuNome
 // @match        *://*/*
 // @grant        none
@@ -17,9 +17,19 @@
     // CONFIGURAÇÕES
     // =============================
     const config = {
-        updateInterval: 2000, // Verificar mudanças a cada 2 segundos
+        updateInterval: 1000, // Verificar mudanças a cada 1 segundo (reduzido para Quizizz)
         maxContentLength: 3000,
-        maxPreviewLength: 800
+        maxPreviewLength: 800,
+        quizizzCheckInterval: 500, // Verificação específica para Quizizz
+        mutationObserver: true // Usar MutationObserver para melhor detecção
+    };
+
+    // =============================
+    // DETECÇÃO ESPECÍFICA DO QUIZIZZ
+    // =============================
+    const isQuizizz = () => {
+        return window.location.hostname.includes('quizizz') || 
+               document.querySelector('[class*="quizizz"], [class*="qz-"]');
     };
 
     // =============================
@@ -28,8 +38,10 @@
     let lastCapturedContent = '';
     let lastDOMState = '';
     let observer = null;
+    let mutationObserver = null;
+    let isOnQuizizz = isQuizizz();
 
-    const capturarConteudoVisivel = () => {
+    const capturarConteudoGenerico = () => {
         let content = '';
         
         // 1. Capturar título da página
@@ -78,6 +90,80 @@
         }
         
         return content;
+    };
+
+    const capturarQuizizz = () => {
+        let content = '';
+        
+        // 1. Capturar título da página
+        if (document.title) {
+            content += `# ${document.title}\n\n`;
+        }
+        
+        // 2. Capturar URL
+        content += `**URL:** ${window.location.href}\n\n`;
+        
+        // 3. Seletores específicos para perguntas no Quizizz
+        const questionSelectors = [
+            '.question-text', '.qz-question', '[data-test="question-text"]',
+            '.question', '.q-text', '.prompt',
+            '[class*="question"]', '[class*="prompt"]'
+        ];
+        
+        // Tenta encontrar a pergunta
+        let questionElement = null;
+        for (const selector of questionSelectors) {
+            questionElement = document.querySelector(selector);
+            if (questionElement) break;
+        }
+        
+        if (questionElement && isVisible(questionElement)) {
+            content += `## PERGUNTA:\n${questionElement.textContent}\n\n`;
+        }
+        
+        // 4. Captura de opções de resposta
+        const optionSelectors = [
+            '.option', '.qz-option', '[data-test="option"]',
+            '.answer', '.choice', '[class*="option"]',
+            '[class*="answer"]', '[class*="choice"]'
+        ];
+        
+        let optionElements = [];
+        for (const selector of optionSelectors) {
+            optionElements = document.querySelectorAll(selector);
+            if (optionElements.length > 0) break;
+        }
+        
+        if (optionElements.length > 0) {
+            content += '## OPÇÕES:\n';
+            optionElements.forEach((opt, index) => {
+                if (isVisible(opt)) {
+                    content += `${String.fromCharCode(65 + index)}. ${opt.textContent}\n`;
+                }
+            });
+            content += '\n';
+        }
+        
+        // 5. Se não encontrou elementos específicos, usa captura genérica
+        if (content.length < 50) {
+            content += capturarConteudoGenerico();
+        }
+        
+        // 6. Limitar tamanho do conteúdo
+        if (content.length > config.maxContentLength) {
+            content = content.substring(0, config.maxContentLength) + 
+                '\n\n... [Conteúdo truncado devido ao tamanho]';
+        }
+        
+        return content;
+    };
+
+    const capturarConteudoVisivel = () => {
+        if (isOnQuizizz) {
+            return capturarQuizizz();
+        } else {
+            return capturarConteudoGenerico();
+        }
     };
 
     const isVisible = (element) => {
@@ -147,8 +233,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-graduation-cap"></i> SANTOS.meczada
+                    <span id="platform-indicator" style="font-size: 12px; background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
+                        ${isOnQuizizz ? 'Quizizz' : 'Auto'}
+                    </span>
                     <span id="auto-update-indicator" style="font-size: 12px; background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
-                        <i class="fas fa-sync-alt fa-spin"></i> Auto
+                        <i class="fas fa-sync-alt fa-spin"></i> Ativo
                     </span>
                 </h3>
                 <div>
@@ -243,7 +332,7 @@
                 ">
                     <i class="fas fa-expand"></i>
                 </button>
-                <div style="font-size: 10px; margin-top: 5px; opacity: 0.7;">Auto</div>
+                <div style="font-size: 10px; margin-top: 5px; opacity: 0.7;">${isOnQuizizz ? 'Quizizz' : 'Auto'}</div>
             </div>
         `;
         
@@ -339,13 +428,13 @@
     };
 
     // =============================
-    // SISTEMA DE MONITORAMENTO
+    // SISTEMA DE MONITORAMENTO AVANÇADO
     // =============================
     const iniciarMonitoramento = () => {
         pararMonitoramento();
         
         // Atualizar indicador de status
-        document.getElementById('auto-update-indicator').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Auto';
+        document.getElementById('auto-update-indicator').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Ativo';
         document.getElementById('status').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Monitorando alterações na página';
         
         // Verificar mudanças periodicamente
@@ -354,7 +443,21 @@
             if (mudou) {
                 document.getElementById('status').innerHTML = '<i class="fas fa-check-circle"></i> Conteúdo atualizado!';
             }
-        }, config.updateInterval);
+        }, isOnQuizizz ? config.quizizzCheckInterval : config.updateInterval);
+        
+        // Iniciar MutationObserver para melhor detecção
+        if (config.mutationObserver) {
+            mutationObserver = new MutationObserver(() => {
+                verificarMudancas();
+            });
+            
+            mutationObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+                attributes: true
+            });
+        }
     };
 
     const pararMonitoramento = () => {
@@ -362,6 +465,12 @@
             clearInterval(observer);
             observer = null;
         }
+        
+        if (mutationObserver) {
+            mutationObserver.disconnect();
+            mutationObserver = null;
+        }
+        
         document.getElementById('auto-update-indicator').innerHTML = '<i class="fas fa-pause"></i> Pausado';
     };
 
@@ -379,6 +488,8 @@
         
         // Destacar elementos importantes
         previewContent = previewContent
+            .replace(/(## PERGUNTA:)/g, '<span style="color: #ffcc00; font-weight: bold;">$1</span>')
+            .replace(/(## OPÇÕES:)/g, '<span style="color: #4fc3f7; font-weight: bold;">$1</span>')
             .replace(/(#+\s.+)/g, '<span style="color: #ffcc00; font-weight: bold;">$1</span>')
             .replace(/(\*\*.+?\*\*)/g, '<span style="color: #4fc3f7;">$1</span>')
             .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color: #80deea; word-break: break-all;" target="_blank">$1</a>');
@@ -440,6 +551,9 @@
     // INICIALIZAÇÃO
     // =====================
     const init = () => {
+        // Verificar se estamos no Quizizz
+        isOnQuizizz = isQuizizz();
+        
         // Carregar Font Awesome
         if (!document.querySelector('link[href*="font-awesome"]')) {
             const link = document.createElement('link');
@@ -450,6 +564,9 @@
         
         // Criar interface
         criarInterface();
+        
+        // Log de inicialização
+        console.log(`SANTOS.meczada v8.0 - Modo ${isOnQuizizz ? 'Quizizz' : 'Automático'} carregado!`);
     };
 
     // Aguardar o carregamento da página
@@ -458,6 +575,4 @@
     } else {
         window.addEventListener('load', init);
     }
-
-    console.log('SANTOS.meczada v7.2 - Modo Automático carregado!');
 })();
