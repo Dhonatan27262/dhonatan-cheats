@@ -159,7 +159,13 @@
         <option value="40">Normal (40ms)</option>
         <option value="20">Rápido (20ms)</option>
         <option value="10">Muito Rápido (10ms)</option>
+        <option value="humana">Velocidade Humana indetect</option>
       </select>
+
+      <label style="display:flex; align-items:center; gap:8px; margin:16px 0; cursor:pointer;">
+        <input type="checkbox" id="digitadorV2-mostrar-porcentagem" checked style="width:18px; height:18px;">
+        <span style="font-weight:600; color:#1f2937;">Mostrar porcentagem durante a digitação</span>
+      </label>
 
       <div style="display:flex; gap:10px; justify-content:flex-end;">
         <button id="digitadorV2-cancelar" style="
@@ -182,10 +188,11 @@
     // Ações
     modal.querySelector('#digitadorV2-cancelar').addEventListener('click', () => modal.remove());
     modal.querySelector('#digitadorV2-confirmar').addEventListener('click', () => {
-      const velocidade = parseInt(modal.querySelector('#digitadorV2-velocidade').value, 10);
+      const velocidade = modal.querySelector('#digitadorV2-velocidade').value;
+      const mostrarPorcentagem = modal.querySelector('#digitadorV2-mostrar-porcentagem').checked;
       const textoAtual = txt.value;
       modal.remove();
-      iniciarDigitacao(el, textoAtual, velocidade);
+      iniciarDigitacao(el, textoAtual, velocidade, mostrarPorcentagem);
     });
 
     // Fechar com ESC
@@ -202,7 +209,7 @@
     document.execCommand('insertText', false, char);
   }
 
-  function iniciarDigitacao(el, texto, velocidade) {
+  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem) {
     if (window[NS].typingIntervalId) {
       clearInterval(window[NS].typingIntervalId);
       window[NS].typingIntervalId = null;
@@ -212,43 +219,72 @@
     el.focus();
     let i = 0;
 
-    const progresso = document.createElement('div');
-    progresso.id = 'digitadorV2-progresso';
-    Object.assign(progresso.style, {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: 'rgba(0,0,0,0.85)',
-      color: '#fff',
-      padding: '10px 20px',
-      borderRadius: '8px',
-      zIndex: 10000002,
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif'
-    });
-    document.body.appendChild(progresso);
+    // Criar elemento de progresso apenas se for mostrar porcentagem
+    let progresso = null;
+    if (mostrarPorcentagem) {
+      progresso = document.createElement('div');
+      progresso.id = 'digitadorV2-progresso';
+      Object.assign(progresso.style, {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: 'rgba(0,0,0,0.85)',
+        color: '#fff',
+        padding: '10px 20px',
+        borderRadius: '8px',
+        zIndex: 10000002,
+        fontSize: '18px',
+        fontFamily: 'Arial, sans-serif'
+      });
+      document.body.appendChild(progresso);
+    }
 
-    const intervalId = setInterval(() => {
+    // Função para obter o próximo intervalo baseado na velocidade selecionada
+    function obterProximoIntervalo() {
+      if (velocidade === 'humana') {
+        // Velocidade humana: intervalo variável entre 100ms e 300ms com pausas ocasionais
+        if (i > 0 && Math.random() < 0.05) {
+          // Pausa ocasional (5% de chance após cada caractere)
+          return 500 + Math.random() * 1000; // 500ms a 1500ms de pausa
+        }
+        return 100 + Math.random() * 200; // 100ms a 300ms
+      } else {
+        return parseInt(velocidade, 10); // Velocidade fixa
+      }
+    }
+
+    function digitarProximoCaractere() {
       if (i < texto.length) {
         const c = texto[i++];
         typeChar(c);
-        progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
+        
+        // Atualizar progresso se estiver sendo mostrado
+        if (mostrarPorcentagem && progresso) {
+          progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
+        }
+        
+        // Disparar eventos de input periodicamente
         if (i % 25 === 0) el.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // Agendar próximo caractere
+        window[NS].typingIntervalId = setTimeout(digitarProximoCaractere, obterProximoIntervalo());
       } else {
-        clearInterval(intervalId);
+        // Finalização
         window[NS].typingIntervalId = null;
-        progresso.remove();
+        if (progresso) progresso.remove();
         el.blur();
+        
         // Garante que frameworks reajam
         el.dispatchEvent(new Event('input', { bubbles: true }));
         el.dispatchEvent(new Event('change', { bubbles: true }));
 
         toast('✅ Texto digitado com sucesso!');
       }
-    }, velocidade);
+    }
 
-    window[NS].typingIntervalId = intervalId;
+    // Iniciar digitação
+    window[NS].typingIntervalId = setTimeout(digitarProximoCaractere, obterProximoIntervalo());
   }
 
   // ---- Início imediato a cada injeção ----
