@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SANTOS.meczada - Flutuante Arrastável + Detecção Avançada v12
 // @namespace    http://tampermonkey.net/
-// @version      12.0
+// @version      12.1
 // @description  Menu flutuante arrastável/minimizável + detecção aprimorada de pergunta e opções (Quizizz/Wayground). Copiar / Enviar Perplexity / Captura manual.
 // @match        *://*/*
 // @grant        none
@@ -64,38 +64,50 @@
     return normalize(t);
   }
 
-  // determina se um elemento parece um botão grande colorido (opção do quiz)
+  // Determina se um elemento parece um botão grande colorido (opção do quiz)
   function looksLikeBigOption(el) {
     if (!isElement(el) || !isVisible(el)) return false;
     const r = el.getBoundingClientRect();
-    if (r.width < 120 || r.height < 36) return false; // exige dimensão decente
+    if (r.width < 120 || r.height < 36) return false;
     const st = getComputedStyle(el);
     const bg = st.backgroundColor || '';
-    // se puder parsear rgba alpha
     if (bg && /rgba?\(.+\)/.test(bg)) {
-      // verificar se não é 'transparent' e tem visibilidade
       if (!bg.includes('0, 0, 0, 0') && !bg.includes('transparent')) {
-        // borda arredondada forte indica botão estilo Quizizz
         const br = parseFloat(st.borderRadius) || 0;
         if (br > 6 || st.border && st.border !== '0px none rgb(0, 0, 0)') return true;
       }
     }
-    // fallback: elemento com role button ou tag button
     const role = el.getAttribute && el.getAttribute('role');
     if ((role && /button|option|radio/i.test(role)) || el.tagName === 'BUTTON') return true;
     return false;
   }
 
+  // Função para validar se o texto de opção é válido
+  function isOptionValid(optionText) {
+    const invalidKeywords = ['zoom', 'image', 'question', 'da imagem', 'imagem da', 'clicar', 'expandir', 'voltar', 'próxima', 'anterior', 'enviar', 'copiar', 'capturar', 'área'];
+    const lowerOption = optionText.toLowerCase();
+    if (optionText.length < 5) return false;
+    for (const kw of invalidKeywords) {
+      if (lowerOption.includes(kw)) return false;
+    }
+    return true;
+  }
+
   function collectVisibleTextNodes(root=document) {
     const nodes = [];
     const all = Array.from(root.querySelectorAll('body *'));
+    const ignoreClasses = ['button', 'btn', 'icon', 'zoom', 'image', 'toolbar', 'header', 'footer', 'menu', 'navbar'];
     for (const el of all) {
       if (!isVisible(el)) continue;
+      const className = (el.className || '').toLowerCase();
+      if (ignoreClasses.some(ig => className.includes(ig))) continue;
+      const id = (el.id || '').toLowerCase();
+      if (ignoreClasses.some(ig => id.includes(ig))) continue;
+
       if (el.childElementCount === 0) {
         const t = getText(el);
         if (t && t.length >= CFG.minTextLen) nodes.push({ el, text: t, rect: el.getBoundingClientRect() });
       } else {
-        // também permitir containers com texto (p.ex. <div> com innerText)
         const t = getText(el);
         if (t && t.length >= CFG.minTextLen) nodes.push({ el, text: t, rect: el.getBoundingClientRect() });
       }
@@ -103,7 +115,7 @@
     return nodes;
   }
 
-  // cluster vertical (simples)
+  // Cluster vertical (simples)
   function clusterVertical(nodes) {
     if (!nodes.length) return [];
     nodes.sort((a,b)=> a.rect.top - b.rect.top);
@@ -120,7 +132,6 @@
       }
     }
     if (cur.items.length) clusters.push(cur);
-    // compute score basic
     clusters.forEach(c => {
       c.textLength = c.items.reduce((s,i)=> s + (i.text.length || 0), 0);
       c.avgFont = (() => {
@@ -136,7 +147,7 @@
     return clusters.sort((a,b)=> b.score - a.score);
   }
 
-  // heurística: find largest text block in center
+  // Heurística: find largest text block in center
   function centerHeuristic() {
     const all = collectVisibleTextNodes();
     if (!all.length) return null;
@@ -153,33 +164,32 @@
     return best && best.node ? best.node : null;
   }
 
-  // extração de opções: busca por botões grandes + role/button + seletor conhecido
+  // Extração de opções: busca por botões grandes + role/button + seletor conhecido
   function detectOptionsAround(containerEl) {
     const options = [];
     if (!containerEl) return options;
-    // 1) prefer role/button or known selectors inside container
+    // 1) Prefer role/button or known selectors inside container
     const selCandidates = Array.from(containerEl.querySelectorAll('button, [role="option"], [role="radio"], [data-test*="option"], [class*="option"], li, label'));
     for (const el of selCandidates) {
       if (!isVisible(el)) continue;
       const t = getText(el);
       if (!t || t.length < 1) continue;
-      if (!options.includes(t)) options.push(t);
+      if (!options.includes(t) && isOptionValid(t)) options.push(t);
     }
-    // 2) appearance-based: find large colorful elements in same vertical band
+    // 2) Appearance-based: find large colorful elements in same vertical band
     if (CFG.enableAppearanceDetection) {
       const all = Array.from(document.querySelectorAll('body *'));
       for (const el of all) {
         if (!isVisible(el)) continue;
         if (!looksLikeBigOption(el)) continue;
-        // ensure it's roughly near container vertical area (so we don't pick header buttons)
         const r = el.getBoundingClientRect();
         const contRect = containerEl.getBoundingClientRect();
         if (Math.abs((r.top + r.bottom)/2 - (contRect.top + contRect.bottom)/2) > Math.max(window.innerHeight*0.5, 300)) continue;
         const t = getText(el);
-        if (t && !options.includes(t)) options.push(t);
+        if (t && !options.includes(t) && isOptionValid(t)) options.push(t);
       }
     }
-    // order options top->bottom
+    // Order options top->bottom
     options.sort((a,b)=>{
       const aEl = Array.from(document.querySelectorAll('body *')).find(e=> getText(e) === a);
       const bEl = Array.from(document.querySelectorAll('body *')).find(e=> getText(e) === b);
@@ -189,12 +199,14 @@
     return options.slice(0,12);
   }
 
-  // find question container
+  // Find question container
   function findQuestionContainer() {
-    // try specific selectors known for Quizizz/Wayground
     const knownQuestionSelectors = [
       '[data-test="question-text"]', '.question-text', '.qz-question', '.q-text',
-      '[class*="question"] > p', '[class*="prompt"]'
+      '[class*="question"] > p', '[class*="prompt"]', '[data-test="question-card"]', 
+      '.qz-question-card', '.questionContainer', '.qz-question-container',
+      '.question', '.quiz-question', '.question-content', '.question-body',
+      '.wayground-question', '.wg-question'
     ];
     for (const s of knownQuestionSelectors) {
       const el = tryQuery(s);
@@ -202,20 +214,19 @@
         return ascendToCard(el);
       }
     }
-    // clustering
+    // Clustering
     const nodes = collectVisibleTextNodes();
     const clusters = clusterVertical(nodes);
     if (clusters && clusters.length) {
-      // top cluster likely question
       return ascendToCard(clusters[0].items[0].el);
     }
-    // fallback center heuristic
+    // Fallback center heuristic
     const center = centerHeuristic();
     if (center) return ascendToCard(center.el || center);
     return null;
   }
 
-  // climb up to a "card" parent
+  // Climb up to a "card" parent
   function ascendToCard(el) {
     if (!el) return null;
     let node = el;
@@ -224,7 +235,6 @@
       if (/(question|card|qz|prompt|container|quiz)/i.test(cls)) return node;
       node = node.parentElement;
     }
-    // fallback: a parent with width > 30% viewport
     node = el.parentElement;
     while (node && node.parentElement) {
       const r = node.getBoundingClientRect();
@@ -234,7 +244,7 @@
     return el;
   }
 
-  // build structured payload text
+  // Build structured payload text
   function buildPayload(question, options) {
     const parts = [];
     parts.push(`# ${document.title || 'Sem título'}`);
@@ -303,7 +313,7 @@
     `;
     document.body.appendChild(UI);
 
-    // load position if saved
+    // Load position if saved
     const pos = localStorage.getItem(CFG.savePositionKey);
     if (pos) {
       try {
@@ -312,13 +322,13 @@
       } catch {}
     }
 
-    // minimize state
+    // Minimize state
     if (uiMinimized) {
       document.getElementById('santos-body').style.display = 'none';
       document.getElementById('santos-min').textContent = '+';
     }
 
-    // button handlers
+    // Button handlers
     document.getElementById('santos-close').onclick = () => UI.remove();
     document.getElementById('santos-min').onclick = toggleMinimize;
     document.getElementById('santos-send').onclick = () => {
@@ -352,9 +362,7 @@
   }
 
   function makeDraggable(container, handle) {
-    // supports pointer events (mouse/touch)
     let dragging = false, startX=0, startY=0, origX=0, origY=0;
-    // load saved pos handled elsewhere
     const onPointerDown = (ev) => {
       ev.preventDefault();
       dragging = true;
@@ -377,13 +385,10 @@
     };
     const onPointerUp = (ev) => {
       dragging = false;
-      // save position
       localStorage.setItem(CFG.savePositionKey, JSON.stringify({ left: container.style.left || container.getBoundingClientRect().left + 'px', top: container.style.top || container.getBoundingClientRect().top + 'px' }));
       document.removeEventListener('pointermove', onPointerMove);
     };
-    // support pointer events and touch fallback
     handle.addEventListener('pointerdown', onPointerDown, { passive: false });
-    // also allow dragging by long-touch on mobile - pointer covers it
   }
 
   function toast(msg) {
@@ -456,7 +461,7 @@
       const fallback = findQuestionContainer();
       container = fallback || document.body;
     }
-    // prefer direct known selectors inside container
+    // Prefer direct known selectors inside container
     const qSelectors = ['[data-test="question-text"]', '.question-text', '.q-text', 'h1', 'h2', 'p'];
     let qEl = null;
     for (const s of qSelectors) {
@@ -465,22 +470,22 @@
         if (el && isVisible(el) && getText(el).length >= CFG.minTextLen) { qEl = el; break; }
       } catch {}
     }
-    // if not found, try center heuristic inside container
+    // If not found, try center heuristic inside container
     if (!qEl) {
       const nodes = collectVisibleTextNodes(container);
       if (nodes.length) {
-        // pick the largest text node near top of container block
         nodes.sort((a,b)=> b.text.length - a.text.length);
         qEl = nodes[0].el;
       }
     }
     const question = qEl ? normalize(getText(qEl)) : '';
-    const options = detectOptionsAround(container);
-    // confidence: basic rules
+    let options = detectOptionsAround(container);
+    // Filter out any option that is the same as the question
+    options = options.filter(opt => opt !== question);
+    // Confidence: basic rules
     let conf = 0;
     if (question && question.length > 12) conf += 40;
     if (options && options.length >= 2) conf += Math.min(50, options.length*10);
-    // proximity to center adds confidence
     try {
       const rect = (qEl && qEl.getBoundingClientRect()) || container.getBoundingClientRect();
       const centerDist = Math.abs(((rect.top + rect.bottom)/2) - (window.innerHeight/2));
@@ -490,45 +495,6 @@
     result.options = options;
     result.confidence = Math.round(Math.max(0, Math.min(100, conf)));
     return result;
-  }
-
-  // find best container using selectors and heuristics
-  function findQuestionContainer() {
-    // try known selectors globally
-    const globalSelectors = ['[data-test="question-card"]', '.qz-question-card', '.questionContainer', '.qz-question-container'];
-    for (const s of globalSelectors) {
-      try {
-        const el = document.querySelector(s);
-        if (el && isVisible(el)) return el;
-      } catch {}
-    }
-    // else cluster top
-    const nodes = collectVisibleTextNodes();
-    const clusters = clusterVertical(nodes);
-    if (clusters.length) {
-      return ascendToCard(clusters[0].items[0].el);
-    }
-    // fallback center
-    const center = centerHeuristic();
-    return center && center.el ? ascendToCard(center.el) : document.body;
-  }
-
-  // ascend to card (reuse)
-  function ascendToCard(el) {
-    if (!el) return null;
-    let node = el;
-    for (let i=0;i<8 && node;i++) {
-      const cls = (node.className||'') + '';
-      if (/(question|card|qz|prompt|container|quiz)/i.test(cls)) return node;
-      node = node.parentElement;
-    }
-    node = el.parentElement;
-    while (node && node.parentElement) {
-      const r = node.getBoundingClientRect();
-      if (r.width > innerWidth * 0.28) return node;
-      node = node.parentElement;
-    }
-    return el;
   }
 
   /**************************************************************************
@@ -555,7 +521,7 @@
     }
   }
 
-  // debounce / observer
+  // Debounce / observer
   let mo = null, poll = null;
   function startObservers() {
     stopObservers();
