@@ -557,9 +557,16 @@ function showWelcomeToasts() {
     // Fundo escuro da tela
     let fundo = document.createElement('div');
     Object.assign(fundo.style, {
-        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        zIndex: '999999',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     });
 
     // Janela principal do painel
@@ -567,7 +574,7 @@ function showWelcomeToasts() {
     Object.assign(janela.style, {
         width: '350px',
         padding: '30px',
-        borderRadius: '20px',
+        borderRadius: '20px', // Canto redondo
         background: 'rgba(20,20,20,0.95)',
         boxShadow: '0 0 20px rgba(0,0,0,0.7)',
         display: 'flex',
@@ -576,18 +583,31 @@ function showWelcomeToasts() {
         gap: '10px',
         position: 'relative',
         overflow: 'hidden',
-        border: '5px solid', // Borda RGB
+        border: '2px solid', // Borda RGB mais fina
         borderImageSlice: 1
     });
 
     // Animação RGB da borda
     let hueRGB = 0;
     const animarBordaRGB = () => {
-        janela.style.borderImageSource = `linear-gradient(45deg, hsl(${hueRGB},100%,50%), hsl(${(hueRGB+60)%360},100%,50%), hsl(${(hueRGB+120)%360},100%,50%), hsl(${(hueRGB+180)%360},100%,50%), hsl(${(hueRGB+240)%360},100%,50%), hsl(${(hueRGB+300)%360},100%,50%))`;
-        hueRGB = (hueRGB + 0.5) % 360;
+        janela.style.borderImageSource = `linear-gradient(45deg, 
+            hsl(${hueRGB},100%,50%), 
+            hsl(${(hueRGB+60)%360},100%,50%), 
+            hsl(${(hueRGB+120)%360},100%,50%), 
+            hsl(${(hueRGB+180)%360},100%,50%), 
+            hsl(${(hueRGB+240)%360},100%,50%), 
+            hsl(${(hueRGB+300)%360},100%,50%)
+        )`;
+        hueRGB = (hueRGB + 0.5) % 360; // Velocidade suave
         requestAnimationFrame(animarBordaRGB);
     };
     animarBordaRGB();
+
+    fundo.appendChild(janela);
+    document.body.appendChild(fundo);
+
+    return { fundo, janela };
+};
 
     // Container de textos
     const nome = document.createElement('div');
