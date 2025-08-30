@@ -1023,6 +1023,19 @@ btnDiscord.onclick = () => {
     window.open('https://discord.gg/NfVKXRSvYK', '_blank');
 };
 
+// Botão do WhatsApp (ao lado do Discord)
+const btnWhatsApp = document.createElement('button');
+btnWhatsApp.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+    </svg> WhatsApp
+`;
+aplicarEstiloBotao(btnWhatsApp);
+btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+btnWhatsApp.onclick = () => {
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+};
+
 // Botão do YouTube Manorick
 const btnmenor = document.createElement('button');
 btnmenor.innerHTML = `
@@ -1065,22 +1078,20 @@ btncriadorpainel.onclick = () => {
 const botoesContainer = document.createElement('div');
 Object.assign(botoesContainer.style, {
     display: 'flex',
-    justifyContent: 'flex-start', // alinhamento inicial à esquerda
+    justifyContent: 'flex-start',
     gap: '10px',
     width: '100%',
-    overflowX: 'auto',           // permite rolagem horizontal
-    paddingBottom: '5px',        // evita que barra de rolagem sobreponha conteúdo
-    scrollbarWidth: 'thin',      // Firefox
-    scrollbarColor: '#888 #333'  // cores da scrollbar
+    overflowX: 'auto',
+    paddingBottom: '5px',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#888 #333'
 });
-
-// Aqui adiciona as linhas extras para Chrome/Edge
 botoesContainer.style.msOverflowStyle = 'auto';
 botoesContainer.style.overflowY = 'hidden';
 botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
-botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
+botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord para suporte.';
