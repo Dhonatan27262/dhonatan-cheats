@@ -554,32 +554,40 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-    fundo = document.createElement('div');
+    // Fundo escuro da tela
+    let fundo = document.createElement('div');
     Object.assign(fundo.style, {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        zIndex: '999999',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
     });
 
-    // ===== NOVO: contorno RGB animado =====
-    janela.style.border = '4px solid';
-    janela.style.borderImageSlice = 1;
-    let hue = 0;
-    function animarBordaRGB() {
-        janela.style.borderImageSource = `linear-gradient(45deg, hsl(${hue}, 100%, 65%), hsl(${(hue+60)%360}, 100%, 65%), hsl(${(hue+120)%360}, 100%, 65%), hsl(${(hue+180)%360}, 100%, 65%), hsl(${(hue+240)%360}, 100%, 65%), hsl(${(hue+300)%360}, 100%, 65%))`;
-        hue = (hue + 0.5) % 360; // suavidade
+    // Janela principal do painel
+    let janela = document.createElement('div');
+    Object.assign(janela.style, {
+        width: '350px',
+        padding: '30px',
+        borderRadius: '20px',
+        background: 'rgba(20,20,20,0.95)',
+        boxShadow: '0 0 20px rgba(0,0,0,0.7)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px',
+        position: 'relative',
+        overflow: 'hidden',
+        border: '5px solid', // Borda RGB
+        borderImageSlice: 1
+    });
+
+    // Animação RGB da borda
+    let hueRGB = 0;
+    const animarBordaRGB = () => {
+        janela.style.borderImageSource = `linear-gradient(45deg, hsl(${hueRGB},100%,50%), hsl(${(hueRGB+60)%360},100%,50%), hsl(${(hueRGB+120)%360},100%,50%), hsl(${(hueRGB+180)%360},100%,50%), hsl(${(hueRGB+240)%360},100%,50%), hsl(${(hueRGB+300)%360},100%,50%))`;
+        hueRGB = (hueRGB + 0.5) % 360;
         requestAnimationFrame(animarBordaRGB);
-    }
+    };
     animarBordaRGB();
-    janela.style.transition = 'box-shadow 0.3s ease, border 0.3s ease';
-    janela.style.boxShadow = '0 15px 40px rgba(0,0,0,0.5)';
 
     // Container de textos
     const nome = document.createElement('div');
