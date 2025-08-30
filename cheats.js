@@ -1,9 +1,8 @@
 // ==UserScript==
-// @name         SANTOS.meczada - Captura Inteligente (Quizizz/Wayground PRO)
+// @name         SANTOS.meczada - Captura Profissional Quizizz v10
 // @namespace    http://tampermonkey.net/
-// @version      9.0
-// @description  Captura confiável de perguntas/opções no Quizizz (Wayground) e páginas similares, com extração profunda, heurística central e modo manual de seleção.
-// @author       SANTOS
+// @version      10.0
+// @description  Captura cirúrgica de pergunta + alternativas no Quizizz/Wayground. Heurísticas centrais, OCR opcional, filtro de ruído e modo manual. Cole no Tampermonkey como user script (.user.js).
 // @match        *://*/*
 // @grant        none
 // @icon         https://i.imgur.com/7YbX5Jx.png
@@ -12,135 +11,125 @@
 (function () {
   'use strict';
 
-  /******************************************************************
-   * CONFIGURAÇÕES
-   ******************************************************************/
+  /**
+   * SANTOS.meczada v10
+   * - Extração cirúrgica do container da pergunta
+   * - Separação enunciado/opções
+   * - Heurística central (viewport) + seletores específicos
+   * - Filtros anti-ruído e sanitização
+   * - MutationObserver + polling + modo manual de captura (clique)
+   * - OCR opcional (usa Tesseract.js se ativado)
+   *
+   * Instalação: criar novo userscript no Tampermonkey e colar este arquivo.
+   *
+   * Observações:
+   * - OCR está DESATIVADO por padrão (pode causar CORS / tempo de carregamento).
+   * - Se quiser ativar OCR, ajuste CFG.enableOCR = true.
+   */
+
   const CFG = {
-    // Intervalo de sanity-check (além do MutationObserver) — ms
     pollInterval: 1200,
-    // Debounce para reprocessar após mutações — ms
-    debounce: 140,
-    // Tamanho máximo exibido no preview
-    maxPreviewLength: 1200,
-    // Tamanho máximo enviado na URL do Perplexity (margem segura < 2000)
+    debounceMs: 140,
     maxPerplexityChars: 1800,
-    // Limite “duro” para o buffer interno (evitar crescer demais)
+    maxPreviewChars: 1400,
     maxInternalChars: 12000,
-    // Habilita heurística de alvo central na viewport
     useCenterHeuristic: true,
-    // Se true, tenta varrer Shadow DOMs
     traverseShadowRoots: true,
-    // Detectores específicos do Quizizz / Wayground
-    quizizzSelectors: {
+    quizSelectors: {
       question: [
-        '.question-text', '[data-test="question-text"]', '.qz-question', '.q-text',
+        '[data-test="question-text"]', '.question-text', '.qz-question', '.q-text',
         '.question', '.prompt', '[class*="question"]', '[class*="prompt"]',
         '[data-qa*="question"]', '[data-qa*="prompt"]'
       ],
-      options: [
-        // ARIA / roles
-        '[role="listitem"] [role="button"]',
-        '[role="radiogroup"] [role="radio"]',
-        '[role="option"]',
-        '[role="button"]',
-        // Classes comuns
-        '.option', '.qz-option', '.answer', '.choice',
+      option: [
+        '[data-test="option"]', '.option', '.qz-option', '.answer', '.choice',
         '[class*="option"]', '[class*="answer"]', '[class*="choice"]',
-        '[data-test="option"]',
-        // Botões de opção
-        'button', 'li', '[data-idx]', '[data-option-index]'
+        '[role="option"]', '[role="radio"]', 'button', 'li', 'label'
       ],
       containerHints: [
-        '[data-test*="question"]', '[data-qa*="question"]',
-        '.qz-question-container', '.questionContainer', '.qz-question-card',
-        '[class*="question"][class*="container"]'
+        '[data-test*="question"]', '.qz-question-container', '.questionContainer',
+        '.qz-question-card', '[class*="question"][class*="container"]'
       ]
     },
-    // Frases ruído para ignorar (UI, botões de navegação, etc.)
-    noisePhrases: [
-      'join', 'start', 'next', 'previous', 'skip', 'submit',
-      'report', 'feedback', 'settings', 'music', 'sound',
-      'login', 'logout', 'sign in', 'sign up', 'profile',
-      'terms', 'privacy', 'help', 'support'
+    noiseWords: [
+      'next', 'submit', 'skip', 'pause', 'score', 'timer', 'bônus', 'bonus',
+      'your rank', 'progresso', 'opções', 'confirmar', 'responder', 'entrar',
+      'sair', 'login', 'multiplayer', 'offline', 'carregando', 'loading'
     ],
-    // Atalhos de teclado
-    hotkeys: {
-      toggleUI: 'Ctrl+Shift+U',
-      captureManual: 'Ctrl+Shift+M'
+    enableOCR: false, // ativar manualmente se desejar (pode aumentar uso de rede e CPU)
+    tesseractCDN: 'https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js'
+  };
+
+  // -------------------------------------------
+  // UTILITÁRIOS
+  // -------------------------------------------
+  const log = (...args) => console.log('[SANTOS.meczada]', ...args);
+  const now = () => new Date().toLocaleTimeString();
+
+  const isQuizizzHost = () => /quizizz|wayground/i.test(location.hostname) || !!document.querySelector('[class*="quizizz"], [class*="qz-"], [data-test*="quizizz"]');
+
+  const sanitizeSpaces = (s) => (s || '').replace(/\s+/g, ' ').trim();
+
+  // Remove palavras duplicadas consecutivas (suporta letras acentuadas)
+  const removeDoubleWords = (s) => {
+    try {
+      return s.replace(/(\p{L}[\p{L}\p{M}'-]*)(\s+\1)+/giu, '$1');
+    } catch (e) {
+      // fallback se o engine não suportar \p
+      return s.replace(/(\b\w+\b)(\s+\1)+/ig, '$1');
     }
   };
 
-  /******************************************************************
-   * UTILITÁRIOS GERAIS
-   ******************************************************************/
-  const isQuizizzHost = () =>
-    /quizizz|wayground/i.test(location.hostname) ||
-    !!document.querySelector('[class*="quizizz"], [class*="qz-"], [data-test*="quizizz"]');
-
-  const nowStr = () => new Date().toLocaleTimeString();
-
-  const clamp = (str, max) => (str.length > max ? str.slice(0, max) + '…' : str);
-
-  const uniqPush = (arr, txt) => {
-    const t = txt.trim();
-    if (!t) return;
-    if (!arr.includes(t)) arr.push(t);
+  const normalizeText = (s) => {
+    if (!s) return '';
+    let t = s.replace(/\r/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    t = t.replace(/[ \t]+\n/g, '\n');
+    t = removeDoubleWords(t);
+    t = sanitizeSpaces(t);
+    return t;
   };
 
   const isNodeVisible = (el) => {
     if (!el || !(el instanceof Element)) return false;
-    const style = getComputedStyle(el);
+    if (el.closest && el.closest('#santos-meczada-ui')) return false; // não pegar nossa UI
+    const style = window.getComputedStyle(el);
+    if (!style) return false;
     if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return false;
+    if (el.hasAttribute && el.hasAttribute('aria-hidden') && el.getAttribute('aria-hidden') === 'true') return false;
     if (el.offsetWidth <= 0 || el.offsetHeight <= 0) return false;
     if (el.getClientRects().length === 0) return false;
-    // Evitar capturar elementos fora da viewport (muito distantes)
-    const rect = el.getBoundingClientRect();
-    if (rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth) {
-      // Ainda permitimos um pouco fora se for container pai
-      // mas para elementos pequenos isolados, ignore
-      if (rect.height < 5 || rect.width < 5) return false;
+    // evitando elementos completamente fora da viewport
+    const r = el.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) {
+      if (r.width < 8 || r.height < 8) return false;
     }
     return true;
   };
 
   const getTextLike = (el) => {
-    // Prioriza innerText (texto renderizado) e completa com atributos
-    // Útil para botões/ícones com texto acessível
     if (!el) return '';
-    let t = '';
-    // innerText às vezes força reflow, mas é o mais fiel ao que o usuário vê
-    try { t = (el.innerText || '').trim(); } catch {}
-    if (!t) {
-      // como fallback, textContent
-      try { t = (el.textContent || '').trim(); } catch {}
+    // evita inputs vazios
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      const p = (el.placeholder || el.value || '').toString().trim();
+      return p;
     }
-    // enriquecer com acessibilidade/alt/title quando fizer sentido
-    const aria = (el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby'))) || '';
-    const title = (el.getAttribute && el.getAttribute('title')) || '';
-    const alt = (el.getAttribute && el.getAttribute('alt')) || '';
-    // evita duplicar se já contido
-    [aria, title, alt].forEach((a) => {
-      if (a && !t.toLowerCase().includes(a.trim().toLowerCase())) t += (t ? ' ' : '') + a.trim();
-    });
-    return t.replace(/\s+/g, ' ').trim();
+    let t = '';
+    try { t = el.innerText || ''; } catch (e) { try { t = el.textContent || ''; } catch (e2) { t = ''; } }
+    t = (t || '').trim();
+    // complementar com aria-label/title/alt
+    try {
+      const aria = el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) || '';
+      const title = el.getAttribute && el.getAttribute('title') || '';
+      const alt = el.getAttribute && el.getAttribute('alt') || '';
+      [aria, title, alt].forEach(a => { if (a && !t.includes(a)) t += (t ? ' ' : '') + a; });
+    } catch (_) {}
+    return normalizeText(t);
   };
 
-  const isNoise = (txt) => {
-    const s = txt.toLowerCase();
-    return CFG.noisePhrases.some((n) => s.includes(n));
-  };
-
-  const byTextLengthDesc = (a, b) => (b.text.length - a.text.length);
-
-  const safeQueryAll = (root, sel) => {
-    try { return Array.from(root.querySelectorAll(sel)); } catch { return []; }
-  };
-
-  // Caminha Shadow DOM de forma controlada
-  const walkAllElements = (root = document) => {
+  // percorre shadowRoots se permitido
+  const walkElements = (root = document) => {
     const out = [];
     const stack = [root];
-
     while (stack.length) {
       const node = stack.pop();
       let children = [];
@@ -149,574 +138,502 @@
       } else if (node instanceof Element) {
         out.push(node);
         children = Array.from(node.children || []);
-        // Shadow DOM
-        if (CFG.traverseShadowRoots && node.shadowRoot) {
-          stack.push(node.shadowRoot);
-        }
+        if (CFG.traverseShadowRoots && node.shadowRoot) stack.push(node.shadowRoot);
       }
       for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
     }
     return out;
   };
 
-  // Tenta entrar em iframes do mesmo domínio
-  const getSameOriginFrames = () => {
-    const frames = [];
-    document.querySelectorAll('iframe').forEach((ifr) => {
+  // tentativa de carregar Tesseract dinamicamente (se necessário)
+  const loadTesseract = () => {
+    return new Promise((resolve, reject) => {
+      if (!CFG.enableOCR) return resolve(null);
+      if (window.Tesseract) return resolve(window.Tesseract);
+      const s = document.createElement('script');
+      s.src = CFG.tesseractCDN;
+      s.onload = () => setTimeout(() => resolve(window.Tesseract), 200);
+      s.onerror = (e) => reject(e);
+      document.head.appendChild(s);
+    });
+  };
+
+  // -------------------------------------------
+  // DETECÇÃO DO CONTAINER ATIVO (PERGUNTA)
+  // -------------------------------------------
+  const findBySelectors = (selectors) => {
+    for (const sel of selectors) {
       try {
-        if (ifr.contentDocument && ifr.contentWindow && ifr.contentDocument.location.host === location.host) {
-          frames.push(ifr.contentDocument);
-        }
-      } catch (_) { /* cross-origin - ignorar */ }
-    });
-    return frames;
+        const el = document.querySelector(sel);
+        if (el && isNodeVisible(el) && getTextLike(el).length >= 4) return el;
+      } catch (e) { /* ignore invalid selectors */ }
+    }
+    return null;
   };
 
-  /******************************************************************
-   * EXTRAÇÃO — HEURÍSTICA CENTRAL + SELECTORES QUIZIZZ
-   ******************************************************************/
-  const captureQuizizz = () => {
-    const result = { question: '', options: [], context: [] };
-
-    // 1) Primeiro, tente selecionar diretamente pelos seletores conhecidos
-    let qEl = null;
-    for (const sel of CFG.quizizzSelectors.question) {
-      qEl = document.querySelector(sel);
-      if (qEl && isNodeVisible(qEl) && getTextLike(qEl).length > 4) break;
-      qEl = null;
+  const candidatesFromSelectors = (selectors) => {
+    let nodes = [];
+    for (const sel of selectors) {
+      try {
+        const n = Array.from(document.querySelectorAll(sel));
+        if (n && n.length) nodes = nodes.concat(n);
+      } catch (e) {}
     }
-
-    // 2) Se não achou pergunta, tente heurística de “bloco central”
-    if (!qEl && CFG.useCenterHeuristic) {
-      qEl = guessCenterQuestion();
-    }
-
-    if (qEl) {
-      result.question = getTextLike(qEl);
-      // procurar um container pai plausível para achar opções
-      const container = findLikelyQuestionContainer(qEl);
-      const opts = collectOptionsFrom(container || document);
-      if (opts.length) result.options = opts;
-      // contexto adicional ao redor (instruções, mídia, dicas)
-      const ctx = collectContextAround(qEl, container);
-      if (ctx.length) result.context = ctx;
-    }
-
-    // 3) Fallback: se não pegou nada, faz varredura mais ampla do DOM visível
-    if (!result.question && result.options.length === 0) {
-      const broad = broadVisibleSweep();
-      result.question = broad.main || '';
-      result.options = broad.opts || [];
-      result.context = broad.ctx || [];
-    }
-
-    return result;
+    // filtrar visíveis
+    nodes = nodes.filter(isNodeVisible);
+    return nodes;
   };
 
-  const guessCenterQuestion = () => {
-    // Busca elementos visíveis próximos do centro da viewport, com bastante texto
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-
+  const centerHeuristicPick = () => {
+    const cx = innerWidth / 2, cy = innerHeight / 2;
     const candidates = [];
-    walkAllElements().forEach((el) => {
+    walkElements().forEach(el => {
       if (!isNodeVisible(el)) return;
       const txt = getTextLike(el);
-      if (txt.length < 8) return;
+      if (!txt || txt.length < 6) return;
       const r = el.getBoundingClientRect();
-      // distância do centro da viewport ao centro do elemento
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const dist = Math.hypot(centerX - cx, centerY - cy);
-      // prioriza quem tem texto “grande” e está perto do centro
-      const score = (txt.length * 1.0) / Math.max(24, dist);
-      candidates.push({ el, text: txt, score });
+      const ex = r.left + r.width/2, ey = r.top + r.height/2;
+      const dist = Math.hypot(cx - ex, cy - ey) + 1;
+      const score = (txt.length) / (dist);
+      candidates.push({el, score, txt, area: r.width * r.height});
     });
-
-    candidates.sort((a, b) => b.score - a.score);
-    const pick = candidates[0] && candidates[0].score > 0 ? candidates[0].el : null;
-    return pick;
+    if (!candidates.length) return null;
+    candidates.sort((a,b) => b.score - a.score);
+    return candidates[0].el;
   };
 
-  const findLikelyQuestionContainer = (qEl) => {
-    // Sobe na árvore para encontrar um container com “cara” de card de questão
-    if (!qEl) return null;
-    const HINTS = CFG.quizizzSelectors.containerHints;
-    let el = qEl;
-    for (let i = 0; i < 6 && el; i++) {
-      for (const h of HINTS) {
-        if (el.matches && el.matches(h)) return el;
+  const ascendToQuestionCard = (el) => {
+    if (!el) return null;
+    let node = el;
+    for (let i = 0; i < 6 && node; i++) {
+      if (node.matches) {
+        const cls = node.className || '';
+        if (/(question|card|qz|prompt|container)/i.test(cls)) return node;
       }
-      el = el.parentElement;
+      node = node.parentElement;
     }
-    // Se não achou, retorna o pai mais próximo com largura decente
-    el = qEl.parentElement;
-    while (el && el.parentElement && el.getBoundingClientRect) {
-      const r = el.getBoundingClientRect();
-      if (r.width > innerWidth * 0.3) return el;
-      el = el.parentElement;
+    // fallback: climb until width > 30% viewport
+    node = el.parentElement;
+    while (node && node.parentElement) {
+      const r = node.getBoundingClientRect();
+      if (r.width > innerWidth * 0.28) return node;
+      node = node.parentElement;
     }
-    return qEl.parentElement || null;
+    return el.parentElement || el;
   };
 
-  const collectOptionsFrom = (root) => {
+  // -------------------------------------------
+  // EXTRAÇÃO DE PERGUNTA E OPÇÕES
+  // -------------------------------------------
+  const getOptionsWithin = (root) => {
+    if (!root) return [];
     const found = [];
-    if (!root) return found;
-
-    const addOption = (el) => {
-      if (!isNodeVisible(el)) return;
-      const txt = getTextLike(el);
-      if (!txt || txt.length < 1) return;
-      if (isNoise(txt)) return;
-      // Evita capturar a própria pergunta como opção
-      if (/^pergunta[:\s]/i.test(txt)) return;
-      uniqPush(found, txt);
+    const pushIf = (el) => {
+      if (!el || !isNodeVisible(el)) return;
+      const t = getTextLike(el);
+      if (!t || t.length < 1) return;
+      if (isNoiseText(t)) return;
+      // evitar textos idênticos ao container (ex.: titulo repetido)
+      if (t.length > 400) return;
+      found.push({el, text: t});
     };
 
-    // 1) Roles ARIA comuns em opções
-    safeQueryAll(root, '[role="option"], [role="radio"], [role="checkbox"], [role="button"]').forEach(addOption);
+    // procurar por roles e seletores comuns primeiro
+    const roleCandidates = safeQueryAll(root, '[role="option"], [role="radio"], [role="checkbox"], [data-test="option"]');
+    roleCandidates.forEach(pushIf);
 
-    // 2) Classes comuns no Quizizz
-    CFG.quizizzSelectors.options.forEach((sel) => {
-      safeQueryAll(root, sel).forEach((el) => {
-        // Evitar capturar pais grandes; preferir filhos de texto
-        if (el.children && el.children.length > 0) {
-          // Prioriza nós folha com texto
-          const leafTextNodes = Array.from(el.querySelectorAll('*')).filter(isNodeVisible).map(getTextLike).filter(Boolean);
-          if (leafTextNodes.length) {
-            leafTextNodes.forEach((t) => uniqPush(found, t));
-          } else {
-            addOption(el);
-          }
-        } else {
-          addOption(el);
-        }
-      });
+    // seletores configurados
+    CFG.quizSelectors.option.forEach(sel => {
+      safeQueryAll(root, sel).forEach(pushIf);
     });
 
-    // 3) Itens de listas/labels/botões
-    safeQueryAll(root, 'li, label, button').forEach(addOption);
+    // labels/buttons/li como fallback
+    safeQueryAll(root, 'li, label, button').forEach(pushIf);
 
-    // 4) Filtro final: remove duplicatas por lowercase normalizado
+    // ordenar por posição Y (top) para garantir ordem A,B,C...
     const dedup = [];
     const seen = new Set();
-    found.forEach((t) => {
-      const k = t.toLowerCase().replace(/\s+/g, ' ').trim();
-      if (!seen.has(k)) { seen.add(k); dedup.push(t); }
+    found.sort((a,b) => (a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top));
+    found.forEach(it => {
+      const key = it.text.trim().toLowerCase();
+      if (!seen.has(key)) { seen.add(key); dedup.push(it.text.trim()); }
     });
-
-    // Heurística: corta opções muito longas (provável contexto)
-    const final = dedup.filter((t) => t.length <= 300);
-    return final.slice(0, 12); // segura: dificilmente haverá > 12 opções
+    // filtrar ruídos curtos e números
+    return dedup.filter(t => t && t.length > 1).slice(0, 12);
   };
 
-  const collectContextAround = (qEl, container) => {
-    const ctx = [];
-    const scope = container || qEl.parentElement || document.body;
-    // elementos irmãos e títulos adjacentes
-    const neighbors = [];
-    if (qEl && qEl.parentElement) {
-      Array.from(qEl.parentElement.children).forEach((sib) => { if (sib !== qEl) neighbors.push(sib); });
+  // querySelectorAll seguro
+  function safeQueryAll(root, selector) {
+    try { return Array.from((root || document).querySelectorAll(selector)); } catch (e) { return []; }
+  }
+
+  const isNoiseText = (txt) => {
+    if (!txt) return true;
+    const s = txt.toLowerCase();
+    for (const w of CFG.noiseWords) if (s.includes(w)) return true;
+    // muitas quebras de linha ou só números -> ruído
+    if (/^\d+[:.]?$/.test(s) && s.length < 6) return true;
+    if (/^[\W_]+$/.test(s)) return true;
+    return false;
+  };
+
+  const extractFromContainer = async (container) => {
+    if (!container) return { question: '', options: [], context: [] };
+    // localizar um sub-elemento que claramente pareça ser o texto da pergunta
+    let qEl = findBySelectorsWithin(container, CFG.quizSelectors.question);
+    if (!qEl && CFG.useCenterHeuristic) {
+      // tentar heurística local dentro do container
+      const cand = centerHeuristicPick();
+      if (cand && container.contains(cand)) qEl = cand;
     }
-    // candidatos: instruções, dicas, subheadings
-    const candidates = [
-      ...neighbors,
-      ...safeQueryAll(scope, 'h1,h2,h3,h4,h5,h6, small, em, i, b, strong, figcaption, caption, [aria-live]'),
-    ].filter(isNodeVisible);
-
-    candidates.forEach((el) => {
-      const t = getTextLike(el);
-      if (t && t.length >= 6 && !isNoise(t)) uniqPush(ctx, t);
-    });
-
-    // corta contexto demasiado
-    return ctx.slice(0, 10);
-  };
-
-  const broadVisibleSweep = () => {
-    // Varredura completa do DOM visível (inclui Shadow DOM e frames same-origin)
-    const texts = [];
-    walkAllElements().forEach((el) => {
-      if (!isNodeVisible(el)) return;
-      const t = getTextLike(el);
-      if (!t || t.length < 2) return;
-      if (isNoise(t)) return;
-      uniqPush(texts, t);
-    });
-    // também varre iframes same-origin
-    getSameOriginFrames().forEach((doc) => {
-      Array.from(doc.querySelectorAll('*')).forEach((el) => {
+    if (!qEl) {
+      // fallback: maior texto dentro do container
+      const texts = [];
+      Array.from(container.querySelectorAll('*')).forEach(el => {
         if (!isNodeVisible(el)) return;
         const t = getTextLike(el);
-        if (t && t.length > 2 && !isNoise(t)) uniqPush(texts, t);
+        if (t && t.length > 8) texts.push({el, t, len: t.length});
       });
+      texts.sort((a,b)=>b.len - a.len);
+      qEl = texts[0] && texts[0].el;
+    }
+
+    let question = qEl ? getTextLike(qEl) : '';
+    // se a pergunta parecer pequena, tente imagens + OCR (se habilitado)
+    if ((!question || question.length < 8) && CFG.enableOCR) {
+      const imgs = Array.from(container.querySelectorAll('img')).filter(isNodeVisible);
+      if (imgs.length) {
+        try {
+          const tesseract = await loadTesseract();
+          if (tesseract && window.Tesseract && typeof Tesseract.recognize === 'function') {
+            // tentaremos o primeiro img
+            const txtOCR = await ocrImage(imgs[0]);
+            if (txtOCR && txtOCR.length > 10) question = normalizeText(question + ' ' + txtOCR);
+          }
+        } catch (e) {
+          log('OCR failed', e);
+        }
+      }
+    }
+
+    const options = getOptionsWithin(container);
+    // caso não haja opções detectadas, procurar nas proximidades (ancestrais/irmãos)
+    if (!options.length) {
+      let node = container.parentElement;
+      let tries = 0;
+      while (node && tries < 4 && !options.length) {
+        const o = getOptionsWithin(node);
+        if (o.length) { options.push(...o); break; }
+        node = node.parentElement; tries++;
+      }
+    }
+
+    // contexto adjacente (captura instruções/titulos menores)
+    const ctx = [];
+    const sibs = Array.from((qEl && qEl.parentElement ? qEl.parentElement.children : [])).filter(el => el !== qEl);
+    sibs.forEach(s => {
+      if (!isNodeVisible(s)) return;
+      const t = getTextLike(s);
+      if (t && t.length > 6 && !isNoiseText(t)) ctx.push(t);
     });
 
-    // montar “pergunta principal” como o maior bloco de texto; opções como strings curtas
-    const sorted = texts.map(t => ({ text: t })).sort(byTextLengthDesc);
-    const main = (sorted[0] && sorted[0].text) || '';
-    const opts = texts.filter(t => t.length > 0 && t.length <= 200).slice(0, 12);
-    const ctx  = texts.filter(t => t.length > 200 && t !== main).slice(0, 8);
-
-    return { main, opts, ctx };
-    // Obs.: esta é uma última linha de defesa — o ideal é a detecção específica acima.
+    return { question: normalizeText(question), options: options.map(normalizeText), context: ctx.slice(0,6) };
   };
 
-  /******************************************************************
-   * FORMATAÇÃO PARA PREVIEW / PERPLEXITY
-   ******************************************************************/
-  const toStructuredText = ({ question, options, context }) => {
-    let out = [];
-    out.push(`# ${document.title || 'Sem título'}`);
-    out.push(`**URL:** ${location.href}`);
+  function findBySelectorsWithin(root, selectors) {
+    for (const s of selectors) {
+      try {
+        const el = (root || document).querySelector(s);
+        if (el && isNodeVisible(el) && getTextLike(el).length > 3) return el;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  // OCR helper (may fail due to CORS)
+  async function ocrImage(imgEl) {
+    if (!imgEl) return '';
+    try {
+      // tentar desenhar a imagem em canvas (pode taint se CORS bloquear)
+      const canvas = document.createElement('canvas');
+      const w = Math.min(imgEl.naturalWidth || imgEl.width || 800, 1600);
+      const h = Math.min(imgEl.naturalHeight || imgEl.height || 600, 1600);
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgEl, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/png');
+      if (!window.Tesseract) await loadTesseract();
+      if (!window.Tesseract) return '';
+      const res = await Tesseract.recognize(dataUrl, 'por', { logger: m => log('OCR', m) });
+      return res && res.data && res.data.text ? normalizeText(res.data.text) : '';
+    } catch (e) {
+      log('OCR error', e);
+      return '';
+    }
+  }
+
+  // -------------------------------------------
+  // CONSTRUÇÃO DO TEXTO FINAL PARA O PREVIEW / PERPLEXITY
+  // -------------------------------------------
+  const toStructuredString = ({ question, options, context }) => {
+    const parts = [];
+    parts.push(`# ${document.title || 'Sem título'}`);
+    parts.push(`**URL:** ${location.href}`);
     if (question) {
-      out.push('');
-      out.push('## PERGUNTA:');
-      out.push(question);
+      parts.push('');
+      parts.push('## PERGUNTA:');
+      parts.push(question);
     }
     if (options && options.length) {
-      out.push('');
-      out.push('## OPÇÕES:');
-      options.forEach((opt, i) => out.push(`${String.fromCharCode(65 + i)}. ${opt}`));
+      parts.push('');
+      parts.push('## OPÇÕES:');
+      options.forEach((o, i) => {
+        const label = String.fromCharCode(65 + i);
+        parts.push(`${label}) ${o}`);
+      });
     }
     if (context && context.length) {
-      out.push('');
-      out.push('## CONTEXTO:');
-      context.forEach((c) => out.push(`- ${c}`));
+      parts.push('');
+      parts.push('## CONTEXTO:');
+      context.forEach(c => parts.push(`- ${c}`));
     }
-    let str = out.join('\n');
-    if (str.length > CFG.maxInternalChars) {
-      str = str.slice(0, CFG.maxInternalChars) + '\n\n… [Conteúdo truncado]';
-    }
-    return str;
+    let out = parts.join('\n');
+    if (out.length > CFG.maxInternalChars) out = out.slice(0, CFG.maxInternalChars) + '\n\n… [truncated]';
+    return out;
   };
 
-  /******************************************************************
-   * UI — PAINEL FLOANTE + MODO MANUAL
-   ******************************************************************/
-  let UI = null;
+  // -------------------------------------------
+  // UI: preview, botões (Enviar Perplexity, copiar, captura manual)
+  // -------------------------------------------
   let lastPayload = '';
-  let debTimer = null;
+  let debounceTimer = null;
+  let observerHandle = null;
+  let pollHandle = null;
 
   const buildUI = () => {
     if (document.getElementById('santos-meczada-ui')) return;
-
-    UI = document.createElement('div');
-    UI.id = 'santos-meczada-ui';
-    Object.assign(UI.style, {
+    const ui = document.createElement('div');
+    ui.id = 'santos-meczada-ui';
+    Object.assign(ui.style, {
       position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      zIndex: 999999,
+      right: '18px',
+      bottom: '18px',
       width: '380px',
-      maxHeight: '82vh',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'linear-gradient(135deg, #1a2980, #26d0ce)',
-      color: '#fff',
-      borderRadius: '14px',
-      boxShadow: '0 12px 38px rgba(0,0,0,.35)',
-      border: '1px solid rgba(255,255,255,.25)',
+      zIndex: 2147483647,
+      fontFamily: 'Segoe UI, system-ui, Arial, sans-serif',
+      boxShadow: '0 10px 24px rgba(0,0,0,.45)',
+      borderRadius: '12px',
       overflow: 'hidden',
-      fontFamily: 'Segoe UI, system-ui, Arial, sans-serif'
+      border: '1px solid rgba(255,255,255,.12)',
+      background: 'linear-gradient(180deg,#0b3450,#00a6d6)',
+      color: '#fff'
     });
 
-    UI.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(0,0,0,.12)">
-        <div style="display:flex;align-items:center;gap:8px;font-weight:600">
-          <span style="font-size:18px">🎯 SANTOS.meczada</span>
-          <span id="smt-platform" style="font-size:12px;background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px">
-            ${isQuizizzHost() ? 'Quizizz' : 'Auto'}
-          </span>
-          <span id="smt-status" style="font-size:12px;background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px">
-            <span class="spin">⟳</span> Ativo
-          </span>
+    ui.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(0,0,0,.12)">
+        <div style="display:flex;gap:8px;align-items:center;font-weight:700">
+          <span>🎯 SANTOS.meczada</span>
+          <span id="santos-host" style="font-size:12px;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.08);color:#fff">${isQuizizzHost() ? 'Quizizz' : 'Auto'}</span>
         </div>
         <div>
-          <button id="smt-min" title="Minimizar" style="background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.9">–</button>
-          <button id="smt-close" title="Fechar" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.9">×</button>
+          <button id="santos-close" title="Fechar" style="border:none;background:transparent;color:#fff;font-size:16px;cursor:pointer">×</button>
         </div>
       </div>
-      <div id="smt-body" style="display:flex;flex-direction:column;gap:10px;padding:12px">
-        <div id="smt-preview" style="flex:1;background:rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;overflow:auto;font-family:Consolas,Monaco,monospace;font-size:13px;white-space:pre-wrap;max-height:300px">
-          <div style="opacity:.8;text-align:center;padding:24px 0">Monitorando conteúdo…</div>
+      <div id="santos-body" style="padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div id="santos-preview" style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px;max-height:300px;overflow:auto;font-family:monospace;font-size:13px;white-space:pre-wrap">
+          <div style="opacity:.9;text-align:center;padding:20px">Aguardando captura...</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button id="smt-perp" style="flex:1;padding:10px 12px;border:none;border-radius:8px;background:#9c27b0;color:#fff;font-weight:700;cursor:pointer">Enviar para Perplexity</button>
-          <button id="smt-copy" style="padding:10px 12px;border:none;border-radius:8px;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer">Copiar</button>
-          <button id="smt-manual" style="padding:10px 12px;border:none;border-radius:8px;background:#0069c0;color:#fff;font-weight:700;cursor:pointer">Capturar área</button>
+        <div style="display:flex;gap:8px">
+          <button id="santos-perplex" style="flex:1;background:#9c27b0;border:none;border-radius:8px;padding:9px;color:#fff;font-weight:700;cursor:pointer">Enviar Perplexity</button>
+          <button id="santos-copy" style="background:#2e7d32;border:none;border-radius:8px;padding:9px;color:#fff;font-weight:700;cursor:pointer">Copiar</button>
+          <button id="santos-manual" style="background:#1976d2;border:none;border-radius:8px;padding:9px;color:#fff;font-weight:700;cursor:pointer">Capturar área</button>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;opacity:.9">
-          <div><b>Atalhos:</b> ${CFG.hotkeys.toggleUI} (UI), ${CFG.hotkeys.captureManual} (Área)</div>
-        </div>
-      </div>
-      <div id="smt-mini" style="display:none;padding:10px;text-align:center">
-        <button id="smt-expand" style="width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.22);color:#fff;cursor:pointer">⤢</button>
       </div>
     `;
-    document.body.appendChild(UI);
-
-    document.getElementById('smt-close').onclick = () => UI.remove();
-    document.getElementById('smt-min').onclick = () => {
-      document.getElementById('smt-body').style.display = 'none';
-      document.getElementById('smt-mini').style.display = 'block';
-      UI.style.width = '84px';
-    };
-    document.getElementById('smt-expand').onclick = () => {
-      document.getElementById('smt-mini').style.display = 'none';
-      document.getElementById('smt-body').style.display = 'flex';
-      UI.style.width = '380px';
-      updateNow(); // força atualização
-    };
-
-    document.getElementById('smt-perp').onclick = () => {
-      let q = lastPayload || '';
-      if (!q) { toast('Nada para enviar.'); return; }
+    document.body.appendChild(ui);
+    document.getElementById('santos-close').onclick = () => ui.remove();
+    document.getElementById('santos-perplex').onclick = () => {
+      if (!lastPayload) return toast('Nada capturado');
+      let q = lastPayload;
       if (q.length > CFG.maxPerplexityChars) q = q.slice(0, CFG.maxPerplexityChars) + '…';
       const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(q)}`;
       window.open(url, '_blank');
-      toast('Enviado ao Perplexity!');
     };
-    document.getElementById('smt-copy').onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(lastPayload || '');
-        toast('Copiado!');
-      } catch {
-        toast('Falha ao copiar.');
-      }
+    document.getElementById('santos-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(lastPayload || ''); toast('Copiado!'); } catch { toast('Falha ao copiar'); }
     };
-    document.getElementById('smt-manual').onclick = enableManualCapture;
-
-    // mover UI (drag)
-    const header = UI.firstElementChild;
-    header.style.cursor = 'move';
-    let sx=0, sy=0, ox=0, oy=0, dragging=false;
-    header.addEventListener('mousedown', (e) => {
-      dragging = true; sx = e.clientX; sy = e.clientY;
-      const r = UI.getBoundingClientRect(); ox = r.left; oy = r.top;
-      document.addEventListener('mousemove', onDrag);
-      document.addEventListener('mouseup', onUp);
-    });
-    const onDrag = (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - sx, dy = e.clientY - sy;
-      UI.style.left = (ox + dx) + 'px';
-      UI.style.top  = (oy + dy) + 'px';
-      UI.style.right = 'auto'; UI.style.bottom = 'auto';
-    };
-    const onUp = () => {
-      dragging = false;
-      document.removeEventListener('mousemove', onDrag);
-      document.removeEventListener('mouseup', onUp);
-    };
+    document.getElementById('santos-manual').onclick = () => enableManualCapture();
   };
+
+  const updatePreviewUI = (text) => {
+    const box = document.getElementById('santos-preview');
+    if (!box) return;
+    let view = text || '';
+    if (view.length > CFG.maxPreviewChars) view = view.slice(0, CFG.maxPreviewChars) + '\n…';
+    // highlight headings
+    view = view.replace(/^# .+$/m, m => `<b style="color:#ffeb3b">${m}</b>`);
+    view = view.replace(/^## (PERGUNTA|OPÇÕES|CONTEXTO):$/gm, m => `<b style="color:#80deea">${m}</b>`);
+    box.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:700">Conteúdo</span><small style="opacity:.9">${now()}</small></div><div>${escapeHtml(view)}</div>`;
+  };
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
   const toast = (msg) => {
     const n = document.createElement('div');
-    Object.assign(n.style, {
-      position: 'fixed', bottom: '90px', right: '26px', zIndex: 1000000,
-      background: 'rgba(0,0,0,.85)', color: '#fff', padding: '10px 14px',
-      borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,.35)', fontSize: '13px'
-    });
-    n.textContent = msg;
-    document.body.appendChild(n);
-    setTimeout(() => n.remove(), 1600);
+    Object.assign(n.style, {position:'fixed',right:'26px',bottom:'120px',zIndex:2147483647,background:'rgba(0,0,0,.85)',color:'#fff',padding:'10px 14px',borderRadius:'8px',fontSize:'13px'});
+    n.textContent = msg; document.body.appendChild(n); setTimeout(()=>n.remove(),1600);
   };
 
-  const updatePreview = (txt) => {
-    const box = document.getElementById('smt-preview');
-    if (!box) return;
-    let view = txt || '';
-    if (view.length > CFG.maxPreviewLength) view = clamp(view, CFG.maxPreviewLength);
-
-    // destacar títulos
-    view = view
-      .replace(/^# .+$/m, (m)=>`<span style="color:#ffeb3b;font-weight:700">${m}</span>`)
-      .replace(/^## (PERGUNTA|OPÇÕES|CONTEXTO):$/gm, (m)=>`<span style="color:#80deea;font-weight:700">${m}</span>`);
-
-    box.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <b style="color:#ffeb3b">Conteúdo:</b>
-        <span style="font-size:11px;background:rgba(255,255,255,.22);padding:1px 8px;border-radius:10px">${nowStr()}</span>
-      </div>
-      <div>${view}</div>
-    `;
-  };
-
-  /******************************************************************
-   * MODO MANUAL — clicar em um bloco para capturar
-   ******************************************************************/
-  let manualMode = false;
+  // -------------------------------------------
+  // MODO MANUAL: clique num bloco para capturar
+  // -------------------------------------------
+  let manualActive = false;
   let manualOverlay = null;
 
   const enableManualCapture = () => {
-    if (manualMode) return disableManualCapture();
-    manualMode = true;
-    toast('Clique em um bloco para capturar. (Esc para cancelar)');
+    if (manualActive) return disableManualCapture();
+    manualActive = true;
+    toast('Clique no bloco desejado (Esc para cancelar)');
     manualOverlay = document.createElement('div');
-    Object.assign(manualOverlay.style, {
-      position: 'fixed', inset: 0, zIndex: 999998, background: 'transparent', cursor: 'crosshair'
-    });
+    Object.assign(manualOverlay.style, {position:'fixed',inset:0,zIndex:2147483646,cursor:'crosshair',background:'transparent'});
     document.body.appendChild(manualOverlay);
+    const hover = document.createElement('div');
+    Object.assign(hover.style, {position:'fixed',border:'2px solid #00e5ff',background:'rgba(0,229,255,.06)',pointerEvents:'none',zIndex:2147483647});
+    document.body.appendChild(hover);
 
-    const hoverBox = document.createElement('div');
-    Object.assign(hoverBox.style, {
-      position: 'fixed', border: '2px solid #00e5ff', background: 'rgba(0,229,255,.08)', pointerEvents: 'none', zIndex: 999999
-    });
-    document.body.appendChild(hoverBox);
-
-    const move = (e) => {
+    const onMove = (e) => {
       const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (!el || !isNodeVisible(el)) { hoverBox.style.display='none'; return; }
+      if (!el || !isNodeVisible(el)) { hover.style.display='none'; return; }
       const r = el.getBoundingClientRect();
-      Object.assign(hoverBox.style, {
-        display: 'block', left: r.left+'px', top: r.top+'px', width: r.width+'px', height: r.height+'px'
-      });
+      Object.assign(hover.style, {display:'block',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
     };
-    const click = (e) => {
+    const onClick = async (e) => {
+      e.preventDefault(); e.stopPropagation();
       const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (!el) { disableManualCapture(); return; }
-      e.preventDefault();
-      e.stopPropagation();
-      const container = findLikelyQuestionContainer(el) || el;
-      const question = getTextLike(el).length >= 6 ? getTextLike(el) : (getTextLike(container) || '');
-      const options = collectOptionsFrom(container);
-      const context = collectContextAround(el, container);
-      const payload = toStructuredText({ question, options, context });
-
-      lastPayload = payload;
-      updatePreview(payload);
-      toast('Bloco capturado.');
-
       disableManualCapture();
+      if (!el) return;
+      const container = ascendToQuestionCard(el) || el;
+      const out = await extractFromContainer(container);
+      lastPayload = toStructuredString(out);
+      updatePreviewUI(lastPayload);
+      toast('Capturado manualmente');
     };
-    const key = (e) => {
-      if (e.key === 'Escape') {
-        disableManualCapture();
-        toast('Cancelado.');
-      }
-    };
+    const onKey = (e) => { if (e.key === 'Escape') { disableManualCapture(); toast('Cancelado'); } };
 
-    manualOverlay.addEventListener('mousemove', move);
-    manualOverlay.addEventListener('click', click, { capture: true });
-    window.addEventListener('keydown', key, { once: true });
+    manualOverlay.addEventListener('mousemove', onMove);
+    manualOverlay.addEventListener('click', onClick, {capture:true});
+    window.addEventListener('keydown', onKey, {once:true});
 
     manualOverlay._cleanup = () => {
-      manualOverlay.removeEventListener('mousemove', move);
-      manualOverlay.removeEventListener('click', click, { capture: true });
-      window.removeEventListener('keydown', key, { once: true });
-      hoverBox.remove();
+      manualOverlay.removeEventListener('mousemove', onMove);
+      manualOverlay.removeEventListener('click', onClick, {capture:true});
+      window.removeEventListener('keydown', onKey, {once:true});
+      hover.remove();
       manualOverlay.remove();
     };
   };
 
   const disableManualCapture = () => {
-    manualMode = false;
+    manualActive = false;
     if (manualOverlay && manualOverlay._cleanup) manualOverlay._cleanup();
     manualOverlay = null;
   };
 
-  /******************************************************************
-   * CICLO DE CAPTURA / OBSERVADORES
-   ******************************************************************/
-  const computePayload = () => {
-    let data;
-    if (isQuizizzHost()) data = captureQuizizz();
-    else {
-      // Fallback genérico: tenta heurística central como “pergunta”
-      const qGuess = guessCenterQuestion();
-      const question = qGuess ? getTextLike(qGuess) : '';
-      const container = qGuess ? findLikelyQuestionContainer(qGuess) : document;
-      const options = collectOptionsFrom(container);
-      const context = collectContextAround(qGuess, container);
-      data = { question, options, context };
+  // -------------------------------------------
+  // LOGICA PRINCIPAL: encontrar container ativo e processar
+  // -------------------------------------------
+  const findActiveQuestionContainer = () => {
+    // 1) tenta seletores diretos
+    let direct = findBySelectors(CFG.quizSelectors.question);
+    if (direct && isNodeVisible(direct)) return ascendToQuestionCard(direct);
+
+    // 2) tenta achar elemento com classe "question" visível e com texto razoável
+    const qCandidates = candidatesFromSelectors(CFG.quizSelectors.question);
+    if (qCandidates.length) {
+      qCandidates.sort((a,b) => getTextLike(b).length - getTextLike(a).length);
+      return ascendToQuestionCard(qCandidates[0]);
     }
-    return toStructuredText(data);
+
+    // 3) heurística central
+    if (CFG.useCenterHeuristic) {
+      const c = centerHeuristicPick();
+      if (c) return ascendToQuestionCard(c);
+    }
+
+    // 4) fallback: maior bloco visível na viewport (com texto)
+    const all = walkElements();
+    const blocks = [];
+    all.forEach(el => {
+      if (!isNodeVisible(el)) return;
+      const t = getTextLike(el);
+      if (!t || t.length < 15) return;
+      const r = el.getBoundingClientRect();
+      const score = t.length * (r.width * r.height) / (1 + Math.hypot(innerWidth/2 - (r.left+r.width/2), innerHeight/2 - (r.top+r.height/2)));
+      blocks.push({el, score, t});
+    });
+    blocks.sort((a,b)=>b.score - a.score);
+    if (blocks.length) return ascendToQuestionCard(blocks[0].el);
+
+    return null;
   };
 
-  const updateNow = () => {
-    const payload = computePayload();
-    if (!payload || !payload.trim()) return;
-    if (payload === lastPayload) return;
-    lastPayload = payload;
-    updatePreview(payload);
-    const st = document.getElementById('smt-status');
-    if (st) st.innerHTML = '✓ Atualizado';
-    setTimeout(()=>{ if (st) st.innerHTML = '<span class="spin">⟳</span> Ativo'; }, 800);
+  // Debounce wrapper
+  const debounce = (fn, ms) => {
+    return function(...args) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fn.apply(this, args), ms);
+    };
   };
 
-  const debouncedUpdate = () => {
-    clearTimeout(debTimer);
-    debTimer = setTimeout(updateNow, CFG.debounce);
+  const processNow = async () => {
+    try {
+      const container = findActiveQuestionContainer();
+      if (!container) return;
+      const out = await extractFromContainer(container);
+      const structured = toStructuredString(out);
+      if (!structured || structured === lastPayload) return;
+      lastPayload = structured;
+      updatePreviewUI(structured);
+    } catch (e) {
+      log('processNow error', e);
+    }
   };
 
+  // -------------------------------------------
+  // Observers: MutationObserver + polling + resize/scroll
+  // -------------------------------------------
   const startObservers = () => {
     stopObservers();
-
-    // MutationObserver (DOM dinâmico)
-    const mo = new MutationObserver(debouncedUpdate);
-    mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true });
-    window._santos_mo = mo;
-
-    // Polling de sanity-check
-    window._santos_poll = setInterval(updateNow, CFG.pollInterval);
-
-    // Recalcula ao redimensionar/scroll (pois a heurística central considera viewport)
-    window.addEventListener('resize', debouncedUpdate);
-    window.addEventListener('scroll', debouncedUpdate, { passive: true });
+    observerHandle = new MutationObserver(debounce(() => processNow(), CFG.debounceMs));
+    observerHandle.observe(document.documentElement || document.body, {childList:true, subtree:true, characterData:true, attributes:true});
+    pollHandle = setInterval(processNow, CFG.pollInterval);
+    window.addEventListener('resize', debounce(processNow, 200));
+    window.addEventListener('scroll', debounce(processNow, 200), {passive:true});
   };
 
   const stopObservers = () => {
-    if (window._santos_mo) { window._santos_mo.disconnect(); window._santos_mo = null; }
-    if (window._santos_poll) { clearInterval(window._santos_poll); window._santos_poll = null; }
-    window.removeEventListener('resize', debouncedUpdate);
-    window.removeEventListener('scroll', debouncedUpdate);
+    if (observerHandle) { observerHandle.disconnect(); observerHandle = null; }
+    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+    window.removeEventListener('resize', debounce(processNow, 200));
+    window.removeEventListener('scroll', debounce(processNow, 200));
   };
 
-  /******************************************************************
-   * HOTKEYS
-   ******************************************************************/
-  const parseChord = (s) => s.toLowerCase().split('+').map(x => x.trim());
-  const hkToggle = parseChord(CFG.hotkeys.toggleUI);
-  const hkManual = parseChord(CFG.hotkeys.captureManual);
-  const matchChord = (e, chord) => {
-    const needCtrl = chord.includes('ctrl');
-    const needShift = chord.includes('shift');
-    const needAlt = chord.includes('alt');
-    const key = chord.find(k => !['ctrl','shift','alt'].includes(k));
-    const kOk = key ? e.key.toLowerCase() === key.toLowerCase() : true;
-    return (!!e.ctrlKey === needCtrl) && (!!e.shiftKey === needShift) && (!!e.altKey === needAlt) && kOk;
-  };
-  window.addEventListener('keydown', (e) => {
-    if (matchChord(e, hkToggle)) {
-      e.preventDefault();
-      const body = document.getElementById('smt-body');
-      const mini = document.getElementById('smt-mini');
-      if (!body || !mini || !UI) return;
-      const compact = body.style.display !== 'none';
-      body.style.display = compact ? 'none' : 'flex';
-      mini.style.display = compact ? 'block' : 'none';
-      UI.style.width = compact ? '84px' : '380px';
-    } else if (matchChord(e, hkManual)) {
-      e.preventDefault();
-      enableManualCapture();
-    }
-  }, true);
-
-  /******************************************************************
-   * INICIALIZAÇÃO
-   ******************************************************************/
-  const init = () => {
+  // -------------------------------------------
+  // START
+  // -------------------------------------------
+  function init() {
     buildUI();
     startObservers();
-    updateNow();
-    console.log(`SANTOS.meczada 9.0 — modo ${isQuizizzHost() ? 'Quizizz' : 'Auto'} pronto.`);
-  };
+    processNow();
+    log('SANTOS.meczada v10 inicializado (host:', isQuizizzHost(), ')');
+  }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(init, 40);
+    setTimeout(init, 80);
   } else {
-    window.addEventListener('DOMContentLoaded', init, { once: true });
+    window.addEventListener('DOMContentLoaded', init, {once:true});
   }
 
 })();
