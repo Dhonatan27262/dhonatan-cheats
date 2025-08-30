@@ -555,7 +555,7 @@ function showWelcomeToasts() {
 
     const criarInterface = () => {
     // Fundo da tela com desfoque
-    fundo = document.createElement('div');
+    const fundo = document.createElement('div');
     Object.assign(fundo.style, {
         position: 'fixed',
         top: 0,
@@ -571,12 +571,12 @@ function showWelcomeToasts() {
     });
 
     // Janela principal
-    janela = document.createElement('div');
+    const janela = document.createElement('div');
     Object.assign(janela.style, {
         position: 'relative',
         backgroundColor: '#111',
         padding: '30px',
-        borderRadius: '20px',
+        borderRadius: '20px', // cantos arredondados
         width: '400px',
         maxWidth: '90%',
         display: 'flex',
@@ -586,34 +586,28 @@ function showWelcomeToasts() {
         overflow: 'hidden'
     });
 
-    // Criação do contorno RGB animado
-    const bordaRGB = document.createElement('div');
-    Object.assign(bordaRGB.style, {
-        position: 'absolute',
-        top: '-3px',
-        left: '-3px',
-        width: 'calc(100% + 6px)',
-        height: 'calc(100% + 6px)',
-        borderRadius: '25px',
-        padding: '3px',
-        background: 'conic-gradient(red, orange, yellow, green, blue, indigo, violet, red)',
-        animation: 'rotateRGB 6s linear infinite',
-        zIndex: '-1',
-    });
-    janela.appendChild(bordaRGB);
+    // ===== Borda RGB fina animada =====
+    janela.style.border = '3px solid';
+    janela.style.borderRadius = '20px';
+    janela.style.borderImageSlice = 1;
 
-    // Keyframes para animação RGB
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes rotateRGB {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(style);
+    let hueRGB = 0;
+    const animarBordaRGB = () => {
+        janela.style.borderImageSource = `linear-gradient(45deg,
+            hsl(${hueRGB},100%,50%),
+            hsl(${(hueRGB + 60) % 360},100%,50%),
+            hsl(${(hueRGB + 120) % 360},100%,50%),
+            hsl(${(hueRGB + 180) % 360},100%,50%),
+            hsl(${(hueRGB + 240) % 360},100%,50%),
+            hsl(${(hueRGB + 300) % 360},100%,50%)
+        )`;
+        hueRGB = (hueRGB + 0.5) % 360;
+        requestAnimationFrame(animarBordaRGB);
+    };
+    animarBordaRGB();
 
     // Container de textos
-    nome = document.createElement('div');
+    const nome = document.createElement('div');
     Object.assign(nome.style, {
         display: 'flex',
         flexDirection: 'column',
@@ -635,8 +629,7 @@ function showWelcomeToasts() {
     let hue = 260;
     let direcao = 1;
     function animarCriador() {
-        const corRoxa = `hsl(${hue}, 100%, 65%)`;
-        textoCriador.style.color = corRoxa;
+        textoCriador.style.color = `hsl(${hue}, 100%, 65%)`;
         hue += 0.3 * direcao;
         if (hue >= 300 || hue <= 260) direcao *= -1;
         requestAnimationFrame(animarCriador);
@@ -647,15 +640,14 @@ function showWelcomeToasts() {
     const textoBaixo = document.createElement('div');
     textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
     aplicarEstiloTexto(textoBaixo, '17px');
+
     let hueBaixo = 0;
     setInterval(() => {
         textoBaixo.style.color = `hsl(${hueBaixo % 360}, 100%, 60%)`;
         hueBaixo++;
     }, 30);
 
-    nome.appendChild(textoCima);
-    nome.appendChild(textoCriador);
-    nome.appendChild(textoBaixo);
+    nome.append(textoCima, textoCriador, textoBaixo);
 
     // Input
     const input = document.createElement('input');
