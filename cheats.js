@@ -614,9 +614,6 @@ function showWelcomeToasts() {
     };
     animarRGB();
 
-    return { fundo, janela };
-};
-
     // Container de textos
     const nome = document.createElement('div');
     Object.assign(nome.style, {
