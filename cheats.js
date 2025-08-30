@@ -569,7 +569,7 @@ function showWelcomeToasts() {
         justifyContent: 'center'
     });
 
-    // Janela principal com borda RGB via ::before
+    // Janela principal do painel
     let janela = document.createElement('div');
     Object.assign(janela.style, {
         width: '350px',
@@ -585,38 +585,15 @@ function showWelcomeToasts() {
         overflow: 'hidden'
     });
 
-    // Criar borda RGB via pseudo-elemento
-    let borda = document.createElement('div');
-    Object.assign(borda.style, {
-        position: 'absolute',
-        top: '-2px', left: '-2px', right: '-2px', bottom: '-2px',
-        borderRadius: '22px', // ligeiramente maior que o painel
-        padding: '2px',
-        background: 'linear-gradient(45deg, red, orange, yellow, green, blue, violet)',
-        zIndex: '-1'
-    });
-    janela.appendChild(borda);
-    fundo.appendChild(janela);
-    document.body.appendChild(fundo);
-
-    // Animação RGB
+    // Função para criar borda RGB fina via box-shadow animado
     let hue = 0;
     const animarRGB = () => {
-        borda.style.background = `linear-gradient(45deg, 
-            hsl(${hue}, 100%, 50%), 
-            hsl(${(hue+60)%360}, 100%, 50%), 
-            hsl(${(hue+120)%360}, 100%, 50%), 
-            hsl(${(hue+180)%360}, 100%, 50%), 
-            hsl(${(hue+240)%360}, 100%, 50%), 
-            hsl(${(hue+300)%360}, 100%, 50%)
-        )`;
+        const color = `hsl(${hue}, 100%, 50%)`;
+        janela.style.boxShadow = `0 0 8px ${color}, 0 0 12px ${color}, 0 0 16px ${color}`;
         hue = (hue + 0.5) % 360;
         requestAnimationFrame(animarRGB);
     };
     animarRGB();
-
-    return { fundo, janela }; // janela continua recebendo scripts normalmente
-};
 
     // Container de textos
     const nome = document.createElement('div');
