@@ -554,7 +554,7 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-    // Fundo da tela
+    // Fundo da tela com desfoque
     fundo = document.createElement('div');
     Object.assign(fundo.style, {
         position: 'fixed',
@@ -562,65 +562,69 @@ function showWelcomeToasts() {
         left: 0,
         width: '100%',
         height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(8px)', // desfoque elegante
         zIndex: '999999',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backdropFilter: 'blur(6px)' // efeito desfoque elegante
     });
 
     // Janela principal
     janela = document.createElement('div');
     Object.assign(janela.style, {
         position: 'relative',
+        backgroundColor: '#111',
+        padding: '30px',
+        borderRadius: '20px',
         width: '400px',
         maxWidth: '90%',
-        padding: '25px',
-        backgroundColor: '#111',
-        borderRadius: '25px', // cantos bem arredondados
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '15px',
-        boxShadow: '0 0 30px rgba(0,0,0,0.8)'
+        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+        overflow: 'hidden'
     });
 
-    // Borda RGB arredondada com animação suave
-    janela.style.border = '5px solid';
-    janela.style.borderRadius = '25px';
-    janela.style.borderImageSlice = 1;
+    // Criação do contorno RGB animado
+    const bordaRGB = document.createElement('div');
+    Object.assign(bordaRGB.style, {
+        position: 'absolute',
+        top: '-3px',
+        left: '-3px',
+        width: 'calc(100% + 6px)',
+        height: 'calc(100% + 6px)',
+        borderRadius: '25px',
+        padding: '3px',
+        background: 'conic-gradient(red, orange, yellow, green, blue, indigo, violet, red)',
+        animation: 'rotateRGB 6s linear infinite',
+        zIndex: '-1',
+    });
+    janela.appendChild(bordaRGB);
 
-    let hueRGB = 0;
-    const animarBordaRGB = () => {
-        janela.style.borderImageSource = `conic-gradient(
-            hsl(${hueRGB}, 100%, 50%),
-            hsl(${(hueRGB+60)%360}, 100%, 50%),
-            hsl(${(hueRGB+120)%360}, 100%, 50%),
-            hsl(${(hueRGB+180)%360}, 100%, 50%),
-            hsl(${(hueRGB+240)%360}, 100%, 50%),
-            hsl(${(hueRGB+300)%360}, 100%, 50%),
-            hsl(${hueRGB}, 100%, 50%)
-        )`;
-        hueRGB = (hueRGB + 0.5) % 360;
-        requestAnimationFrame(animarBordaRGB);
-    };
-    animarBordaRGB();
+    // Keyframes para animação RGB
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes rotateRGB {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
 
-    // Container principal de textos
-    const nome = document.createElement('div');
+    // Container de textos
+    nome = document.createElement('div');
     Object.assign(nome.style, {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
-        textAlign: 'center'
+        gap: '5px'
     });
 
     // Texto superior
     const textoCima = document.createElement('div');
     textoCima.textContent = 'Painel Funções';
-    aplicarEstiloTexto(textoCima, '22px');
+    aplicarEstiloTexto(textoCima, '20px');
 
     // Texto do criador com animação RGB suave
     const textoCriador = document.createElement('div');
@@ -628,123 +632,286 @@ function showWelcomeToasts() {
     aplicarEstiloTexto(textoCriador, '18px');
     textoCriador.style.margin = '5px 0';
 
-    let hueCriador = 260;
+    let hue = 260;
     let direcao = 1;
-    const animarCriador = () => {
-        textoCriador.style.color = `hsl(${hueCriador}, 100%, 65%)`;
-        hueCriador += 0.3 * direcao;
-        if (hueCriador >= 300 || hueCriador <= 260) direcao *= -1;
+    function animarCriador() {
+        const corRoxa = `hsl(${hue}, 100%, 65%)`;
+        textoCriador.style.color = corRoxa;
+        hue += 0.3 * direcao;
+        if (hue >= 300 || hue <= 260) direcao *= -1;
         requestAnimationFrame(animarCriador);
-    };
+    }
     animarCriador();
 
-    // Texto inferior RGB animado
+    // Texto inferior animado
     const textoBaixo = document.createElement('div');
     textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-    aplicarEstiloTexto(textoBaixo, '16px');
+    aplicarEstiloTexto(textoBaixo, '17px');
     let hueBaixo = 0;
     setInterval(() => {
-        textoBaixo.style.color = `hsl(${hueBaixo % 360},100%,60%)`;
+        textoBaixo.style.color = `hsl(${hueBaixo % 360}, 100%, 60%)`;
         hueBaixo++;
     }, 30);
 
-    nome.append(textoCima, textoCriador, textoBaixo);
+    nome.appendChild(textoCima);
+    nome.appendChild(textoCriador);
+    nome.appendChild(textoBaixo);
 
-    // Input de senha estilizado
+    // Input
     const input = document.createElement('input');
     Object.assign(input.style, {
-        padding: '14px 20px',
+        padding: '12px',
         width: '80%',
+        margin: '15px 0',
         background: '#222',
         color: '#fff',
-        border: '2px solid #444',
+        border: '1px solid #444',
         borderRadius: '30px',
         textAlign: 'center',
-        fontSize: '16px',
-        outline: 'none',
-        transition: 'border 0.3s, box-shadow 0.3s'
+        fontSize: '16px'
     });
     input.type = 'password';
     input.placeholder = 'Digite a senha';
-    input.addEventListener('focus', () => input.style.borderColor = '#888');
-    input.addEventListener('blur', () => input.style.borderColor = '#444');
 
-    // Botões com estilo moderno
-    const criarBotaoEstilizado = (btn, bg) => {
-        aplicarEstiloBotao(btn);
-        btn.style.background = bg;
-        btn.style.borderRadius = '25px';
-        btn.style.padding = '10px 18px';
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
-        btn.style.gap = '8px';
-        btn.style.transition = 'transform 0.2s';
-        btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
-        btn.onmouseleave = () => btn.style.transform = 'scale(1)';
-    };
+        // Botão principal "Acessar"
+let botao = document.createElement('button');
+botao.textContent = 'Acessar';
+aplicarEstiloBotao(botao, true);
 
-    const botao = document.createElement('button');
-    botao.textContent = 'Acessar';
-    criarBotaoEstilizado(botao, '#1E90FF');
-
-    const btnDiscord = document.createElement('button');
-    btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:4px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011..."/></svg> Discord';
-    criarBotaoEstilizado(btnDiscord, '#5865F2');
-    btnDiscord.onclick = () => window.open('https://discord.gg/NfVKXRSvYK', '_blank');
-
-    const btnmenor = document.createElement('button');
-    btnmenor.innerHTML = 'Canal ManoRick';
-    criarBotaoEstilizado(btnmenor, 'linear-gradient(135deg, #ff0000, #990000)');
-    btnmenor.onclick = () => window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
-
-    const btncriadorpainel = document.createElement('button');
-    btncriadorpainel.innerHTML = 'Canal MlkMau';
-    criarBotaoEstilizado(btncriadorpainel, 'linear-gradient(135deg, #ff0000, #990000)');
-    btncriadorpainel.onclick = () => window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
-
-    // Container de botões
-    const botoesContainer = document.createElement('div');
-    Object.assign(botoesContainer.style, {
-        display: 'flex',
-        gap: '10px',
-        width: '100%',
-        overflowX: 'auto',
-        paddingBottom: '5px'
-    });
-    botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
-
-    // Mensagem de erro
-    const erro = document.createElement('div');
-    erro.textContent = '❌ Senha incorreta. Clique no botão do Discord para suporte.';
-    Object.assign(erro.style, {
-        display: 'none',
-        color: '#ff5555',
-        marginTop: '10px',
-        fontSize: '14px',
-        textAlign: 'center'
-    });
-
-    // Adiciona tudo à janela
-    janela.append(nome, input, botoesContainer, erro);
-    fundo.append(janela);
-    document.body.append(fundo);
-
-    // Botão "Acessar" lógica (mantida como no seu código original)
-    botao.onclick = async () => {
-        if (!senhasCarregadas) {
-            sendToast('🔒 Carregando sistema de senhas...', 2000);
-            await carregarSenhasRemotas();
-        }
-        if (verificarSenha(input.value)) {
-            senhaLiberada = true;
-            fundo.remove();
-            sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
-            criarMenu();
-        } else {
-            erro.style.display = 'block';
-        }
-    };
+// Botão do Discord
+const btnDiscord = document.createElement('button');
+btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+aplicarEstiloBotao(btnDiscord);
+btnDiscord.style.background = '#5865F2';
+btnDiscord.onclick = () => {
+    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
 };
+
+// Botão do WhatsApp (ao lado do Discord)
+const btnWhatsApp = document.createElement('button');
+btnWhatsApp.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+    </svg> WhatsApp
+`;
+aplicarEstiloBotao(btnWhatsApp);
+btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+btnWhatsApp.onclick = () => {
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+};
+
+// Botão do YouTube Manorick
+const btnmenor = document.createElement('button');
+btnmenor.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal ManoRick
+`;
+aplicarEstiloBotao(btnmenor);
+btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btnmenor.onclick = () => {
+    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+};
+
+// Botão do YouTube Mlk Mau
+const btncriadorpainel = document.createElement('button');
+btncriadorpainel.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal MlkMau
+`;
+aplicarEstiloBotao(btncriadorpainel);
+btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btncriadorpainel.onclick = () => {
+    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+};
+
+// Container para os botões
+const botoesContainer = document.createElement('div');
+Object.assign(botoesContainer.style, {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    gap: '10px',
+    width: '100%',
+    overflowX: 'auto',
+    paddingBottom: '5px',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#888 #333'
+});
+botoesContainer.style.msOverflowStyle = 'auto';
+botoesContainer.style.overflowY = 'hidden';
+botoesContainer.style.flexWrap = 'nowrap';
+
+// Adiciona todos os botões
+botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+
+        const erro = document.createElement('div');
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
+        Object.assign(erro.style, {
+            display: 'none', 
+            color: '#ff5555', 
+            marginTop: '15px',
+            fontSize: '14px'
+        });
+
+        let senhasCarregadas = false;
+
+const carregarSenhasRemotas = async (opts = {}) => {
+  const debug = !!opts.debug;
+  sendToast('🔒 Carregando sistema de senhas...', 2000);
+
+  const primaryParts = [
+    '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
+    '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
+  ];
+
+  const fallbackParts = [
+    '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
+    'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
+  ];
+
+  const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+        t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+    return false;
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const primaryBase64 = rebuildFromParts(primaryParts);
+    const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+    const primaryURL = atob(primaryBase64) + Date.now();
+    const fallbackURL = atob(fallbackBase64) + Date.now();
+
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'senhasRemotas';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    if (typeof window.verificarSenha !== 'function') {
+      console.warn('Script remoto carregado, mas verificarSenha não foi definida. Usando fallback local.');
+      window.verificarSenha = function(senha) {
+        const senhasBackup = [
+          "admin",
+          "Teste24",
+          "adm",
+          "tainara",
+          "vitor",
+          "pablo",
+          "rafael"
+        ];
+        return senhasBackup.includes(String(senha));
+      };
+    }
+
+    senhasCarregadas = true;
+    if (debug) console.info('Senhas remotas carregadas com sucesso.');
+    return true;
+  } catch (err) {
+    console.error('Falha ao carregar senhas remotas:', err);
+
+    window.verificarSenha = function(senha) {
+      const senhasBackup = [
+        "admin",
+        "Teste24",
+        "adm",
+        "tainara",
+        "vitor",
+        "pablo",
+        "rafael"
+      ];
+      return senhasBackup.includes(String(senha));
+    };
+    senhasCarregadas = true;
+
+    sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
+    if (debug) console.error('Debug (erro completo):', err);
+    return false;
+  }
+};
+
+        carregarSenhasRemotas();
+
+        botao.onclick = async () => {
+            if (!senhasCarregadas) {
+                sendToast('🔒 Carregando sistema de senhas...', 2000);
+                await carregarSenhasRemotas();
+            }
+
+            if (verificarSenha(input.value)) {
+                senhaLiberada = true;
+                fundo.remove();
+                sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
+                criarMenu();
+            } else {
+                erro.style.display = 'block';
+            }
+        };
+
+        janela.append(nome, input, botoesContainer, erro);
+        fundo.append(janela);
+        document.body.append(fundo);
+    };
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
