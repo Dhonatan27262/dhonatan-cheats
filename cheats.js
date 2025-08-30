@@ -554,51 +554,42 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-    // Fundo da tela com desfoque
-    const fundo = document.createElement('div');
+    fundo = document.createElement('div');
     Object.assign(fundo.style, {
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(8px)', // desfoque elegante
+        backgroundColor: 'rgba(0,0,0,0.85)',
         zIndex: '999999',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'center'
     });
 
-    // Janela principal
-    const janela = document.createElement('div');
+    // Janela central com borda RGB
+    janela = document.createElement('div');
     Object.assign(janela.style, {
         position: 'relative',
         backgroundColor: '#111',
-        padding: '30px',
-        borderRadius: '20px', // cantos arredondados
-        width: '400px',
-        maxWidth: '90%',
+        borderRadius: '20px',
+        padding: '30px 40px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+        gap: '15px',
+        boxShadow: '0 0 30px rgba(0,0,0,0.7)',
+        border: '4px solid',
         overflow: 'hidden'
     });
 
-    // ===== Borda RGB animada real =====
-    let hueRGB = 0;
+    // Borda RGB animada
+    let hue = 0;
     const animarBordaRGB = () => {
-        janela.style.borderImageSource = `linear-gradient(
-            45deg,
-            hsl(${hueRGB},100%,50%),
-            hsl(${(hueRGB + 60) % 360},100%,50%),
-            hsl(${(hueRGB + 120) % 360},100%,50%),
-            hsl(${(hueRGB + 180) % 360},100%,50%),
-            hsl(${(hueRGB + 240) % 360},100%,50%),
-            hsl(${(hueRGB + 300) % 360},100%,50%)
-        )`;
-        hueRGB = (hueRGB + 0.5) % 360;
+        janela.style.borderColor = `hsl(${hue}, 100%, 50%)`;
+        hue += 0.5; // Velocidade suave
+        if (hue > 360) hue = 0;
         requestAnimationFrame(animarBordaRGB);
     };
     animarBordaRGB();
@@ -612,32 +603,31 @@ function showWelcomeToasts() {
         gap: '5px'
     });
 
-    // Texto superior
     const textoCima = document.createElement('div');
     textoCima.textContent = 'Painel Funções';
-    aplicarEstiloTexto(textoCima, '20px');
+    aplicarEstiloTexto(textoCima, '22px');
 
-    // Texto do criador com animação RGB suave
     const textoCriador = document.createElement('div');
     textoCriador.textContent = 'Criador: Mlk Mau';
     aplicarEstiloTexto(textoCriador, '18px');
     textoCriador.style.margin = '5px 0';
 
-    let hue = 260;
+    // Animação fluida do texto "Criador"
+    let hueTexto = 260;
     let direcao = 1;
-    function animarCriador() {
-        textoCriador.style.color = `hsl(${hue}, 100%, 65%)`;
-        hue += 0.3 * direcao;
-        if (hue >= 300 || hue <= 260) direcao *= -1;
+    const animarCriador = () => {
+        textoCriador.style.color = `hsl(${hueTexto}, 100%, 65%)`;
+        hueTexto += 0.3 * direcao;
+        if (hueTexto >= 300 || hueTexto <= 260) direcao *= -1;
         requestAnimationFrame(animarCriador);
-    }
+    };
     animarCriador();
 
-    // Texto inferior animado
     const textoBaixo = document.createElement('div');
     textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
     aplicarEstiloTexto(textoBaixo, '17px');
 
+    // Animação de cor suave do texto inferior
     let hueBaixo = 0;
     setInterval(() => {
         textoBaixo.style.color = `hsl(${hueBaixo % 360}, 100%, 60%)`;
@@ -646,12 +636,11 @@ function showWelcomeToasts() {
 
     nome.append(textoCima, textoCriador, textoBaixo);
 
-    // Input
+    // Campo de senha
     const input = document.createElement('input');
     Object.assign(input.style, {
-        padding: '12px',
+        padding: '12px 20px',
         width: '80%',
-        margin: '15px 0',
         background: '#222',
         color: '#fff',
         border: '1px solid #444',
