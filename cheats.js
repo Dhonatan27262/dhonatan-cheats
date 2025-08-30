@@ -586,14 +586,11 @@ function showWelcomeToasts() {
         overflow: 'hidden'
     });
 
-    // ===== Borda RGB fina animada =====
-    janela.style.border = '3px solid';
-    janela.style.borderRadius = '20px';
-    janela.style.borderImageSlice = 1;
-
+    // ===== Borda RGB animada real =====
     let hueRGB = 0;
     const animarBordaRGB = () => {
-        janela.style.borderImageSource = `linear-gradient(45deg,
+        janela.style.borderImageSource = `linear-gradient(
+            45deg,
             hsl(${hueRGB},100%,50%),
             hsl(${(hueRGB + 60) % 360},100%,50%),
             hsl(${(hueRGB + 120) % 360},100%,50%),
