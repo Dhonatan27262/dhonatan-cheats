@@ -554,67 +554,60 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-    // Fundo da tela com blur e brilho
-    const fundo = document.createElement('div');
+    // Fundo da tela
+    fundo = document.createElement('div');
     Object.assign(fundo.style, {
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(8px) brightness(0.7)',
-        zIndex: 999999,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        zIndex: '999999',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        backdropFilter: 'blur(6px)' // efeito desfoque elegante
     });
 
     // Janela principal
-    const janela = document.createElement('div');
+    janela = document.createElement('div');
     Object.assign(janela.style, {
         position: 'relative',
-        width: '420px',
+        width: '400px',
         maxWidth: '90%',
-        padding: '30px',
+        padding: '25px',
         backgroundColor: '#111',
-        borderRadius: '30px',
+        borderRadius: '25px', // cantos bem arredondados
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '15px',
-        boxShadow: '0 0 40px rgba(0,0,0,0.9)',
-        overflow: 'hidden'
+        boxShadow: '0 0 30px rgba(0,0,0,0.8)'
     });
 
-    // Borda RGB premium com glow
-    const borda = document.createElement('div');
-    Object.assign(borda.style, {
-        position: 'absolute',
-        top: '-5px',
-        left: '-5px',
-        width: 'calc(100% + 10px)',
-        height: 'calc(100% + 10px)',
-        borderRadius: '35px',
-        padding: '2px',
-        background: 'conic-gradient(hsl(0,100%,50%), hsl(60,100%,50%), hsl(120,100%,50%), hsl(180,100%,50%), hsl(240,100%,50%), hsl(300,100%,50%), hsl(0,100%,50%))',
-        animation: 'rotacao 10s linear infinite',
-        zIndex: -1,
-        filter: 'blur(10px)',
-    });
-    janela.appendChild(borda);
+    // Borda RGB arredondada com animação suave
+    janela.style.border = '5px solid';
+    janela.style.borderRadius = '25px';
+    janela.style.borderImageSlice = 1;
 
-    // Animando a rotação da borda com keyframes
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes rotacao {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(style);
+    let hueRGB = 0;
+    const animarBordaRGB = () => {
+        janela.style.borderImageSource = `conic-gradient(
+            hsl(${hueRGB}, 100%, 50%),
+            hsl(${(hueRGB+60)%360}, 100%, 50%),
+            hsl(${(hueRGB+120)%360}, 100%, 50%),
+            hsl(${(hueRGB+180)%360}, 100%, 50%),
+            hsl(${(hueRGB+240)%360}, 100%, 50%),
+            hsl(${(hueRGB+300)%360}, 100%, 50%),
+            hsl(${hueRGB}, 100%, 50%)
+        )`;
+        hueRGB = (hueRGB + 0.5) % 360;
+        requestAnimationFrame(animarBordaRGB);
+    };
+    animarBordaRGB();
 
-    // Container de textos
+    // Container principal de textos
     const nome = document.createElement('div');
     Object.assign(nome.style, {
         display: 'flex',
@@ -624,37 +617,40 @@ function showWelcomeToasts() {
         textAlign: 'center'
     });
 
+    // Texto superior
     const textoCima = document.createElement('div');
     textoCima.textContent = 'Painel Funções';
-    aplicarEstiloTexto(textoCima, '24px');
+    aplicarEstiloTexto(textoCima, '22px');
 
+    // Texto do criador com animação RGB suave
     const textoCriador = document.createElement('div');
     textoCriador.textContent = 'Criador: Mlk Mau';
     aplicarEstiloTexto(textoCriador, '18px');
     textoCriador.style.margin = '5px 0';
 
-    // Animação RGB suave para o criador
-    let hueCriador = 260, direcao = 1;
+    let hueCriador = 260;
+    let direcao = 1;
     const animarCriador = () => {
-        textoCriador.style.color = `hsl(${hueCriador}, 100%, 70%)`;
-        hueCriador += 0.4 * direcao;
-        if (hueCriador >= 310 || hueCriador <= 260) direcao *= -1;
+        textoCriador.style.color = `hsl(${hueCriador}, 100%, 65%)`;
+        hueCriador += 0.3 * direcao;
+        if (hueCriador >= 300 || hueCriador <= 260) direcao *= -1;
         requestAnimationFrame(animarCriador);
     };
     animarCriador();
 
+    // Texto inferior RGB animado
     const textoBaixo = document.createElement('div');
     textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
     aplicarEstiloTexto(textoBaixo, '16px');
     let hueBaixo = 0;
     setInterval(() => {
-        textoBaixo.style.color = `hsl(${hueBaixo % 360},100%,65%)`;
+        textoBaixo.style.color = `hsl(${hueBaixo % 360},100%,60%)`;
         hueBaixo++;
-    }, 25);
+    }, 30);
 
     nome.append(textoCima, textoCriador, textoBaixo);
 
-    // Input de senha com efeito neon
+    // Input de senha estilizado
     const input = document.createElement('input');
     Object.assign(input.style, {
         padding: '14px 20px',
@@ -666,25 +662,23 @@ function showWelcomeToasts() {
         textAlign: 'center',
         fontSize: '16px',
         outline: 'none',
-        transition: '0.3s',
-        boxShadow: '0 0 15px rgba(0,0,0,0.5)'
+        transition: 'border 0.3s, box-shadow 0.3s'
     });
     input.type = 'password';
     input.placeholder = 'Digite a senha';
-    input.addEventListener('focus', () => input.style.boxShadow = '0 0 15px hsl(200,100%,60%)');
-    input.addEventListener('blur', () => input.style.boxShadow = '0 0 15px rgba(0,0,0,0.5)');
+    input.addEventListener('focus', () => input.style.borderColor = '#888');
+    input.addEventListener('blur', () => input.style.borderColor = '#444');
 
-    // Função para criar botões premium
+    // Botões com estilo moderno
     const criarBotaoEstilizado = (btn, bg) => {
         aplicarEstiloBotao(btn);
         btn.style.background = bg;
         btn.style.borderRadius = '25px';
-        btn.style.padding = '12px 20px';
+        btn.style.padding = '10px 18px';
         btn.style.display = 'flex';
         btn.style.alignItems = 'center';
         btn.style.gap = '8px';
-        btn.style.transition = '0.3s';
-        btn.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+        btn.style.transition = 'transform 0.2s';
         btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
         btn.onmouseleave = () => btn.style.transform = 'scale(1)';
     };
@@ -694,7 +688,7 @@ function showWelcomeToasts() {
     criarBotaoEstilizado(botao, '#1E90FF');
 
     const btnDiscord = document.createElement('button');
-    btnDiscord.innerHTML = 'Discord';
+    btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:4px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011..."/></svg> Discord';
     criarBotaoEstilizado(btnDiscord, '#5865F2');
     btnDiscord.onclick = () => window.open('https://discord.gg/NfVKXRSvYK', '_blank');
 
@@ -708,6 +702,7 @@ function showWelcomeToasts() {
     criarBotaoEstilizado(btncriadorpainel, 'linear-gradient(135deg, #ff0000, #990000)');
     btncriadorpainel.onclick = () => window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
 
+    // Container de botões
     const botoesContainer = document.createElement('div');
     Object.assign(botoesContainer.style, {
         display: 'flex',
@@ -718,6 +713,7 @@ function showWelcomeToasts() {
     });
     botoesContainer.append(botao, btnDiscord, btnmenor, btncriadorpainel);
 
+    // Mensagem de erro
     const erro = document.createElement('div');
     erro.textContent = '❌ Senha incorreta. Clique no botão do Discord para suporte.';
     Object.assign(erro.style, {
@@ -728,11 +724,12 @@ function showWelcomeToasts() {
         textAlign: 'center'
     });
 
+    // Adiciona tudo à janela
     janela.append(nome, input, botoesContainer, erro);
     fundo.append(janela);
     document.body.append(fundo);
 
-    // Botão Acessar (lógica mantida)
+    // Botão "Acessar" lógica (mantida como no seu código original)
     botao.onclick = async () => {
         if (!senhasCarregadas) {
             sendToast('🔒 Carregando sistema de senhas...', 2000);
@@ -748,7 +745,6 @@ function showWelcomeToasts() {
         }
     };
 };
-
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
