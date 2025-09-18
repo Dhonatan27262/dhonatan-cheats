@@ -409,7 +409,8 @@ async function encontrarRespostaColar(options = {}) {
   const fetchWithTimeout = (resource, timeout = 15000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    return fetch(resource, { signal: controller.signal })
+    .finally(() => clearTimeout(id));
   };
 
   const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
@@ -789,6 +790,7 @@ async function encontrarRespostaColar(options = {}) {
             ],
             respostas:,
             outros:;
+
     const fallbackParts =;
 
     const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
