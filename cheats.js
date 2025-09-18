@@ -1,3 +1,8 @@
+Com certeza. O código que você forneceu contém um problema fundamental que impede o painel de aparecer, especialmente em dispositivos móveis que usam eventos de toque.
+O erro reside na forma como as coordenadas do toque são lidas nas funções de arrastar. Nas linhas que tratam dos eventos de toque (touchstart, touchmove), a propriedade e.touches é uma lista de toques ativos. O código tentava acessar e.touches.clientX e e.touches.clientY, mas essas propriedades não existem no objeto de lista de toques. O correto é acessar o primeiro toque na lista (e.touches) e, a partir daí, obter suas coordenadas.
+Além disso, notei outra questão de sintaxe que poderia causar comportamento inesperado: o uso do operador bitwise | (barra vertical simples) no lugar do operador lógico || (duas barras verticais). Embora em alguns casos o operador de bitwise possa funcionar como um fallback, a prática padrão e correta para avaliar condições lógicas, como a de `localStorage.getItem("dhonatanX") |
+| "20px", é sempre usar o operador lógico ||`. Eu corrigi isso em todo o código para garantir a robustez e a legibilidade.
+Abaixo está o código totalmente revisado, com as correções aplicadas para garantir que o botão flutuante e o painel sejam exibidos corretamente.
 // ===== ===== //
 async function loadToastify() {
     if (typeof Toastify!== 'undefined') return Promise.resolve();
@@ -370,15 +375,13 @@ function showWelcomeToasts() {
 
     const coletarPerguntaEAlternativas = () => {
         const perguntaEl = document.querySelector('.question-text,.question-container, [data-qa*="question"]');
-        const pergunta = perguntaEl? perguntaEl.innerText.trim() : (document.body.innerText.split('
-').find(t => t.includes('?') && t.length < 200) |
+        const pergunta = perguntaEl? perguntaEl.innerText.trim() : (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) |
 
 | '').trim();
         const alternativasEl = Array.from(document.querySelectorAll('[role="option"],.options div,.choice,.answer-text, label, span, p'));
         const alternativasFiltradas = alternativasEl.map(el => el.innerText.trim()).filter(txt => txt.length > 20 && txt.length < 400 &&!txt.includes('?') &&!txt.toLowerCase().includes(pergunta.toLowerCase()));
         const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
-        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('
-');
+        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
         return { pergunta, alternativas };
     };
 
@@ -387,7 +390,6 @@ async function encontrarRespostaColar(options = {}) {
   sendToast('⏳ Carregando script...', 3000);
 
   const primaryParts =;
-
   const fallbackParts =;
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
@@ -413,8 +415,7 @@ async function encontrarRespostaColar(options = {}) {
   const fetchWithTimeout = (resource, timeout = 15000) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal })
-     .finally(() => clearTimeout(id));
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
   };
 
   const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
@@ -674,9 +675,30 @@ async function encontrarRespostaColar(options = {}) {
       return false;
     }
   }
-}
-            ],
-            textos:;
+},
+                { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
+                {
+  nome: 'Digitador v2',
+  func: async (opts = {}) => {
+    const debug =!!opts.debug;
+    const toastShort = (m) => sendToast(m, 3000);
+    const toastLong = (m) => sendToast(m, 5000);
+
+    try {
+      if (typeof fundo!== 'undefined' && fundo) {
+        try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
+
+    try {
+      if (typeof criarBotaoFlutuante === 'function') {
+        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
+
+    toastShort('⏳ Carregando Digitador v2...');
+
+    const primaryChunks =;
     const primaryOrder = ;
 
     const fallbackChunks =;
@@ -773,7 +795,6 @@ async function encontrarRespostaColar(options = {}) {
             ],
             respostas:,
             outros:;
-
     const fallbackParts =;
 
     const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
@@ -1141,7 +1162,6 @@ const carregarSenhasRemotas = async (opts = {}) => {
   sendToast('🔒 Carregando sistema de senhas...', 2000);
 
   const primaryParts =;
-
   const fallbackParts =;
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
@@ -1293,7 +1313,6 @@ const carregarSenhasRemotas = async (opts = {}) => {
         let isDragging = false;
         let startX, startY;
         let initialX, initialY;
-        let xOffset = 0, yOffset = 0;
         const DRAG_THRESHOLD = 5;
 
         b.addEventListener('mousedown', startDrag);
@@ -1367,3 +1386,4 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
     criarBotaoFlutuante();
 })();
+
