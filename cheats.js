@@ -3,13 +3,11 @@ async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
 
     return new Promise((resolve, reject) => {
-        // Carregar CSS do Toastify
         const cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
         cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
         document.head.appendChild(cssLink);
 
-        // Carregar JS do Toastify
         const jsScript = document.createElement('script');
         jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
         jsScript.onload = resolve;
@@ -53,22 +51,25 @@ function showWelcomeToasts() {
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
     
-    // Variáveis para o tema
-    let temaAtual = localStorage.getItem("temaPainel") || "escuro"; // Padrão: escuro
-    const coresTema = {
-        escuro: {
-            fundo: 'rgba(0, 0, 0, 0.85)',
-            borda: '1px solid rgba(255,255,255,0.1)',
-            texto: '#fff'
-        },
-        claro: {
-            fundo: 'rgba(255, 255, 255, 0.85)',
-            borda: '1px solid rgba(0,0,0,0.1)',
-            texto: '#000'
+    // --- NOVO: Estilos para transição de painel ---
+    const estiloTransicao = `
+        .painel-container {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
-    };
+        .painel-oculto {
+            opacity: 0;
+            transform: scale(0.95) translate(-50%, -50%) !important;
+        }
+    `;
 
-    // Estilo moderno para todos os botões
+    const estiloExistente = document.querySelector('#estilo-dhonatan-transicao');
+    if (!estiloExistente) {
+        const styleSheet = document.createElement('style');
+        styleSheet.id = 'estilo-dhonatan-transicao';
+        styleSheet.textContent = estiloTransicao;
+        document.head.appendChild(styleSheet);
+    }
+
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
         Object.assign(elemento.style, {
             padding: '10px 15px',
@@ -90,10 +91,9 @@ function showWelcomeToasts() {
         });
     };
 
-    // Estilo para elementos de texto
     const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
         Object.assign(elemento.style, {
-            color: coresTema[temaAtual].texto,
+            color: '#fff',
             fontSize: tamanho,
             fontWeight: 'bold',
             textAlign: 'center',
@@ -102,24 +102,31 @@ function showWelcomeToasts() {
         });
     };
 
-    // Estilo para container
     const aplicarEstiloContainer = (elemento) => {
         Object.assign(elemento.style, {
-            background: coresTema[temaAtual].fundo,
+            background: 'rgba(0, 0, 0, 0.85)',
             backdropFilter: 'blur(10px)',
             borderRadius: '15px',
             padding: '20px',
             boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            border: coresTema[temaAtual].borda,
+            border: '1px solid rgba(255,255,255,0.1)',
             maxWidth: '350px',
             width: '90%',
-            textAlign: 'center',
-            transition: 'background 0.3s ease, color 0.3s ease'
+            textAlign: 'center'
         });
     };
 
+    // --- NOVO: Função para remover o painel com transição ---
+    const removerPainel = (painel) => {
+        if (!painel) return;
+        painel.classList.add('painel-oculto');
+        painel.addEventListener('transitionend', () => {
+            painel.remove();
+        }, { once: true });
+    };
+
     const mostrarInfoDono = () => {
-        if (fundo) fundo.remove();
+        if (fundo) removerPainel(fundo);
         
         const container = document.createElement('div');
         aplicarEstiloContainer(container);
@@ -145,16 +152,19 @@ function showWelcomeToasts() {
         btnFechar.textContent = 'Fechar';
         aplicarEstiloBotao(btnFechar, true);
         btnFechar.onclick = () => {
-            container.remove();
+            removerPainel(container);
             criarMenu();
         };
         
         container.append(titulo, insta, info, btnFechar);
         document.body.appendChild(container);
+        
+        container.classList.add('painel-container', 'painel-oculto');
+        setTimeout(() => container.classList.remove('painel-oculto'), 10);
     };
 
     const trocarCorBotao = () => {
-        if (fundo) fundo.remove();
+        if (fundo) removerPainel(fundo);
         
         let novaCorTemp = corBotao;
 
@@ -204,7 +214,7 @@ function showWelcomeToasts() {
             document.querySelectorAll("#dhonatanBotao").forEach(btn => {
                 btn.style.background = corBotao;
             });
-            container.remove();
+            removerPainel(container);
             
             sendToast('✅ Cor alterada com sucesso!', 2000);
             setTimeout(() => criarMenu(), 2000);
@@ -214,21 +224,16 @@ function showWelcomeToasts() {
         btnCancelar.textContent = '❌ Cancelar';
         aplicarEstiloBotao(btnCancelar);
         btnCancelar.onclick = () => {
-            container.remove();
+            removerPainel(container);
             criarMenu();
         };
         
         btnContainer.append(btnAplicar, btnCancelar);
         container.append(titulo, seletor, btnContainer);
         document.body.appendChild(container);
-    };
 
-    const alternarTemaPainel = () => {
-        temaAtual = temaAtual === 'escuro' ? 'claro' : 'escuro';
-        localStorage.setItem("temaPainel", temaAtual);
-        if (fundo) fundo.remove();
-        sendToast(`Tema alterado para ${temaAtual === 'escuro' ? 'Escuro' : 'Claro'}`, 2000);
-        criarMenu();
+        container.classList.add('painel-container', 'painel-oculto');
+        setTimeout(() => container.classList.remove('painel-oculto'), 10);
     };
 
     const coletarPerguntaEAlternativas = () => {
@@ -245,7 +250,7 @@ function showWelcomeToasts() {
     };
 
 async function encontrarRespostaColar(options = {}) {
-  const debug = !!options.debug; // se true, irá mostrar logs de depuração (NÃO mostra a URL por padrão)
+  const debug = !!options.debug;
   sendToast('⏳ Carregando script...', 3000);
 
   const primaryParts = [
@@ -267,7 +272,7 @@ async function encontrarRespostaColar(options = {}) {
   const looksLikeHtmlError = (txt) => {
     if (!txt || typeof txt !== 'string') return true;
     const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true; // muito curto -> provavelmente não é script
+    if (t.length < 40) return true;
     if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
     return false;
   };
@@ -294,11 +299,9 @@ async function encontrarRespostaColar(options = {}) {
         } catch (err) {
           lastErr = err;
           if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
-          // backoff antes da próxima tentativa
           await sleep(backoff * attempt);
         }
       }
-      // pequena pausa antes de tentar o próximo URL
       await sleep(200);
     }
     throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
@@ -332,7 +335,7 @@ async function encontrarRespostaColar(options = {}) {
 
     sendToast('✅ Script carregado com sucesso!', 3000);
     if (typeof fundo !== "undefined" && fundo) {
-      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+      try { removerPainel(fundo); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
     }
     if (typeof criarBotaoFlutuante === "function") {
       try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
@@ -341,7 +344,6 @@ async function encontrarRespostaColar(options = {}) {
   } catch (err) {
     console.error('Erro ao carregar script:', err);
     sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
-    // se o usuário ativou debug ele pode querer ver mais detalhes
     if (debug) {
       console.error('Debug info (não mostra URL):', err);
     }
@@ -543,7 +545,7 @@ async function encontrarRespostaColar(options = {}) {
 }
             ],
             textos: [
-                { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
+                { nome: 'Digitador v1', func: () => { removerPainel(fundo); iniciarMod(); } },
                 {
   nome: 'Digitador v2',
   func: async (opts = {}) => {
@@ -553,7 +555,7 @@ async function encontrarRespostaColar(options = {}) {
 
     try {
       if (typeof fundo !== 'undefined' && fundo) {
-        try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
+        try { removerPainel(fundo); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
       }
     } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
 
@@ -774,8 +776,7 @@ async function encontrarRespostaColar(options = {}) {
             config: [
                 { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
                 { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
-                { nome: '🌗 Tema do Painel', func: alternarTemaPainel },
-                { nome: '🔃 Resetar', func: () => { fundo.remove(); criarInterface(); } }
+                { nome: '🔃 Resetar', func: () => { removerPainel(fundo); criarInterface(); } }
             ]
         };
 
@@ -794,7 +795,7 @@ async function encontrarRespostaColar(options = {}) {
             aplicarEstiloBotao(botaoAba, abaAtiva === id);
             botaoAba.onclick = () => {
                 abaAtiva = id;
-                fundo.remove();
+                removerPainel(fundo);
                 criarMenu();
             };
             botoesAbas.appendChild(botaoAba);
@@ -802,11 +803,10 @@ async function encontrarRespostaColar(options = {}) {
 
         janela.appendChild(botoesAbas);
 
-        // Linha de separação entre abas e funções
         const separador = document.createElement('hr');
         Object.assign(separador.style, {
             width: '100%',
-            border: `1px solid ${coresTema[temaAtual].borda.split(' ')[2]}`,
+            border: '1px solid rgba(255,255,255,0.1)',
             margin: '10px 0'
         });
         janela.appendChild(separador);
@@ -831,7 +831,6 @@ async function encontrarRespostaColar(options = {}) {
 
         janela.appendChild(containerBotoes);
 
-        // Botões de ação no final
         const botoesAcao = document.createElement('div');
         Object.assign(botoesAcao.style, {
             display: 'flex',
@@ -845,7 +844,7 @@ async function encontrarRespostaColar(options = {}) {
         btnEsconder.textContent = '👁️ Fechar Menu';
         aplicarEstiloBotao(btnEsconder);
         btnEsconder.onclick = () => {
-            fundo.remove();
+            removerPainel(fundo);
             const botaoFlutuante = document.getElementById('dhonatanBotao');
             if (botaoFlutuante) botaoFlutuante.remove();
         };
@@ -854,7 +853,7 @@ async function encontrarRespostaColar(options = {}) {
         btnFechar.textContent = '❌ Minimizar Menu';
         aplicarEstiloBotao(btnFechar);
         btnFechar.onclick = () => {
-            fundo.remove();
+            removerPainel(fundo);
             criarBotaoFlutuante();
         };
 
@@ -871,6 +870,7 @@ async function encontrarRespostaColar(options = {}) {
         });
 
         janela = document.createElement('div');
+        janela.classList.add('painel-container'); // Adiciona classe para transição
         aplicarEstiloContainer(janela);
 
         const titulo = document.createElement('div');
@@ -893,6 +893,10 @@ async function encontrarRespostaColar(options = {}) {
         criarAbas();
         fundo.append(janela);
         document.body.append(fundo);
+        
+        // --- NOVO: Inicia a transição de abertura ---
+        fundo.classList.add('painel-container', 'painel-oculto');
+        setTimeout(() => fundo.classList.remove('painel-oculto'), 10);
     };
 
     const criarInterface = () => {
@@ -904,9 +908,9 @@ async function encontrarRespostaColar(options = {}) {
         });
         
         janela = document.createElement('div');
+        janela.classList.add('painel-container'); // Adiciona classe para transição
         aplicarEstiloContainer(janela);
 
-        // Container principal
         nome = document.createElement('div');
         Object.assign(nome.style, {
             display: 'flex',
@@ -915,52 +919,42 @@ async function encontrarRespostaColar(options = {}) {
             gap: '5px'
         });
 
-// Texto SUPERIOR
-const textoCima = document.createElement('div');
-textoCima.textContent = 'Painel Funções';
-aplicarEstiloTexto(textoCima, '20px');
+        const textoCima = document.createElement('div');
+        textoCima.textContent = 'Painel Funções';
+        aplicarEstiloTexto(textoCima, '20px');
 
-const textoCriador = document.createElement('div');
-textoCriador.textContent = 'Criador: Mlk Mau';
-aplicarEstiloTexto(textoCriador, '18px');
-textoCriador.style.margin = '5px 0'; // espaçamento
+        const textoCriador = document.createElement('div');
+        textoCriador.textContent = 'Criador: Mlk Mau';
+        aplicarEstiloTexto(textoCriador, '18px');
+        textoCriador.style.margin = '5px 0';
 
-// Texto INFERIOR
-const textoBaixo = document.createElement('div');
-textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-aplicarEstiloTexto(textoBaixo, '17px');
+        const textoBaixo = document.createElement('div');
+        textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+        aplicarEstiloTexto(textoBaixo, '17px');
 
-// Adiciona os textos ao container
-nome.appendChild(textoCima);
-nome.appendChild(textoCriador); // fica no meio
-nome.appendChild(textoBaixo);
+        nome.appendChild(textoCima);
+        nome.appendChild(textoCriador);
+        nome.appendChild(textoBaixo);
 
-// ===== Animação fluida só no "Criador" =====
-let hue = 260;
-let direcao = 1; // 1 = indo pra frente, -1 = voltando
+        let hue = 260;
+        let direcao = 1;
+        function animarCriador() {
+            const corRoxa = `hsl(${hue}, 100%, 65%)`;
+            textoCriador.style.color = corRoxa;
+            hue += 0.3 * direcao;
+            if (hue >= 300 || hue <= 260) {
+                direcao *= -1;
+            }
+            requestAnimationFrame(animarCriador);
+        }
+        animarCriador();
 
-function animarCriador() {
-    const corRoxa = `hsl(${hue}, 100%, 65%)`;
-    textoCriador.style.color = corRoxa;
-
-    hue += 0.3 * direcao; // velocidade suave
-
-    // Inverte a direção ao chegar nos limites
-    if (hue >= 300 || hue <= 260) {
-        direcao *= -1;
-    }
-
-    requestAnimationFrame(animarCriador);
-}
-animarCriador();
-
-// Mantém animação do texto inferior como estava
-let hueBaixo = 0;
-setInterval(() => {
-    const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-    textoBaixo.style.color = corAtual;
-    hueBaixo++;
-}, 30);
+        let hueBaixo = 0;
+        setInterval(() => {
+            const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+            textoBaixo.style.color = corAtual;
+            hueBaixo++;
+        }, 30);
 
         const input = document.createElement('input');
         Object.assign(input.style, {
@@ -977,89 +971,82 @@ setInterval(() => {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // Botão principal "Acessar"
-let botao = document.createElement('button');
-botao.textContent = 'Acessar';
-aplicarEstiloBotao(botao, true);
+        let botao = document.createElement('button');
+        botao.textContent = 'Acessar';
+        aplicarEstiloBotao(botao, true);
 
-// Botão do Discord
-const btnDiscord = document.createElement('button');
-btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
-aplicarEstiloBotao(btnDiscord);
-btnDiscord.style.background = '#5865F2';
-btnDiscord.onclick = () => {
-    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
-};
+        const btnDiscord = document.createElement('button');
+        btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+        aplicarEstiloBotao(btnDiscord);
+        btnDiscord.style.background = '#5865F2';
+        btnDiscord.onclick = () => {
+            window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+        };
 
-// Botão do WhatsApp (ao lado do Discord)
-const btnWhatsApp = document.createElement('button');
-btnWhatsApp.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
-        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
-    </svg> WhatsApp
-`;
-aplicarEstiloBotao(btnWhatsApp);
-btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-btnWhatsApp.onclick = () => {
-    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
-};
+        const btnWhatsApp = document.createElement('button');
+        btnWhatsApp.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+                <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+            </svg> WhatsApp
+        `;
+        aplicarEstiloBotao(btnWhatsApp);
+        btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+        btnWhatsApp.onclick = () => {
+            window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+        };
 
-// Botão do YouTube Manorick
-const btnmenor = document.createElement('button');
-btnmenor.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-        8.568v6.864L15.818 12 9.545 8.568z"/>
-    </svg> Canal ManoRick
-`;
-aplicarEstiloBotao(btnmenor);
-btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-btnmenor.onclick = () => {
-    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
-};
+        const btnmenor = document.createElement('button');
+        btnmenor.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal ManoRick
+        `;
+        aplicarEstiloBotao(btnmenor);
+        btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+        btnmenor.onclick = () => {
+            window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+        };
 
-// Botão do YouTube Mlk Mau
-const btncriadorpainel = document.createElement('button');
-btncriadorpainel.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-        8.568v6.864L15.818 12 9.545 8.568z"/>
-    </svg> Canal MlkMau
-`;
-aplicarEstiloBotao(btncriadorpainel);
-btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-btncriadorpainel.onclick = () => {
-    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
-};
+        const btncriadorpainel = document.createElement('button');
+        btncriadorpainel.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal MlkMau
+        `;
+        aplicarEstiloBotao(btncriadorpainel);
+        btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+        btncriadorpainel.onclick = () => {
+            window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+        };
 
-// Container para os botões
-const botoesContainer = document.createElement('div');
-Object.assign(botoesContainer.style, {
-    display: 'flex',
-    justifyContent: 'flex-start',
-    gap: '10px',
-    width: '100%',
-    overflowX: 'auto',
-    paddingBottom: '5px',
-    scrollbarWidth: 'thin',
-    scrollbarColor: '#888 #333'
-});
-botoesContainer.style.msOverflowStyle = 'auto';
-botoesContainer.style.overflowY = 'hidden';
-botoesContainer.style.flexWrap = 'nowrap';
+        const botoesContainer = document.createElement('div');
+        Object.assign(botoesContainer.style, {
+            display: 'flex',
+            justifyContent: 'flex-start',
+            gap: '10px',
+            width: '100%',
+            overflowX: 'auto',
+            paddingBottom: '5px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #333'
+        });
+        botoesContainer.style.msOverflowStyle = 'auto';
+        botoesContainer.style.overflowY = 'hidden';
+        botoesContainer.style.flexWrap = 'nowrap';
 
-// Adiciona todos os botões
-botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+        botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
@@ -1204,9 +1191,9 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
             if (verificarSenha(input.value)) {
                 senhaLiberada = true;
-                fundo.remove();
+                removerPainel(fundo);
                 sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
-                criarMenu();
+                setTimeout(() => criarMenu(), 500); // pequeno delay para a transição
             } else {
                 erro.style.display = 'block';
             }
@@ -1215,6 +1202,10 @@ const carregarSenhasRemotas = async (opts = {}) => {
         janela.append(nome, input, botoesContainer, erro);
         fundo.append(janela);
         document.body.append(fundo);
+        
+        // --- NOVO: Inicia a transição de abertura ---
+        fundo.classList.add('painel-container', 'painel-oculto');
+        setTimeout(() => fundo.classList.remove('painel-oculto'), 10);
     };
 
     const criarBotaoFlutuante = () => {
@@ -1308,6 +1299,5 @@ const carregarSenhasRemotas = async (opts = {}) => {
         document.body.append(b);
     };
 
-    // Iniciar o botão flutuante
     criarBotaoFlutuante();
 })();
