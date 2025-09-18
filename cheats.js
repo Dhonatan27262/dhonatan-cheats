@@ -35,15 +35,7 @@ async function sendToast(text, duration = 5000, gravity = 'bottom') {
 }
 
 function showWelcomeToasts() {
-    sendToast("iniciando painel");
-    
-    setTimeout(() => {
-        sendToast("puxando dados", 2500);
-    }, 1000);
-    
-    setTimeout(() => {
-        sendToast("carregado!", 2500);
-    }, 1000);
+    sendToast("Painel carregado");
 }
 
 // ===== [CÓDIGO PRINCIPAL] ===== //
@@ -61,6 +53,21 @@ function showWelcomeToasts() {
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
     
+    // Variáveis para o tema
+    let temaAtual = localStorage.getItem("temaPainel") || "escuro"; // Padrão: escuro
+    const coresTema = {
+        escuro: {
+            fundo: 'rgba(0, 0, 0, 0.85)',
+            borda: '1px solid rgba(255,255,255,0.1)',
+            texto: '#fff'
+        },
+        claro: {
+            fundo: 'rgba(255, 255, 255, 0.85)',
+            borda: '1px solid rgba(0,0,0,0.1)',
+            texto: '#000'
+        }
+    };
+
     // Estilo moderno para todos os botões
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
         Object.assign(elemento.style, {
@@ -86,7 +93,7 @@ function showWelcomeToasts() {
     // Estilo para elementos de texto
     const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
         Object.assign(elemento.style, {
-            color: '#fff',
+            color: coresTema[temaAtual].texto,
             fontSize: tamanho,
             fontWeight: 'bold',
             textAlign: 'center',
@@ -98,15 +105,16 @@ function showWelcomeToasts() {
     // Estilo para container
     const aplicarEstiloContainer = (elemento) => {
         Object.assign(elemento.style, {
-            background: 'rgba(0, 0, 0, 0.85)',
+            background: coresTema[temaAtual].fundo,
             backdropFilter: 'blur(10px)',
             borderRadius: '15px',
             padding: '20px',
             boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: coresTema[temaAtual].borda,
             maxWidth: '350px',
             width: '90%',
-            textAlign: 'center'
+            textAlign: 'center',
+            transition: 'background 0.3s ease, color 0.3s ease'
         });
     };
 
@@ -215,6 +223,14 @@ function showWelcomeToasts() {
         document.body.appendChild(container);
     };
 
+    const alternarTemaPainel = () => {
+        temaAtual = temaAtual === 'escuro' ? 'claro' : 'escuro';
+        localStorage.setItem("temaPainel", temaAtual);
+        if (fundo) fundo.remove();
+        sendToast(`Tema alterado para ${temaAtual === 'escuro' ? 'Escuro' : 'Claro'}`, 2000);
+        criarMenu();
+    };
+
     const coletarPerguntaEAlternativas = () => {
         const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
         const pergunta = perguntaEl ? perguntaEl.innerText.trim() :
@@ -228,35 +244,110 @@ function showWelcomeToasts() {
         return { pergunta, alternativas };
     };
 
-    const encontrarRespostaColar = () => {
-    sendToast('⏳ Carregando script...', 3000);
+async function encontrarRespostaColar(options = {}) {
+  const debug = !!options.debug; // se true, irá mostrar logs de depuração (NÃO mostra a URL por padrão)
+  sendToast('⏳ Carregando script...', 3000);
 
-    const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js?" + Date.now();
+  const primaryParts = [
+    'c0RHa','6MH','XYy9yL','2Zuc','NXdiVHa0l','bvNmcl','uQnblRn','1F2Lt92Y',
+    'ahBHe','l5W','DMy8Cb','3LwU','VGavMnZlJ','bvMHZh','j9ibpFW','yFGdlx2b',
+    'ZyVGc','uV3','mclFGd','GczV','MnauEGdz9','='
+  ];
 
-    fetch(scriptURL)
-        .then(response => {
-            if (!response.ok) throw new Error('Falha ao carregar o script');
-            return response.text();
-        })
-        .then(scriptContent => {
-            const script = document.createElement('script');
-            script.textContent = scriptContent;
-            document.head.appendChild(script);
-            sendToast('✅ Script carregado com sucesso!', 3000);
+  const fallbackParts = [
+    'Hc0RHa','y9yL6M','ZucXY','VHa0l2','lNXdi','nbvNmc','QnblR','a0l2Zu',
+    'yajFG','v02bj5','c4VXY','VmbpFG','wIzLs','WbvATN','9ibpF','dlx2bj',
+    'GcyFG','uV3ZyV','clFGd','9GczVm','uEGdz','=Mna'
+  ];
 
-            // 🔥 remove o fundo e recria o botão flutuante
-            if (typeof fundo !== "undefined" && fundo) {
-                fundo.remove();
-            }
-            if (typeof criarBotaoFlutuante === "function") {
-                criarBotaoFlutuante();
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao carregar script:', error);
-            sendToast('❌ Erro ao carregar o script. Verifique o console.', 3000);
-        });
-};
+  const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true; // muito curto -> provavelmente não é script
+    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+    return false;
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal })
+      .finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (url ${i + 1}/${urls.length}, tentativa ${attempt})...`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
+          // backoff antes da próxima tentativa
+          await sleep(backoff * attempt);
+        }
+      }
+      // pequena pausa antes de tentar o próximo URL
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const primaryBase64 = rebuildFromParts(primaryParts);
+    const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+    const primaryURL = atob(primaryBase64) + '?' + Date.now();
+    const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
+      if (prev) prev.remove();
+    } catch (e) {
+      if (debug) console.warn('Não consegui remover script anterior:', e.message);
+    }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    sendToast('✅ Script carregado com sucesso!', 3000);
+    if (typeof fundo !== "undefined" && fundo) {
+      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+    }
+    if (typeof criarBotaoFlutuante === "function") {
+      try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar script:', err);
+    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+    // se o usuário ativou debug ele pode querer ver mais detalhes
+    if (debug) {
+      console.error('Debug info (não mostra URL):', err);
+    }
+    return false;
+  }
+}
 
     const encontrarRespostaDigitar = () => {
         const pergunta = prompt("Digite a pergunta:");
@@ -354,48 +445,216 @@ function showWelcomeToasts() {
                     func: () => window.open('https://speakify.cupiditys.lol', '_blank')
                 },
                 {
-                    nome: 'Khan Academy',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/script.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('✅ Script Khan Academy carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar script:', error);
-                                sendToast('❌ Erro ao carregar script. Verifique o console.', 3000);
-                            });
-                    }
-                }
+  nome: 'Khan Academy',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (msg) => sendToast(msg, 3000);
+    const toastLong = (msg) => sendToast(msg, 5000);
+
+    toastShort('⏳ Carregando Script Khan Academy...');
+
+    const primaryChunks = [
+      'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
+      '5lbC8y','l0aHVi','dXNlcm','aHR0cH','M6Ly9y','MDUwL2'
+    ];
+    const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
+
+    const fallbackChunks = [
+      'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
+      'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
+    ];
+    const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
+
+    const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
+
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+    const looksLikeHtmlError = txt => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+    };
+
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let ui = 0; ui < urls.length; ui++) {
+        const u = urls[ui];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
+        }
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      const primaryBase64 = rebuild(primaryChunks, primaryOrder);
+      const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
+
+      const primaryURL = atob(primaryBase64) + '?' + Date.now();
+      const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+
+      try {
+        const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+        if (prev) prev.remove();
+      } catch (e) {
+        if (debug) console.warn('Falha ao remover script anterior:', e.message);
+      }
+
+      
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Script Khan Academy carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar script Khan Academy:', err);
+      toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
+    }
+  }
+}
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { fundo.remove(); iniciarMod(); } },
                 {
-                    nome: 'Digitador v2',
-                    func: () => {
-                        fundo.remove();
-                        criarBotaoFlutuante();
-                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('Carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar Kahoot script:', error);
-                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
-                            });
-                    }
-                },
-                { nome: '📄 Criar Texto com Tema', func: criarTextoComTema },
-                { nome: '🔁 Reescrever Texto', func: abrirReescritor }
+  nome: 'Digitador v2',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (m) => sendToast(m, 3000);
+    const toastLong = (m) => sendToast(m, 5000);
+
+    try {
+      if (typeof fundo !== 'undefined' && fundo) {
+        try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
+
+    try {
+      if (typeof criarBotaoFlutuante === 'function') {
+        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
+      }
+    } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
+
+    toastShort('⏳ Carregando Digitador v2...');
+
+    const primaryChunks = [
+      'wUDMy8Cb','1F2Lt92Y','iVHa0l2Z','v4Wah12L','pR2b0VXY','l5WahBHe','=8zcq5ic',
+      'vNmclNXd','uQnblRnb','6MHc0RHa','ucXYy9yL','vRWY0l2Z'
+    ];
+    const primaryOrder = [9,10,2,7,8,1,5,0,3,4,11,6];
+
+    const fallbackChunks = [
+      'vRWY0l2Z','pR2b0VXY','v4Wah1GQ','0VmbuInd','l5WahBHe','=8zcq5ic','pxWZkNna',
+      'wUDMy8Cb','u4GZj9yL','1F2Lod2L','6MHc0RHa'
+    ];
+    const fallbackOrder = [10,8,6,3,9,4,7,2,1,0,5];
+
+    const rebuildBase64 = (chunks, order) =>
+      order.map(i => chunks[i].split('').reverse().join('')).join('');
+
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    const looksLikeHtmlError = txt => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+             t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+    };
+
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let ui = 0; ui < urls.length; ui++) {
+        const u = urls[ui];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando fetch (${ui+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
+        }
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      const primaryBase64 = rebuildBase64(primaryChunks, primaryOrder);
+      const fallbackBase64 = rebuildBase64(fallbackChunks, fallbackOrder);
+
+      const primaryURL = atob(primaryBase64) + Date.now();
+      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+      try {
+        const prev = document.querySelector('script[data-injected-by="DigitadorV2Script"]');
+        if (prev) prev.remove();
+      } catch (e) { if (debug) console.warn('Não consegui remover script anterior:', e.message); }
+
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'DigitadorV2Script';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Digitador v2 carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar Digitador v2:', err);
+      toastLong('❌ Erro ao carregar Digitador v2. Veja console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
+    }
+  }
+},
+                { nome: '📄 Criar Texto com Tema via IA', func: criarTextoComTema },
+                { nome: '🔁 Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
             respostas: [
                 { nome: '📡 Encontrar Resposta', func: encontrarRespostaColar },
@@ -411,28 +670,111 @@ function showWelcomeToasts() {
                     nome: 'Extensão libera bloqueio Wifi', 
                     func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') 
                 },
-                { 
-                    nome: '🎮 Jogo da Velha',
-                    func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?" + Date.now();
-                        fetch(scriptURL)
-                            .then(response => response.text())
-                            .then(scriptContent => {
-                                const script = document.createElement('script');
-                                script.textContent = scriptContent;
-                                document.head.appendChild(script);
-                                sendToast('Carregado!', 3000);
-                            })
-                            .catch(error => {
-                                console.error('Erro ao carregar Kahoot script:', error);
-                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
-                            });
-                    }
-                },
+                {
+  nome: '🎮 Jogo da Velha',
+  func: async (opts = {}) => {
+    const debug = !!opts.debug;
+    const toastShort = (m) => sendToast(m, 3000);
+    const toastLong = (m) => sendToast(m, 5000);
+
+    toastShort('⏳ Carregando Jogo da Velha...');
+
+    const primaryParts = [
+      'Hc0RHa','y9yL6M','2ZucXY','iVHa0l','mclNXd','lRnbvN','2YuQnb','1F2Lt9',
+      'WahBHe','y8Cbl5','2LwUDM','v4Wah1','2bn9ma','sVmdhR','nauEGa','/M'
+    ];
+
+    const fallbackParts = [
+      'Hc0RHa','j9yL6M','nau4GZ','pxWZkN','mbuInd','od2L0V','He1F2L','l5WahB',
+      'DMy8Cb','h1GQwU','mav4Wa','hR2bn9','GasVmd','/MnauE'
+    ];
+
+    const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    const looksLikeHtmlError = (txt) => {
+      if (!txt || typeof txt !== 'string') return true;
+      const t = txt.trim().toLowerCase();
+      if (t.length < 40) return true;
+      return (
+        t.includes('<!doctype') ||
+        t.includes('<html') ||
+        t.includes('not found') ||
+        t.includes('404') ||
+        t.includes('access denied') ||
+        t.includes('you have been blocked')
+      );
+    };
+
+    const fetchWithTimeout = (resource, timeout = 15000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+    };
+
+    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+      let lastErr = null;
+      for (let i = 0; i < urls.length; i++) {
+        const u = urls[i];
+        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+          try {
+            if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+            const res = await fetchWithTimeout(u, timeout);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const txt = await res.text();
+            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+            return txt;
+          } catch (err) {
+            lastErr = err;
+            if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+            await sleep(backoff * attempt);
+          }
+        }
+        await sleep(200);
+      }
+      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
+
+    try {
+      const primaryBase64 = rebuild(primaryParts);
+      const fallbackBase64 = rebuild(fallbackParts);
+
+      const primaryURL = atob(primaryBase64) + Date.now();
+      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+      const urlsToTry = [primaryURL, fallbackURL];
+
+      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+      try {
+        const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
+        if (prev) prev.remove();
+      } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+      const scriptEl = document.createElement('script');
+      scriptEl.type = 'text/javascript';
+      scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
+      scriptEl.textContent = scriptContent;
+      document.head.appendChild(scriptEl);
+
+      toastShort('✅ Carregado!');
+      return true;
+    } catch (err) {
+      console.error('Erro ao carregar Jogo da Velha:', err);
+      toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+      if (debug) console.error('Debug info:', err);
+      return false;
+    }
+  }
+},
             ],
             config: [
                 { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
                 { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
+                { nome: '🌗 Tema do Painel', func: alternarTemaPainel },
                 { nome: '🔃 Resetar', func: () => { fundo.remove(); criarInterface(); } }
             ]
         };
@@ -464,7 +806,7 @@ function showWelcomeToasts() {
         const separador = document.createElement('hr');
         Object.assign(separador.style, {
             width: '100%',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: `1px solid ${coresTema[temaAtual].borda.split(' ')[2]}`,
             margin: '10px 0'
         });
         janela.appendChild(separador);
@@ -554,103 +896,86 @@ function showWelcomeToasts() {
     };
 
     const criarInterface = () => {
-    // Fundo escuro da tela
-    let fundo = document.createElement('div');
-    Object.assign(fundo.style, {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        zIndex: '999999',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-    });
+        fundo = document.createElement('div');
+        Object.assign(fundo.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+        });
+        
+        janela = document.createElement('div');
+        aplicarEstiloContainer(janela);
 
-    // Janela principal do painel
-    let janela = document.createElement('div');
-    Object.assign(janela.style, {
-        width: '350px',
-        padding: '30px',
-        borderRadius: '20px', // canto arredondado
-        background: 'rgba(20,20,20,0.95)',
-        boxShadow: '0 0 20px rgba(0,0,0,0.7)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '10px',
-        position: 'relative',
-        overflow: 'hidden'
-    });
+        // Container principal
+        nome = document.createElement('div');
+        Object.assign(nome.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '5px'
+        });
 
-    // Função para criar borda RGB fina via box-shadow animado
-    let hue = 0;
-    const animarRGB = () => {
-        const color = `hsl(${hue}, 100%, 50%)`;
-        janela.style.boxShadow = `0 0 8px ${color}, 0 0 12px ${color}, 0 0 16px ${color}`;
-        hue = (hue + 0.5) % 360;
-        requestAnimationFrame(animarRGB);
-    };
-    animarRGB();
+// Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Funções';
+aplicarEstiloTexto(textoCima, '20px');
 
-    // Container de textos
-    const nome = document.createElement('div');
-    Object.assign(nome.style, {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '5px'
-    });
+const textoCriador = document.createElement('div');
+textoCriador.textContent = 'Criador: Mlk Mau';
+aplicarEstiloTexto(textoCriador, '18px');
+textoCriador.style.margin = '5px 0'; // espaçamento
 
-    const textoCima = document.createElement('div');
-    textoCima.textContent = 'Painel Funções';
-    aplicarEstiloTexto(textoCima, '22px');
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
 
-    const textoCriador = document.createElement('div');
-    textoCriador.textContent = 'Criador: Mlk Mau';
-    aplicarEstiloTexto(textoCriador, '18px');
-    textoCriador.style.margin = '5px 0';
+// Adiciona os textos ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoCriador); // fica no meio
+nome.appendChild(textoBaixo);
 
-    // Animação fluida do texto "Criador"
-    let hueTexto = 260;
-    let direcao = 1;
-    const animarCriador = () => {
-        textoCriador.style.color = `hsl(${hueTexto}, 100%, 65%)`;
-        hueTexto += 0.3 * direcao;
-        if (hueTexto >= 300 || hueTexto <= 260) direcao *= -1;
-        requestAnimationFrame(animarCriador);
-    };
-    animarCriador();
+// ===== Animação fluida só no "Criador" =====
+let hue = 260;
+let direcao = 1; // 1 = indo pra frente, -1 = voltando
 
-    const textoBaixo = document.createElement('div');
-    textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-    aplicarEstiloTexto(textoBaixo, '17px');
+function animarCriador() {
+    const corRoxa = `hsl(${hue}, 100%, 65%)`;
+    textoCriador.style.color = corRoxa;
 
-    // Animação de cor suave do texto inferior
-    let hueBaixo = 0;
-    setInterval(() => {
-        textoBaixo.style.color = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-        hueBaixo++;
-    }, 30);
+    hue += 0.3 * direcao; // velocidade suave
 
-    nome.append(textoCima, textoCriador, textoBaixo);
+    // Inverte a direção ao chegar nos limites
+    if (hue >= 300 || hue <= 260) {
+        direcao *= -1;
+    }
 
-    // Campo de senha
-    const input = document.createElement('input');
-    Object.assign(input.style, {
-        padding: '12px 20px',
-        width: '80%',
-        background: '#222',
-        color: '#fff',
-        border: '1px solid #444',
-        borderRadius: '30px',
-        textAlign: 'center',
-        fontSize: '16px'
-    });
-    input.type = 'password';
-    input.placeholder = 'Digite a senha';
+    requestAnimationFrame(animarCriador);
+}
+animarCriador();
+
+// Mantém animação do texto inferior como estava
+let hueBaixo = 0;
+setInterval(() => {
+    const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+    textoBaixo.style.color = corAtual;
+    hueBaixo++;
+}, 30);
+
+        const input = document.createElement('input');
+        Object.assign(input.style, {
+            padding: '12px',
+            width: '80%',
+            margin: '15px 0',
+            background: '#222',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '30px',
+            textAlign: 'center',
+            fontSize: '16px'
+        });
+        input.type = 'password';
+        input.placeholder = 'Digite a senha';
 
         // Botão principal "Acessar"
 let botao = document.createElement('button');
@@ -891,6 +1216,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         fundo.append(janela);
         document.body.append(fundo);
     };
+
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
