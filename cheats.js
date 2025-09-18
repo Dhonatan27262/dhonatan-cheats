@@ -1,9 +1,3 @@
-Com certeza. O código que você forneceu contém um problema fundamental que impede o painel de aparecer, especialmente em dispositivos móveis que usam eventos de toque.
-O erro reside na forma como as coordenadas do toque são lidas nas funções de arrastar. Nas linhas que tratam dos eventos de toque (touchstart, touchmove), a propriedade e.touches é uma lista de toques ativos. O código tentava acessar e.touches.clientX e e.touches.clientY, mas essas propriedades não existem no objeto de lista de toques. O correto é acessar o primeiro toque na lista (e.touches) e, a partir daí, obter suas coordenadas.
-Além disso, notei outra questão de sintaxe que poderia causar comportamento inesperado: o uso do operador bitwise | (barra vertical simples) no lugar do operador lógico || (duas barras verticais). Embora em alguns casos o operador de bitwise possa funcionar como um fallback, a prática padrão e correta para avaliar condições lógicas, como a de `localStorage.getItem("dhonatanX") |
-| "20px", é sempre usar o operador lógico ||`. Eu corrigi isso em todo o código para garantir a robustez e a legibilidade.
-Abaixo está o código totalmente revisado, com as correções aplicadas para garantir que o botão flutuante e o painel sejam exibidos corretamente.
-// ===== ===== //
 async function loadToastify() {
     if (typeof Toastify!== 'undefined') return Promise.resolve();
 
