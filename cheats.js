@@ -1035,27 +1035,27 @@ function showTermoResponsabilidade(onAccept, onReject) {
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
-                { nome: 'Digitador v2.5', func: digitadorV2 },
-                { nome: '📝 Criar Texto com Tema via IA', func: criarTextoComTema },
-                { nome: '🔁 Reescrever Texto (remover plágio)', func: abrirReescritor }
+                { nome: 'Digitador v2', func: digitadorV2 },
+                { nome: 'Criar Texto com Tema via IA', func: criarTextoComTema },
+                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
             respostas: [
-                { nome: '📡 Encontrar Resposta', func: encontrarRespostaColar },
-                { nome: '✔️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
-                { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
-                { nome: '✔️ Marcar Resposta (Digitar)', func: () => {
+                { nome: 'Encontrar Resposta Via Menu', func: encontrarRespostaColar },
+                { nome: 'Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
+                { nome: 'Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
+                { nome: 'Marcar Resposta (Digitar)', func: () => {
                     const r = prompt("Digite a resposta:");
                     if (r) marcarResposta(r);
                 }}
             ],
             outros: [
                 { nome: 'Extensão libera bloqueio Wifi', func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') },
-                { nome: '🎮 Jogo da Velha', func: jogoDaVelha }
+                { nome: 'Jogo da Velha', func: jogoDaVelha }
             ],
             config: [
-                { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
-                { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
-                { nome: '🔄 Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
+                { nome: 'Sobre o Mod', func: mostrarInfoDono },
+                { nome: 'Alterar cor do Botão Flutuante', func: trocarCorBotao },
+                { nome: 'Resetar Painel', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
 ]
         };
 
