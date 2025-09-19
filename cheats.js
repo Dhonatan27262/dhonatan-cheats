@@ -3,13 +3,11 @@ async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
 
     return new Promise((resolve, reject) => {
-        // Carregar CSS do Toastify
         const cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
         cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
         document.head.appendChild(cssLink);
 
-        // Carregar JS do Toastify
         const jsScript = document.createElement('script');
         jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
         jsScript.onload = resolve;
@@ -40,71 +38,140 @@ function showWelcomeToasts() {
 
 // ===== [CÓDIGO PRINCIPAL] ===== //
 (async function(){
-    // Carregar Toastify quando o script for executado
     await loadToastify();
-
-    // Mostrar toasts de boas-vindas após um breve delay
     setTimeout(showWelcomeToasts, 500);
 
+    // ---------- Estado ----------
     let fundo, janela, nome, relogio;
     let senhaLiberada = false;
-    let abaAtiva = 'textos';
     let posX = localStorage.getItem("dhonatanX") || "20px";
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-    // Estilo moderno para todos os botões
+    // ---------- INJETAR CSS (classes + animações) ----------
+    const injectStyles = () => {
+        if (document.getElementById('dh-global-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'dh-global-styles';
+        style.textContent = `
+        /* base button */
+        .dh-btn {
+            padding: 10px 14px;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform .18s ease, box-shadow .18s ease, opacity .15s ease;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .dh-btn:active { transform: translateY(1px) scale(.997); }
+
+        /* suave gradiente animado */
+        .dh-gradient {
+            background: linear-gradient(90deg, #ff6b6b, #ff3d3d, #b00000);
+            background-size: 200% 200%;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            animation: dg-anim 6s ease infinite;
+        }
+        @keyframes dg-anim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* nav buttons (sidebar) */
+        .sidebar-nav-btn {
+            width: 100%;
+            text-align: left;
+            background: #141414;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: #e6e6e6;
+            opacity: .95;
+            transition: background .25s ease, transform .15s ease;
+        }
+        .sidebar-nav-btn:hover { transform: translateX(4px); background: #1b1b1b; }
+        .sidebar-nav-btn.active { background: linear-gradient(90deg,#ff4d4d,#b30000); color: #fff; box-shadow: 0 8px 24px rgba(179,0,0,0.18); }
+
+        /* footer action buttons fixed style */
+        .sidebar-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            padding-top: 6px;
+            align-items: center;
+        }
+        .sidebar-footer-btn {
+            width: 85%;
+            border-radius: 22px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+            transition: transform .15s ease, background .2s ease;
+            font-weight: 700;
+        }
+        .sidebar-footer-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.08); }
+
+        /* main panel buttons */
+        .main-btn {
+            background: #262626;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+        }
+
+        /* small helpers */
+        .dh-small-muted { color: #bdbdbd; font-size: 13px; }
+        `;
+        document.head.appendChild(style);
+    };
+    injectStyles();
+
+    // ---------- helpers para aplicar estilo inline legacy (mantive compatibilidade) ----------
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
+        elemento.classList.add('dh-btn');
+        if (gradiente) elemento.classList.add('dh-gradient');
         Object.assign(elemento.style, {
-            padding: '10px 15px',
-            background: gradiente ? 'linear-gradient(135deg, #8A2BE2, #4B0082)' : '#222',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '30px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            outline: 'none',
-            userSelect: 'none',
-            margin: '8px 0'
+            outline: 'none'
         });
     };
 
-    // Estilo para elementos de texto
     const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
         Object.assign(elemento.style, {
             color: '#fff',
             fontSize: tamanho,
-            fontWeight: 'bold',
+            fontWeight: '700',
             textAlign: 'center',
-            margin: '10px 0',
-            userSelect: 'none'
+            margin: '8px 0'
         });
     };
 
-    // Estilo para container
     const aplicarEstiloContainer = (elemento) => {
         Object.assign(elemento.style, {
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(10px)',
+            background: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
             borderRadius: '12px',
-            padding: '16px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            padding: '12px',
+            boxShadow: '0 14px 40px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.04)',
             maxWidth: '1000px',
-            width: '92%',
+            width: '94%',
             textAlign: 'center'
         });
     };
 
+    // ---------- funções existentes (mantidas) ----------
     const mostrarInfoDono = () => {
-        if (fundo) fundo.remove();
-
+        if (fundo) try { fundo.remove(); } catch(e){}
         const container = document.createElement('div');
         aplicarEstiloContainer(container);
         container.style.zIndex = '1000001';
@@ -120,11 +187,11 @@ function showWelcomeToasts() {
 
         const insta = document.createElement('div');
         insta.textContent = 'VERSÃO 1.1';
-        aplicarEstiloTexto(insta);
+        aplicarEstiloTexto(insta, '14px');
 
         const info = document.createElement('div');
         info.textContent = '💻 Mod exclusivo e protegido, feito para poupar seu tempo';
-        aplicarEstiloTexto(info, '14px');
+        aplicarEstiloTexto(info, '13px');
 
         const btnFechar = document.createElement('button');
         btnFechar.textContent = 'Fechar';
@@ -139,10 +206,8 @@ function showWelcomeToasts() {
     };
 
     const trocarCorBotao = () => {
-        if (fundo) fundo.remove();
-
+        if (fundo) try { fundo.remove(); } catch(e){}
         let novaCorTemp = corBotao;
-
         const container = document.createElement('div');
         aplicarEstiloContainer(container);
         container.style.zIndex = '1000001';
@@ -154,31 +219,24 @@ function showWelcomeToasts() {
 
         const titulo = document.createElement('div');
         titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
-        aplicarEstiloTexto(titulo, '18px');
+        aplicarEstiloTexto(titulo, '16px');
 
         const seletor = document.createElement("input");
         seletor.type = "color";
         seletor.value = corBotao;
         Object.assign(seletor.style, {
-            width: "100px",
-            height: "100px",
+            width: "92px",
+            height: "92px",
             border: "none",
             background: "transparent",
             cursor: "pointer",
-            margin: '15px 0'
+            margin: '12px 0'
         });
 
-        seletor.addEventListener("input", (e) => {
-            novaCorTemp = e.target.value;
-        });
+        seletor.addEventListener("input", (e) => novaCorTemp = e.target.value);
 
         const btnContainer = document.createElement('div');
-        Object.assign(btnContainer.style, {
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '10px',
-            marginTop: '15px'
-        });
+        Object.assign(btnContainer.style, { display:'flex', justifyContent:'center', gap:'10px', marginTop:'10px' });
 
         const btnAplicar = document.createElement('button');
         btnAplicar.textContent = '✅ Aplicar';
@@ -187,22 +245,16 @@ function showWelcomeToasts() {
             if (!novaCorTemp || novaCorTemp === corBotao) return;
             corBotao = novaCorTemp;
             localStorage.setItem("corBotaoDhonatan", corBotao);
-            document.querySelectorAll("#dhonatanBotao").forEach(btn => {
-                btn.style.background = corBotao;
-            });
+            document.querySelectorAll("#dhonatanBotao").forEach(btn => { btn.style.background = corBotao; });
             container.remove();
-
             sendToast('✅ Cor alterada com sucesso!', 2000);
-            setTimeout(() => criarMenu(), 2000);
+            setTimeout(() => criarMenu(), 800);
         };
 
         const btnCancelar = document.createElement('button');
         btnCancelar.textContent = '❌ Cancelar';
         aplicarEstiloBotao(btnCancelar);
-        btnCancelar.onclick = () => {
-            container.remove();
-            criarMenu();
-        };
+        btnCancelar.onclick = () => { container.remove(); criarMenu(); };
 
         btnContainer.append(btnAplicar, btnCancelar);
         container.append(titulo, seletor, btnContainer);
@@ -211,17 +263,17 @@ function showWelcomeToasts() {
 
     const coletarPerguntaEAlternativas = () => {
         const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
-        const pergunta = perguntaEl ? perguntaEl.innerText.trim() :
-            (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) || '').trim();
+        const pergunta = perguntaEl ? perguntaEl.innerText.trim() : (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) || '').trim();
         const alternativasEl = Array.from(document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p'));
         const alternativasFiltradas = alternativasEl.map(el => el.innerText.trim()).filter(txt =>
             txt.length > 20 && txt.length < 400 && !txt.includes('?') && !txt.toLowerCase().includes(pergunta.toLowerCase())
         );
-        const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
-        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
+        const letras = ['a','b','c','d','e','f'];
+        const alternativas = alternativasFiltradas.map((txt,i)=>`${letras[i]}) ${txt}`).join('\n');
         return { pergunta, alternativas };
     };
 
+    // ---------- função grande encontrarRespostaColar (mantida) ----------
     async function encontrarRespostaColar(options = {}) {
       const debug = !!options.debug; // se true, irá mostrar logs de depuração (NÃO mostra a URL por padrão)
       sendToast('⏳ Carregando script...', 3000);
@@ -411,16 +463,108 @@ function showWelcomeToasts() {
         window.open(url, "_blank");
     };
 
-    const abrirReescritor = () => {
-        window.open(`https://www.reescrevertexto.net`, "_blank");
-    };
+    const abrirReescritor = () => window.open(`https://www.reescrevertexto.net`, "_blank");
 
-    // ------------------------------------------------------------
-    // Nova função que constrói as abas e o conteúdo no novo layout
-    // - agora a sidebar é um flex-column com espaço entre, para fixar os botões inferiores
-    // ------------------------------------------------------------
+    // ---------- carregar senhas remotas (mantido) ----------
+    let senhasCarregadas = false;
+    const carregarSenhasRemotas = async (opts = {}) => {
+      const debug = !!opts.debug;
+      sendToast('🔒 Carregando sistema de senhas...', 2000);
+
+      const primaryParts = [
+        '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
+        '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
+      ];
+
+      const fallbackParts = [
+        '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
+        'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
+      ];
+
+      const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+      const sleep = ms => new Promise(res=>setTimeout(res,ms));
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+        return false;
+      };
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(()=>controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(()=>clearTimeout(id));
+      };
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let i=0;i<urls.length;i++){
+          const u = urls[i];
+          for (let attempt=1; attempt<=attemptsPerUrl; attempt++){
+            try {
+              if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}, tentativa ${attempt})`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP '+res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
+            }
+          }
+          await sleep(200);
+        }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
+
+      try {
+        const primaryBase64 = rebuildFromParts(primaryParts);
+        const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+        const primaryURL = atob(primaryBase64) + Date.now();
+        const fallbackURL = atob(fallbackBase64) + Date.now();
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+        try { const prev = document.querySelector('script[data-injected-by="senhasRemotas"]'); if (prev) prev.remove(); } catch(e){ if (debug) console.warn(e.message); }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'senhasRemotas';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        if (typeof window.verificarSenha !== 'function') {
+          window.verificarSenha = function(senha) {
+            const senhasBackup = ["admin","Teste24","adm","tainara","vitor","pablo","rafael"];
+            return senhasBackup.includes(String(senha));
+          };
+        }
+
+        senhasCarregadas = true;
+        if (debug) console.info('Senhas remotas carregadas com sucesso.');
+        return true;
+      } catch (err) {
+        console.error('Falha ao carregar senhas remotas:', err);
+        window.verificarSenha = function(senha) {
+          const senhasBackup = ["admin","Teste24","adm","tainara","vitor","pablo","rafael"];
+          return senhasBackup.includes(String(senha));
+        };
+        senhasCarregadas = true;
+        sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
+        if (debug) console.error('Debug (erro completo):', err);
+        return false;
+      }
+    };
+    carregarSenhasRemotas();
+
+    // ---------- função que cria as abas e o conteúdo, com todas as funções completas ----------
     function criarAbasInterface(sidebarEl, mainEl) {
-        // Mesma estrutura "botoes" do código original, com as funções mantidas
+        // botões e ações mantidos do seu código original (com funções completas)
         const botoes = {
             scripts: [
                 {
@@ -430,103 +574,103 @@ function showWelcomeToasts() {
                 {
                     nome: 'Khan Academy',
                     func: async (opts = {}) => {
-                        const debug = !!opts.debug;
-                        const toastShort = (msg) => sendToast(msg, 3000);
-                        const toastLong = (msg) => sendToast(msg, 5000);
+                      const debug = !!opts.debug;
+                      const toastShort = (msg) => sendToast(msg, 3000);
+                      const toastLong = (msg) => sendToast(msg, 5000);
 
-                        toastShort('⏳ Carregando Script Khan Academy...');
+                      toastShort('⏳ Carregando Script Khan Academy...');
 
-                        const primaryChunks = [
-                          'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
-                          '5lbC8y','l0aHVi','dXNlcm','aHR0cH','M6Ly9y','MDUwL2'
-                        ];
-                        const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
+                      const primaryChunks = [
+                        'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
+                        '5lbC8y','l0aHVi','dXNlcm','aHR0cH','M6Ly9y','MDUwL2'
+                      ];
+                      const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
 
-                        const fallbackChunks = [
-                          'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
-                          'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
-                        ];
-                        const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
+                      const fallbackChunks = [
+                        'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
+                        'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
+                      ];
+                      const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
 
-                        const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
+                      const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
 
-                        const sleep = ms => new Promise(res => setTimeout(res, ms));
-                        const looksLikeHtmlError = txt => {
-                          if (!txt || typeof txt !== 'string') return true;
-                          const t = txt.trim().toLowerCase();
-                          if (t.length < 40) return true;
-                          return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
-                        };
+                      const sleep = ms => new Promise(res => setTimeout(res, ms));
+                      const looksLikeHtmlError = txt => {
+                        if (!txt || typeof txt !== 'string') return true;
+                        const t = txt.trim().toLowerCase();
+                        if (t.length < 40) return true;
+                        return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+                      };
 
-                        const fetchWithTimeout = (resource, timeout = 15000) => {
-                          const controller = new AbortController();
-                          const id = setTimeout(() => controller.abort(), timeout);
-                          return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-                        };
+                      const fetchWithTimeout = (resource, timeout = 15000) => {
+                        const controller = new AbortController();
+                        const id = setTimeout(() => controller.abort(), timeout);
+                        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+                      };
 
-                        const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-                          let lastErr = null;
-                          for (let ui = 0; ui < urls.length; ui++) {
-                            const u = urls[ui];
-                            for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-                              try {
-                                if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
-                                const res = await fetchWithTimeout(u, timeout);
-                                if (!res.ok) throw new Error('HTTP ' + res.status);
-                                const txt = await res.text();
-                                if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
-                                return txt;
-                              } catch (err) {
-                                lastErr = err;
-                                if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
-                                await sleep(backoff * attempt);
-                              }
+                      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+                        let lastErr = null;
+                        for (let ui = 0; ui < urls.length; ui++) {
+                          const u = urls[ui];
+                          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                            try {
+                              if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+                              const res = await fetchWithTimeout(u, timeout);
+                              if (!res.ok) throw new Error('HTTP ' + res.status);
+                              const txt = await res.text();
+                              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+                              return txt;
+                            } catch (err) {
+                              lastErr = err;
+                              if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+                              await sleep(backoff * attempt);
                             }
-                            await sleep(200);
                           }
-                          throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-                        };
+                          await sleep(200);
+                        }
+                        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+                      };
+
+                      try {
+                        const primaryBase64 = rebuild(primaryChunks, primaryOrder);
+                        const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
+
+                        const primaryURL = atob(primaryBase64) + '?' + Date.now();
+                        const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+                        const urlsToTry = [primaryURL, fallbackURL];
+
+                        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+                        if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
 
                         try {
-                          const primaryBase64 = rebuild(primaryChunks, primaryOrder);
-                          const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
-
-                          const primaryURL = atob(primaryBase64) + '?' + Date.now();
-                          const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
-
-                          const urlsToTry = [primaryURL, fallbackURL];
-
-                          const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
-
-                          if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
-
-                          try {
-                            const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
-                            if (prev) prev.remove();
-                          } catch (e) {
-                            if (debug) console.warn('Falha ao remover script anterior:', e.message);
-                          }
-
-
-                          const scriptEl = document.createElement('script');
-                          scriptEl.type = 'text/javascript';
-                          scriptEl.dataset.injectedBy = 'KhanAcademyScript';
-                          scriptEl.textContent = scriptContent;
-                          document.head.appendChild(scriptEl);
-
-                          toastShort('✅ Script Khan Academy carregado!');
-                          return true;
-                        } catch (err) {
-                          console.error('Erro ao carregar script Khan Academy:', err);
-                          toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
-                          if (debug) console.error('Debug info:', err);
-                          return false;
+                          const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+                          if (prev) prev.remove();
+                        } catch (e) {
+                          if (debug) console.warn('Falha ao remover script anterior:', e.message);
                         }
+
+
+                        const scriptEl = document.createElement('script');
+                        scriptEl.type = 'text/javascript';
+                        scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+                        scriptEl.textContent = scriptContent;
+                        document.head.appendChild(scriptEl);
+
+                        toastShort('✅ Script Khan Academy carregado!');
+                        return true;
+                      } catch (err) {
+                        console.error('Erro ao carregar script Khan Academy:', err);
+                        toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+                        if (debug) console.error('Debug info:', err);
+                        return false;
+                      }
                     }
                 }
             ],
             textos: [
-                { nome: 'Digitador v1', func: () => { if (fundo) fundo.remove(); iniciarMod(); } },
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
                 {
                   nome: 'Digitador v2',
                   func: async (opts = {}) => {
@@ -643,10 +787,7 @@ function showWelcomeToasts() {
                 { nome: '📡 Encontrar Resposta', func: encontrarRespostaColar },
                 { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
                 { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
-                { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
-                    const r = prompt("Digite a resposta:");
-                    if (r) marcarResposta(r);
-                }}
+                { nome: '✍️ Marcar Resposta (Digitar)', func: () => { const r = prompt("Digite a resposta:"); if (r) marcarResposta(r); } }
             ],
             outros: [
                 {
@@ -757,570 +898,273 @@ function showWelcomeToasts() {
             config: [
                 { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
                 { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
-                { nome: '🔃 Resetar', func: () => { if (fundo) fundo.remove(); criarInterface(); } }
+                { nome: '🔃 Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
             ]
         };
 
-        // constrói top container (links) e footer (ações)
+        // Top - nav buttons (coluna)
         const topContainer = document.createElement('div');
         topContainer.style.display = 'flex';
         topContainer.style.flexDirection = 'column';
         topContainer.style.gap = '8px';
-        topContainer.style.paddingBottom = '10px';
 
-        // construir sidebar buttons (aproveitando o array de tabs)
-        const tabs = ['scripts', 'textos', 'respostas', 'outros', 'config'];
-        tabs.forEach(t => {
+        const tabs = ['scripts','textos','respostas','outros','config'];
+        tabs.forEach((t, idx) => {
             const navBtn = document.createElement('button');
+            navBtn.className = 'sidebar-nav-btn dh-btn';
             navBtn.textContent = (t === 'scripts' ? 'Scripts' : t.charAt(0).toUpperCase() + t.slice(1));
-            Object.assign(navBtn.style, {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '12px 10px',
-                color: '#fff',
-                background: '#141414',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                textAlign: 'left'
-            });
-            if (t === 'scripts') navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
-
+            navBtn.style.fontWeight = '700';
             navBtn.addEventListener('click', () => {
-                // remover destaque de todos
-                Array.from(sidebarEl.querySelectorAll('button')).forEach(b => {
-                    b.style.boxShadow = 'none';
-                    b.style.background = '#141414';
+                // reset only nav buttons
+                Array.from(sidebarEl.querySelectorAll('.sidebar-nav-btn')).forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = '';
                 });
-                navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
-                // renderiza conteúdo
+                navBtn.classList.add('active');
+                // render content only
                 renderTabContent(t);
             });
-
+            // first one active
+            if (idx === 0) navBtn.classList.add('active');
             topContainer.appendChild(navBtn);
         });
 
-        // footer com botões de ação (fixado na base da sidebar)
+        // Footer - actions (fixo na base)
         const footer = document.createElement('div');
-        footer.style.display = 'flex';
-        footer.style.flexDirection = 'column';
-        footer.style.gap = '10px';
-        footer.style.paddingTop = '10px';
+        footer.className = 'sidebar-footer';
+        footer.style.marginBottom = '6px';
 
-        const btnEsconder = document.createElement('button');
-        btnEsconder.textContent = '👁️ Fechar Menu';
-        aplicarEstiloBotao(btnEsconder);
-        btnEsconder.style.borderRadius = '18px';
-        btnEsconder.style.padding = '10px 12px';
-        btnEsconder.style.background = '#6b6b6b';
-        btnEsconder.onclick = () => {
-            if (fundo) fundo.remove();
+        const btnFechar = document.createElement('button');
+        btnFechar.className = 'sidebar-footer-btn dh-btn';
+        btnFechar.innerHTML = '👁️ &nbsp; Fechar Menu';
+        btnFechar.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
             const botaoFlutuante = document.getElementById('dhonatanBotao');
             if (botaoFlutuante) botaoFlutuante.remove();
         };
 
-        const btnFechar = document.createElement('button');
-        btnFechar.textContent = '❌ Minimizar Menu';
-        aplicarEstiloBotao(btnFechar);
-        btnFechar.style.borderRadius = '18px';
-        btnFechar.style.padding = '10px 12px';
-        btnFechar.style.background = '#6b6b6b';
-        btnFechar.onclick = () => {
-            if (fundo) fundo.remove();
+        const btnMinim = document.createElement('button');
+        btnMinim.className = 'sidebar-footer-btn dh-btn dh-gradient';
+        btnMinim.innerHTML = '❌ &nbsp; Minimizar Menu';
+        btnMinim.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
             criarBotaoFlutuante();
         };
 
-        footer.appendChild(btnEsconder);
         footer.appendChild(btnFechar);
+        footer.appendChild(btnMinim);
 
-        // coloca topContainer e footer na sidebarEl (sidebarEl está configurada para space-between)
+        // append top + footer to sidebar
+        sidebarEl.innerHTML = '';
         sidebarEl.appendChild(topContainer);
+        const spacer = document.createElement('div');
+        spacer.style.flex = '1 1 auto';
+        sidebarEl.appendChild(spacer);
         sidebarEl.appendChild(footer);
 
-        // renderiza a aba inicial (scripts)
+        // inicial render da aba scripts
         renderTabContent('scripts');
 
-        // Função auxiliar que renderiza o conteúdo da aba no mainEl
+        // render content function
         function renderTabContent(tabId) {
-            // limpa o mainEl
             mainEl.innerHTML = '';
-            // título e separador
             const titulo = document.createElement('div');
             titulo.textContent = tabId.toUpperCase();
-            Object.assign(titulo.style, { fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', textAlign: 'left' });
+            Object.assign(titulo.style, { fontSize: '16px', fontWeight: '800', marginBottom: '8px', textAlign: 'left', color: '#ddd' });
             mainEl.appendChild(titulo);
 
             const separador = document.createElement('div');
-            Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' });
+            Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.03)', margin: '6px 0 12px 0' });
             mainEl.appendChild(separador);
 
             const containerBotoes = document.createElement('div');
-            Object.assign(containerBotoes.style, {
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '10px',
-                padding: '10px 0'
-            });
+            Object.assign(containerBotoes.style, { display:'flex', flexDirection:'column', gap:'12px', alignItems:'flex-start' });
 
-            if (botoes[tabId]) {
+            if (botoes[tabId] && botoes[tabId].length) {
                 botoes[tabId].forEach(b => {
                     const btn = document.createElement('button');
+                    btn.className = 'main-btn dh-btn';
                     btn.textContent = b.nome;
-                    aplicarEstiloBotao(btn);
-                    btn.style.borderRadius = '8px';
-                    btn.style.padding = '8px 12px';
-                    btn.style.background = '#2a2a2a';
                     btn.onclick = () => {
                         try {
-                            const maybePromise = b.func();
-                            if (maybePromise && typeof maybePromise.then === 'function') {
-                                maybePromise.catch(err => {
-                                    console.error('Erro na função da aba:', err);
-                                    sendToast('❌ Erro interno. Veja console.', 3000);
-                                });
+                            const maybe = b.func();
+                            if (maybe && typeof maybe.then === 'function') {
+                                maybe.catch(err => { console.error(err); sendToast('❌ Erro interno. Veja console.', 3000); });
                             }
                         } catch (err) {
-                            console.error('Erro executando função do botão:', err);
+                            console.error('Erro na função:', err);
                             sendToast('❌ Erro interno. Veja console.', 3000);
                         }
                     };
                     containerBotoes.appendChild(btn);
                 });
             } else {
-                const vazio = document.createElement('div');
-                vazio.textContent = 'Nenhuma função nesta aba.';
-                aplicarEstiloTexto(vazio);
-                containerBotoes.appendChild(vazio);
+                const nada = document.createElement('div');
+                nada.textContent = 'Nenhuma função disponível nesta aba.';
+                nada.className = 'dh-small-muted';
+                containerBotoes.appendChild(nada);
             }
 
+            // ações finais dentro do main (duplicadas se o usuário quiser)
+            const bottomActions = document.createElement('div');
+            bottomActions.style.display = 'flex';
+            bottomActions.style.gap = '8px';
+            bottomActions.style.marginTop = '18px';
+            bottomActions.style.alignSelf = 'flex-start';
+
+            const closeMainBtn = document.createElement('button');
+            closeMainBtn.className = 'main-btn dh-btn';
+            closeMainBtn.textContent = '👁️ Fechar Menu';
+            closeMainBtn.onclick = () => { if (fundo) try { fundo.remove(); } catch(e){}; const bf = document.getElementById('dhonatanBotao'); if (bf) bf.remove(); };
+
+            const minMainBtn = document.createElement('button');
+            minMainBtn.className = 'main-btn dh-btn dh-gradient';
+            minMainBtn.textContent = '❌ Minimizar Menu';
+            minMainBtn.onclick = () => { if (fundo) try { fundo.remove(); } catch(e){}; criarBotaoFlutuante(); };
+
+            bottomActions.append(closeMainBtn, minMainBtn);
             mainEl.appendChild(containerBotoes);
+            mainEl.appendChild(bottomActions);
         }
     }
 
-    // ------------------------------------------------------------
-    // criarMenu atualizado (novo layout pós-login com sidebar/header/main)
-    // ------------------------------------------------------------
+    // ---------- criarMenu (layout pós-login) ----------
     const criarMenu = () => {
-        if (fundo) try { fundo.remove(); } catch(e) {}
+        if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-        });
+        Object.assign(fundo.style, { position:'fixed', top:0, left:0, width:'100%', height:'100%', backgroundColor:'rgba(0,0,0,0.82)', zIndex:'999999', display:'flex', alignItems:'center', justifyContent:'center' });
 
-        // janela principal (container) - tamanho reduzido para ficar menos dominante em mobiles
         janela = document.createElement('div');
         aplicarEstiloContainer(janela);
         janela.style.display = 'flex';
         janela.style.flexDirection = 'column';
         janela.style.width = '92%';
-        janela.style.maxWidth = '900px';   // reduzido
-        janela.style.height = '70vh';      // reduzido
+        janela.style.maxWidth = '820px'; // reduzido
+        janela.style.height = '60vh';    // reduzido (mais compacto)
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
 
-        // header interno (sem aranha)
+        // header
         const header = document.createElement('div');
-        Object.assign(header.style, {
-            height: '56px',
-            background: 'linear-gradient(90deg, rgba(10,10,10,0.95), rgba(20,20,20,0.95))',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.04)'
-        });
+        Object.assign(header.style, { height:'56px', padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid rgba(255,255,255,0.03)' });
 
-        const tituloHeader = document.createElement('div');
-        tituloHeader.textContent = 'PAINEL AUXÍLIO';
-        Object.assign(tituloHeader.style, { fontSize: '16px', fontWeight: '800', letterSpacing: '1px', color: '#fff' });
+        const title = document.createElement('div');
+        title.textContent = 'PAINEL AUXÍLIO';
+        Object.assign(title.style, { fontSize:'16px', fontWeight:'900', letterSpacing:'1px', color:'#fff' });
 
-        // área do relógio no header (horário de Brasília)
         relogio = document.createElement('div');
-        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        Object.assign(relogio.style, { fontSize: '13px', fontWeight: '700', fontFamily: 'monospace', color: '#fff' });
-        setInterval(() => {
-            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        }, 1000);
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo' });
+        Object.assign(relogio.style, { fontSize:'13px', fontFamily:'monospace', color:'#fff', fontWeight:'700' });
+        setInterval(()=>{ relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone:'America/Sao_Paulo' }); }, 1000);
 
-        header.appendChild(tituloHeader);
+        header.appendChild(title);
         header.appendChild(relogio);
 
-        // corpo com sidebar + main
+        // body wrap (sidebar + main)
         const bodyWrap = document.createElement('div');
-        Object.assign(bodyWrap.style, {
-            display: 'flex',
-            flex: '1 1 auto',
-            minHeight: '0', // para permitir overflow interno
-            overflow: 'hidden'
-        });
+        Object.assign(bodyWrap.style, { display:'flex', flex: '1 1 auto', minHeight:'0', overflow:'hidden' });
 
-        // Sidebar (menu lateral) - menor e com layout que fixa ações na base
+        // sidebar
         const sidebar = document.createElement('div');
-        Object.assign(sidebar.style, {
-            width: '200px', // ligeiramente menor
-            background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(20,20,20,0.98))',
-            padding: '18px',
-            borderRight: '1px solid rgba(255,255,255,0.03)',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between' // importante: empurra footer para baixo
-        });
+        Object.assign(sidebar.style, { width:'200px', background:'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding:'14px', borderRight:'1px solid rgba(255,255,255,0.03)', display:'flex', flexDirection:'column', justifyContent:'space-between' });
 
-        // Pequeño header/label dentro da sidebar
+        // small title inside sidebar
         const sidebarTitle = document.createElement('div');
         sidebarTitle.textContent = 'MENU';
-        Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bbb', marginBottom: '10px', fontWeight: '700' });
-
-        // area central principal
-        const mainPanel = document.createElement('div');
-        Object.assign(mainPanel.style, {
-            flex: '1 1 auto',
-            padding: '20px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'stretch',
-            gap: '6px'
-        });
-
-        // montar tudo
+        Object.assign(sidebarTitle.style, { fontSize:'12px', color:'#bdbdbd', marginBottom:'8px', fontWeight:'800' });
         sidebar.appendChild(sidebarTitle);
+
+        // main panel
+        const mainPanel = document.createElement('div');
+        Object.assign(mainPanel.style, { flex:'1 1 auto', padding:'18px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'8px', alignItems:'stretch' });
+
         bodyWrap.appendChild(sidebar);
         bodyWrap.appendChild(mainPanel);
 
-        // adiciona header e body ao modal janela
         janela.appendChild(header);
         janela.appendChild(bodyWrap);
-
-        // adicionar no fundo
         fundo.appendChild(janela);
         document.body.appendChild(fundo);
 
-        // preencher a interface das abas usando a função que transforma o objeto de botoes
+        // popular abas dentro do novo layout
         criarAbasInterface(sidebar, mainPanel);
     };
 
-    // ------------------------------------------------------------
-    // criarInterface (tela de login) - mantive igual ao original
-    // ------------------------------------------------------------
+    // ---------- criarInterface (login) ----------
     const criarInterface = () => {
-        if (fundo) try { fundo.remove(); } catch(e) {}
+        if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-        });
+        Object.assign(fundo.style, { position:'fixed', top:0, left:0, width:'100%', height:'100%', backgroundColor:'rgba(0,0,0,0.85)', zIndex:'999999', display:'flex', alignItems:'center', justifyContent:'center' });
 
         janela = document.createElement('div');
         aplicarEstiloContainer(janela);
 
-        // Container principal
         nome = document.createElement('div');
-        Object.assign(nome.style, {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '5px'
-        });
+        Object.assign(nome.style, { display:'flex', flexDirection:'column', alignItems:'center', gap:'6px' });
 
-        // Texto SUPERIOR
         const textoCima = document.createElement('div');
         textoCima.textContent = 'Painel Funções';
         aplicarEstiloTexto(textoCima, '20px');
 
         const textoCriador = document.createElement('div');
         textoCriador.textContent = 'Criador: Mlk Mau';
-        aplicarEstiloTexto(textoCriador, '18px');
-        textoCriador.style.margin = '5px 0'; // espaçamento
+        aplicarEstiloTexto(textoCriador, '16px');
 
-        // Texto INFERIOR
         const textoBaixo = document.createElement('div');
         textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-        aplicarEstiloTexto(textoBaixo, '17px');
+        aplicarEstiloTexto(textoBaixo, '14px');
 
-        // Adiciona os textos ao container
         nome.appendChild(textoCima);
-        nome.appendChild(textoCriador); // fica no meio
+        nome.appendChild(textoCriador);
         nome.appendChild(textoBaixo);
 
-        // ===== Animação fluida só no "Criador" =====
-        let hue = 260;
-        let direcao = 1; // 1 = indo pra frente, -1 = voltando
-
-        function animarCriador() {
-            const corRoxa = `hsl(${hue}, 100%, 65%)`;
-            textoCriador.style.color = corRoxa;
-
-            hue += 0.3 * direcao; // velocidade suave
-
-            // Inverte a direção ao chegar nos limites
-            if (hue >= 300 || hue <= 260) {
-                direcao *= -1;
-            }
-
-            requestAnimationFrame(animarCriador);
-        }
-        animarCriador();
-
-        // Mantém animação do texto inferior como estava
-        let hueBaixo = 0;
-        setInterval(() => {
-            const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-            textoBaixo.style.color = corAtual;
-            hueBaixo++;
-        }, 30);
-
         const input = document.createElement('input');
-        Object.assign(input.style, {
-            padding: '12px',
-            width: '80%',
-            margin: '15px 0',
-            background: '#222',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: '30px',
-            textAlign: 'center',
-            fontSize: '16px'
-        });
+        Object.assign(input.style, { padding:'12px', width:'80%', margin:'12px 0', background:'#222', color:'#fff', border:'1px solid #444', borderRadius:'28px', textAlign:'center', fontSize:'16px' });
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // Botão principal "Acessar"
-        let botao = document.createElement('button');
+        const botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        // Botão do Discord
+        // contatos (Discord/WhatsApp/YouTube) - mantidos
         const btnDiscord = document.createElement('button');
-        btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+        btnDiscord.innerHTML = 'Discord';
         aplicarEstiloBotao(btnDiscord);
-        btnDiscord.style.background = '#5865F2';
-        btnDiscord.onclick = () => {
-            window.open('https://discord.gg/NfVKXRSvYK', '_blank');
-        };
+        btnDiscord.onclick = () => window.open('https://discord.gg/NfVKXRSvYK', '_blank');
 
-        // Botão do WhatsApp (ao lado do Discord)
         const btnWhatsApp = document.createElement('button');
-        btnWhatsApp.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
-                <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
-            </svg> WhatsApp
-        `;
+        btnWhatsApp.innerHTML = 'WhatsApp';
         aplicarEstiloBotao(btnWhatsApp);
-        btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-        btnWhatsApp.onclick = () => {
-            window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
-        };
+        btnWhatsApp.onclick = () => window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
 
-        // Botão do YouTube Manorick
         const btnmenor = document.createElement('button');
-        btnmenor.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-                8.568v6.864L15.818 12 9.545 8.568z"/>
-            </svg> Canal ManoRick
-        `;
+        btnmenor.innerHTML = 'Canal ManoRick';
         aplicarEstiloBotao(btnmenor);
-        btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btnmenor.onclick = () => {
-            window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
-        };
+        btnmenor.onclick = () => window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
 
-        // Botão do YouTube Mlk Mau
         const btncriadorpainel = document.createElement('button');
-        btncriadorpainel.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-                8.568v6.864L15.818 12 9.545 8.568z"/>
-            </svg> Canal MlkMau
-        `;
+        btncriadorpainel.innerHTML = 'Canal MlkMau';
         aplicarEstiloBotao(btncriadorpainel);
-        btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btncriadorpainel.onclick = () => {
-            window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
-        };
+        btncriadorpainel.onclick = () => window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
 
-        // Container para os botões
         const botoesContainer = document.createElement('div');
-        Object.assign(botoesContainer.style, {
-            display: 'flex',
-            justifyContent: 'flex-start',
-            gap: '10px',
-            width: '100%',
-            overflowX: 'auto',
-            paddingBottom: '5px',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #333'
-        });
-        botoesContainer.style.msOverflowStyle = 'auto';
-        botoesContainer.style.overflowY = 'hidden';
-        botoesContainer.style.flexWrap = 'nowrap';
-
-        // Adiciona todos os botões
+        Object.assign(botoesContainer.style, { display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap', marginBottom:'6px' });
         botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
-        Object.assign(erro.style, {
-            display: 'none',
-            color: '#ff5555',
-            marginTop: '15px',
-            fontSize: '14px'
-        });
-
-        let senhasCarregadas = false;
-
-        const carregarSenhasRemotas = async (opts = {}) => {
-          const debug = !!opts.debug;
-          sendToast('🔒 Carregando sistema de senhas...', 2000);
-
-          const primaryParts = [
-            '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
-            '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
-          ];
-
-          const fallbackParts = [
-            '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
-            'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
-          ];
-
-          const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
-
-          const sleep = ms => new Promise(res => setTimeout(res, ms));
-
-          const looksLikeHtmlError = (txt) => {
-            if (!txt || typeof txt !== 'string') return true;
-            const t = txt.trim().toLowerCase();
-            if (t.length < 40) return true;
-            if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
-                t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
-            return false;
-          };
-
-          const fetchWithTimeout = (resource, timeout = 15000) => {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-          };
-
-          const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-            let lastErr = null;
-            for (let i = 0; i < urls.length; i++) {
-              const u = urls[i];
-              for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-                try {
-                  if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}, tentativa ${attempt})`);
-                  const res = await fetchWithTimeout(u, timeout);
-                  if (!res.ok) throw new Error('HTTP ' + res.status);
-                  const txt = await res.text();
-                  if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
-                  return txt;
-                } catch (err) {
-                  lastErr = err;
-                  if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
-                  await sleep(backoff * attempt);
-                }
-              }
-              await sleep(200);
-            }
-            throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-          };
-
-          try {
-            const primaryBase64 = rebuildFromParts(primaryParts);
-            const fallbackBase64 = rebuildFromParts(fallbackParts);
-
-            const primaryURL = atob(primaryBase64) + Date.now();
-            const fallbackURL = atob(fallbackBase64) + Date.now();
-
-            const urlsToTry = [primaryURL, fallbackURL];
-
-            const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
-
-            if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
-
-            try {
-              const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
-              if (prev) prev.remove();
-            } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
-
-            const scriptEl = document.createElement('script');
-            scriptEl.type = 'text/javascript';
-            scriptEl.dataset.injectedBy = 'senhasRemotas';
-            scriptEl.textContent = scriptContent;
-            document.head.appendChild(scriptEl);
-
-            if (typeof window.verificarSenha !== 'function') {
-              console.warn('Script remoto carregado, mas verificarSenha não foi definida. Usando fallback local.');
-              window.verificarSenha = function(senha) {
-                const senhasBackup = [
-                  "admin",
-                  "Teste24",
-                  "adm",
-                  "tainara",
-                  "vitor",
-                  "pablo",
-                  "rafael"
-                ];
-                return senhasBackup.includes(String(senha));
-              };
-            }
-
-            senhasCarregadas = true;
-            if (debug) console.info('Senhas remotas carregadas com sucesso.');
-            return true;
-          } catch (err) {
-            console.error('Falha ao carregar senhas remotas:', err);
-
-            window.verificarSenha = function(senha) {
-              const senhasBackup = [
-                "admin",
-                "Teste24",
-                "adm",
-                "tainara",
-                "vitor",
-                "pablo",
-                "rafael"
-              ];
-              return senhasBackup.includes(String(senha));
-            };
-            senhasCarregadas = true;
-
-            sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
-            if (debug) console.error('Debug (erro completo):', err);
-            return false;
-          }
-        };
-
-        carregarSenhasRemotas();
+        Object.assign(erro.style, { display:'none', color:'#ff6b6b', marginTop:'10px', fontSize:'14px' });
 
         botao.onclick = async () => {
             if (!senhasCarregadas) {
                 sendToast('🔒 Carregando sistema de senhas...', 2000);
                 await carregarSenhasRemotas();
             }
-
-            if (verificarSenha(input.value)) {
+            if (verificarSenha && verificarSenha(input.value)) {
                 senhaLiberada = true;
-                if (fundo) fundo.remove();
-                sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
+                if (fundo) try { fundo.remove(); } catch(e){}
+                sendToast("Bem vindo ao Painel de Funções! 👋", 2000);
                 criarMenu();
             } else {
                 erro.style.display = 'block';
@@ -1332,9 +1176,7 @@ function showWelcomeToasts() {
         document.body.append(fundo);
     };
 
-    // ------------------------------------------------------------
-    // criarBotaoFlutuante - mantive funcionalidade e arrastar
-    // ------------------------------------------------------------
+    // ---------- criarBotaoFlutuante (mantido) ----------
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
@@ -1344,40 +1186,36 @@ function showWelcomeToasts() {
             left: posX,
             top: posY,
             background: corBotao,
-            padding: '12px 20px',
-            borderRadius: '30px',
+            padding: '10px 16px',
+            borderRadius: '26px',
             cursor: 'grab',
             zIndex: '999999',
-            fontWeight: 'bold',
+            fontWeight: '800',
             userSelect: 'none',
             color: '#fff',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease'
+            boxShadow: '0 8px 30px rgba(0,0,0,0.45)',
+            transition: 'all 0.22s ease'
         });
+
+        aplicarEstiloBotao(b);
 
         let isDragging = false;
         let startX, startY;
         let initialX, initialY;
-        let xOffset = 0, yOffset = 0;
-        const DRAG_THRESHOLD = 5;
+        const DRAG_THRESHOLD = 6;
 
         b.addEventListener('mousedown', startDrag);
-        b.addEventListener('touchstart', startDrag, { passive: false });
+        b.addEventListener('touchstart', startDrag, { passive:false });
 
         function startDrag(e) {
             const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-
-            startX = clientX;
-            startY = clientY;
-            // converte caso esteja em px ou percent
+            startX = clientX; startY = clientY;
             initialX = clientX - (parseFloat(b.style.left) || 0);
             initialY = clientY - (parseFloat(b.style.top) || 0);
-
             isDragging = false;
-
             document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('touchmove', handleDragMove, { passive:false });
             document.addEventListener('mouseup', endDrag);
             document.addEventListener('touchend', endDrag);
         }
@@ -1385,39 +1223,30 @@ function showWelcomeToasts() {
         function handleDragMove(e) {
             const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-
             const dx = clientX - startX;
             const dy = clientY - startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (!isDragging && distance > DRAG_THRESHOLD) {
-                isDragging = true;
-            }
-
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            if (!isDragging && distance > DRAG_THRESHOLD) isDragging = true;
             if (isDragging) {
                 const currentX = clientX - initialX;
                 const currentY = clientY - initialY;
-
-                b.style.left = `${currentX}px`;
-                b.style.top = `${currentY}px`;
+                b.style.left = `${Math.max(8, Math.min(window.innerWidth - 60, currentX))}px`;
+                b.style.top = `${Math.max(8, Math.min(window.innerHeight - 40, currentY))}px`;
                 b.style.cursor = 'grabbing';
             }
         }
 
         function endDrag() {
             if (isDragging) {
-                posX = b.style.left;
-                posY = b.style.top;
+                posX = b.style.left; posY = b.style.top;
                 localStorage.setItem("dhonatanX", posX);
                 localStorage.setItem("dhonatanY", posY);
             } else {
                 b.remove();
                 senhaLiberada ? criarMenu() : criarInterface();
             }
-
             b.style.cursor = 'grab';
             isDragging = false;
-
             document.removeEventListener('mousemove', handleDragMove);
             document.removeEventListener('touchmove', handleDragMove);
             document.removeEventListener('mouseup', endDrag);
@@ -1427,6 +1256,6 @@ function showWelcomeToasts() {
         document.body.append(b);
     };
 
-    // Iniciar o botão flutuante
+    // ---------- iniciar com botão flutuante ----------
     criarBotaoFlutuante();
 })();
