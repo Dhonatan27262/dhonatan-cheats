@@ -1018,7 +1018,10 @@ function showTermoResponsabilidade(onAccept, onReject) {
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
                 { nome: 'Digitador v2', func: digitadorV2 },
                 { nome: 'Criar Texto com Tema via IA', func: criarTextoComTema },
-                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor }
+                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor },
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } }
             ],
             respostas: [
                 { nome: 'Encontrar Resposta Via Menu', func: encontrarRespostaColar },
