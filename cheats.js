@@ -36,7 +36,7 @@ function showWelcomeToasts() {
     sendToast("Painel carregado");
 }
 
-// ===== [CÃDIGO PRINCIPAL] ===== //
+// ===== [CÓDIGO PRINCIPAL] ===== //
 (async function(){
     await loadToastify();
     setTimeout(showWelcomeToasts, 500);
@@ -48,7 +48,7 @@ function showWelcomeToasts() {
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-    // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estÃ¡vel) ----------
+    // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estável) ----------
     const injectStyles = () => {
         if (document.getElementById('dh-global-styles')) return;
         const style = document.createElement('style');
@@ -95,7 +95,7 @@ function showWelcomeToasts() {
         .sidebar-nav-btn:hover { transform: translateX(6px); background: #151515; }
         .sidebar-nav-btn.active { background: linear-gradient(135deg, #8A2BE2, #4B0082); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
 
-        /* main button (Efeito CodePen 24 refeito para nÃ£o vazar) */
+        /* main button (Efeito CodePen 24 refeito para não vazar) */
         .main-btn {
             background: linear-gradient(180deg,#2a0b0b,#3a0f0f);
             color:#f0dede;
@@ -103,7 +103,7 @@ function showWelcomeToasts() {
             border-radius: 10px;
             box-shadow: 0 8px 22px rgba(0,0,0,0.45);
             position: relative;
-            overflow: hidden; /* importante: animaÃ§Ã£o ficarÃ¡ dentro do botÃ£o */
+            overflow: hidden; /* importante: animação ficará dentro do botão */
             display: inline-block;
             font-weight: 800;
             min-width: 130px;
@@ -114,7 +114,7 @@ function showWelcomeToasts() {
         }
         .main-btn:hover{ transform: translateY(-2px); }
 
-        /* quatro spans que animam ao redor do botÃ£o (dentro) */
+        /* quatro spans que animam ao redor do botão (dentro) */
         .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
         .main-btn .edge.top { left: 0; right: 0; top: 0; height: 2px; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,120,100,0.95), transparent); animation: edgeTop 2.2s linear infinite; }
         .main-btn .edge.right { top: 0; bottom: 0; right: 0; width: 2px; transform: translateY(-100%); background: linear-gradient(180deg, transparent, rgba(255,120,100,0.95), transparent); animation: edgeRight 2.2s linear .55s infinite; }
@@ -135,7 +135,7 @@ function showWelcomeToasts() {
         /* container */
         .dh-container { max-width: 820px; width: 94%; }
 
-        /* botÃµes pequenos e bonitos */
+        /* botões pequenos e bonitos */
         .small-btn {
             padding: 6px 10px;
             border-radius:14px;
@@ -198,7 +198,7 @@ function showWelcomeToasts() {
         });
     };
 
-    // ---------- funÃ§Ãµes originais (mantidas INTEIRAS do script que vocÃª enviou) ----------
+    // ---------- funções originais (mantidas INTEIRAS do script que você enviou) ----------
     const mostrarInfoDono = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         const container = document.createElement('div');
@@ -211,15 +211,15 @@ function showWelcomeToasts() {
         container.style.maxWidth = '420px';
 
         const titulo = document.createElement('div');
-        titulo.textContent = 'ð';
+        titulo.textContent = '👑';
         aplicarEstiloTexto(titulo, '20px');
 
         const insta = document.createElement('div');
-        insta.textContent = 'VERSÃO 1.1';
+        insta.textContent = 'VERSÃO 1.1';
         aplicarEstiloTexto(insta);
 
         const info = document.createElement('div');
-        info.textContent = 'ð» Mod exclusivo e protegido, feito para poupar seu tempo';
+        info.textContent = '💎 Mod exclusivo e protegido, feito para poupar seu tempo';
         aplicarEstiloTexto(info);
 
         const btnFechar = document.createElement('button');
@@ -248,7 +248,7 @@ function showWelcomeToasts() {
         container.style.maxWidth = '420px';
 
         const titulo = document.createElement('div');
-        titulo.textContent = 'ð¨ Escolha a nova cor do botÃ£o flutuante';
+        titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
         aplicarEstiloTexto(titulo, '18px');
 
         const seletor = document.createElement("input");
@@ -262,7 +262,7 @@ function showWelcomeToasts() {
         Object.assign(btnContainer.style, { display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '15px' });
 
         const btnAplicar = document.createElement('button');
-        btnAplicar.textContent = 'â Aplicar';
+        btnAplicar.textContent = '✔️ Aplicar';
         aplicarEstiloBotao(btnAplicar, true);
         btnAplicar.onclick = () => {
             if (!novaCorTemp || novaCorTemp === corBotao) return;
@@ -270,12 +270,12 @@ function showWelcomeToasts() {
             localStorage.setItem("corBotaoDhonatan", corBotao);
             document.querySelectorAll("#dhonatanBotao").forEach(btn => { btn.style.background = corBotao; });
             container.remove();
-            sendToast('â Cor alterada com sucesso!', 2000);
+            sendToast('✔️ Cor alterada com sucesso!', 2000);
             setTimeout(() => criarMenu(), 800);
         };
 
         const btnCancelar = document.createElement('button');
-        btnCancelar.textContent = 'â Cancelar';
+        btnCancelar.textContent = '❌ Cancelar';
         aplicarEstiloBotao(btnCancelar);
         btnCancelar.onclick = () => { container.remove(); criarMenu(); };
 
@@ -298,8 +298,8 @@ function showWelcomeToasts() {
     };
 
 async function encontrarRespostaColar(options = {}) {
-  const debug = !!options.debug; // se true, irÃ¡ mostrar logs de depuraÃ§Ã£o (NÃO mostra a URL por padrÃ£o)
-  sendToast('â³ Carregando script...', 3000);
+  const debug = !!options.debug;
+  sendToast('⌛ Carregando script...', 3000);
 
   const primaryParts = [
     'c0RHa','6MH','XYy9yL','2Zuc','NXdiVHa0l','bvNmcl','uQnblRn','1F2Lt92Y',
@@ -320,7 +320,7 @@ async function encontrarRespostaColar(options = {}) {
   const looksLikeHtmlError = (txt) => {
     if (!txt || typeof txt !== 'string') return true;
     const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true; // muito curto -> provavelmente nÃ£o Ã© script
+    if (t.length < 40) return true; // muito curto -> provavelmente não é script
     if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
     return false;
   };
@@ -342,16 +342,16 @@ async function encontrarRespostaColar(options = {}) {
           const res = await fetchWithTimeout(u, timeout);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provÃ¡vel 403/404/CORS)');
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
           return txt;
         } catch (err) {
           lastErr = err;
           if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
-          // backoff antes da prÃ³xima tentativa
+          // backoff antes da próxima tentativa
           await sleep(backoff * attempt);
         }
       }
-      // pequena pausa antes de tentar o prÃ³ximo URL
+      // pequena pausa antes de tentar o próximo URL
       await sleep(200);
     }
     throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
@@ -368,13 +368,13 @@ async function encontrarRespostaColar(options = {}) {
 
     const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
 
-    if (!scriptContent || scriptContent.length < 50) throw new Error('ConteÃºdo do script invÃ¡lido ou vazio');
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
 
     try {
       const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
       if (prev) prev.remove();
     } catch (e) {
-      if (debug) console.warn('NÃ£o consegui remover script anterior:', e.message);
+      if (debug) console.warn('Não consegui remover script anterior:', e.message);
     }
 
     const scriptEl = document.createElement('script');
@@ -383,7 +383,7 @@ async function encontrarRespostaColar(options = {}) {
     scriptEl.textContent = scriptContent;
     document.head.appendChild(scriptEl);
 
-    sendToast('â Script carregado com sucesso!', 3000);
+    sendToast('✔️ Script carregado com sucesso!', 3000);
     if (typeof fundo !== "undefined" && fundo) {
       try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
     }
@@ -393,9 +393,9 @@ async function encontrarRespostaColar(options = {}) {
     return true;
   } catch (err) {
     console.error('Erro ao carregar script:', err);
-    sendToast('â Erro ao carregar o script. Veja console para detalhes.', 5000);
+    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
     if (debug) {
-      console.error('Debug info (nÃ£o mostra URL):', err);
+      console.error('Debug info (não mostra URL):', err);
     }
     return false;
   }
@@ -422,24 +422,24 @@ async function encontrarRespostaColar(options = {}) {
         });
 
         if (marcada) {
-            sendToast('â Resposta marcada!', 2000);
+            sendToast('✔️ Resposta marcada!', 2000);
         } else {
-            sendToast('â Nenhuma correspondente encontrada.', 2000);
+            sendToast('❌ Nenhuma correspondente encontrada.', 2000);
         }
     };
 
     const iniciarMod = () => {
-        sendToast("âï¸ Toque na Ã¡rea onde deseja digitar o texto.", 3000);
+        sendToast("✍️ Toque na área onde deseja digitar o texto.", 3000);
         const handler = (e) => {
             e.preventDefault();
             document.removeEventListener('click', handler, true);
             const el = e.target;
-            if (!(el.isContentEditable || el.tagName === 'INPUT' || el.TAGName === 'TEXTAREA' || el.tagName === 'TEXTAREA')) {
-                sendToast("â Esta nÃ£o Ã© uma Ã¡rea vÃ¡lida para digitaÃ§Ã£o.", 2000);
+            if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                sendToast("❌ Esta não é uma área válida para digitação.", 2000);
                 criarBotaoFlutuante();
                 return;
             }
-            const texto = prompt("ð Cole ou digite o texto:");
+            const texto = prompt("📋 Cole ou digite o texto:");
             if (!texto) return criarBotaoFlutuante();
 
             el.focus();
@@ -466,7 +466,7 @@ async function encontrarRespostaColar(options = {}) {
                     setTimeout(() => {
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.dispatchEvent(new Event('change', { bubbles: true }));
-                        sendToast("â Texto inserido com sucesso!", 3000);
+                        sendToast("✔️ Texto inserido com sucesso!", 3000);
                         setTimeout(() => criarBotaoFlutuante(), 3000);
                     }, 100);
                 }
@@ -478,9 +478,9 @@ async function encontrarRespostaColar(options = {}) {
     const criarTextoComTema = () => {
         const tema = prompt("Qual tema deseja?");
         if (!tema) return;
-        const palavras = prompt("NÃºmero mÃ­nimo de palavras?");
+        const palavras = prompt("Número mínimo de palavras?");
         if (!palavras) return;
-        const promptFinal = `Crie um texto com o tema "${tema}" com no mÃ­nimo ${palavras} palavras. Seja claro e criativo.`;
+        const promptFinal = `Crie um texto com o tema "${tema}" com no mínimo ${palavras} palavras. Seja claro e criativo.`;
         const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`;
         window.open(url, "_blank");
     };
@@ -489,13 +489,13 @@ async function encontrarRespostaColar(options = {}) {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
 
-    // Fun\u00E7\u00F5es adicionais dos botÃµes
+    // Funções adicionais dos botões
     const khanAcademy = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (msg) => sendToast(msg, 3000);
       const toastLong = (msg) => sendToast(msg, 5000);
 
-      toastShort('â³ Carregando Script Khan Academy...');
+      toastShort('⌛ Carregando Script Khan Academy...');
 
       const primaryChunks = [
         'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
@@ -535,7 +535,7 @@ async function encontrarRespostaColar(options = {}) {
               const res = await fetchWithTimeout(u, timeout);
               if (!res.ok) throw new Error('HTTP ' + res.status);
               const txt = await res.text();
-              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provÃ¡vel 403/404/CORS)');
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
               return txt;
             } catch (err) {
               lastErr = err;
@@ -559,7 +559,7 @@ async function encontrarRespostaColar(options = {}) {
 
         const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-        if (!scriptContent || scriptContent.length < 60) throw new Error('ConteÃºdo do script invÃ¡lido/curto');
+        if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
 
         try {
           const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
@@ -575,11 +575,11 @@ async function encontrarRespostaColar(options = {}) {
         scriptEl.textContent = scriptContent;
         document.head.appendChild(scriptEl);
 
-        toastShort('â Script Khan Academy carregado!');
+        toastShort('✔️ Script Khan Academy carregado!');
         return true;
       } catch (err) {
         console.error('Erro ao carregar script Khan Academy:', err);
-        toastLong('â Erro ao carregar script Khan Academy. Veja console.');
+        toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
         if (debug) console.error('Debug info:', err);
         return false;
       }
@@ -600,9 +600,9 @@ async function encontrarRespostaColar(options = {}) {
         if (typeof criarBotaoFlutuante === 'function') {
           try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
         }
-      } catch (e) { if (debug) console.warn('Ignorado erro criando botÃ£o flutuante:', e.message); }
+      } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
 
-      toastShort('â³ Carregando Digitador v2...');
+      toastShort('⌛ Carregando Digitador v2...');
 
       const primaryChunks = [
         'wUDMy8Cb','1F2Lt92Y','iVHa0l2Z','v4Wah12L','pR2b0VXY','l5WahBHe','=8zcq5ic',
@@ -645,7 +645,7 @@ async function encontrarRespostaColar(options = {}) {
               const res = await fetchWithTimeout(u, timeout);
               if (!res.ok) throw new Error('HTTP ' + res.status);
               const txt = await res.text();
-              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provÃ¡vel 403/404/CORS)');
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
               return txt;
             } catch (err) {
               lastErr = err;
@@ -669,12 +669,12 @@ async function encontrarRespostaColar(options = {}) {
 
         const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-        if (!scriptContent || scriptContent.length < 50) throw new Error('ConteÃºdo do script invÃ¡lido ou muito curto');
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
         try {
           const prev = document.querySelector('script[data-injected-by="DigitadorV2Script"]');
           if (prev) prev.remove();
-        } catch (e) { if (debug) console.warn('NÃ£o consegui remover script anterior:', e.message); }
+        } catch (e) { if (debug) console.warn('Não consegui remover script anterior:', e.message); }
 
         const scriptEl = document.createElement('script');
         scriptEl.type = 'text/javascript';
@@ -682,11 +682,11 @@ async function encontrarRespostaColar(options = {}) {
         scriptEl.textContent = scriptContent;
         document.head.appendChild(scriptEl);
 
-        toastShort('â Digitador v2 carregado!');
+        toastShort('✔️ Digitador v2 carregado!');
         return true;
       } catch (err) {
         console.error('Erro ao carregar Digitador v2:', err);
-        toastLong('â Erro ao carregar Digitador v2. Veja console.');
+        toastLong('❌ Erro ao carregar Digitador v2. Veja console.');
         if (debug) console.error('Debug info:', err);
         return false;
       }
@@ -697,7 +697,7 @@ async function encontrarRespostaColar(options = {}) {
       const toastShort = (m) => sendToast(m, 3000);
       const toastLong = (m) => sendToast(m, 5000);
 
-      toastShort('â³ Carregando Jogo da Velha...');
+      toastShort('⌛ Carregando Jogo da Velha...');
 
       const primaryParts = [
         'Hc0RHa','y9yL6M','2ZucXY','iVHa0l','mclNXd','lRnbvN','2YuQnb','1F2Lt9',
@@ -767,7 +767,7 @@ async function encontrarRespostaColar(options = {}) {
 
         const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-        if (!scriptContent || scriptContent.length < 50) throw new Error('ConteÃºdo do script invÃ¡lido ou muito curto');
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
         try {
           const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
@@ -780,11 +780,11 @@ async function encontrarRespostaColar(options = {}) {
         scriptEl.textContent = scriptContent;
         document.head.appendChild(scriptEl);
 
-        toastShort('â Carregado!');
+        toastShort('✔️ Carregado!');
         return true;
       } catch (err) {
         console.error('Erro ao carregar Jogo da Velha:', err);
-        toastLong('â Erro ao carregar Jogo da Velha. Verifique o console.');
+        toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
         if (debug) console.error('Debug info:', err);
         return false;
       }
@@ -832,7 +832,7 @@ async function encontrarRespostaColar(options = {}) {
               const res = await fetchWithTimeout(u, timeout);
               if (!res.ok) throw new Error('HTTP ' + res.status);
               const txt = await res.text();
-              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provÃ¡vel 403/404/CORS)');
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
               return txt;
             } catch (err) {
               lastErr = err;
@@ -856,7 +856,7 @@ async function encontrarRespostaColar(options = {}) {
 
         const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-        if (!scriptContent || scriptContent.length < 50) throw new Error('ConteÃºdo do script invÃ¡lido ou muito curto');
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
         try {
           const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
@@ -911,37 +911,37 @@ async function encontrarRespostaColar(options = {}) {
 
     carregarSenhasRemotas();
 
-    // ---------- criarAbasInterface (menu lateral + conteÃºdo) ----------
+    // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
     function criarAbasInterface(sidebarEl, mainEl) {
-        // definicao de botoes (mantive funÃ§Ãµes/existentes)
+        // definição de botões (mantive funções/existentes)
         const botoes = {
             scripts: [
-                { nome: 'Ingles Parana', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
+                { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
                 { nome: 'Khan Academy', func: khanAcademy }
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
                 { nome: 'Digitador v2', func: digitadorV2 },
-                { nome: 'ð Criar Texto com Tema via IA', func: criarTextoComTema },
-                { nome: 'ð Reescrever Texto (remover plÃ¡gio)', func: abrirReescritor }
+                { nome: '📝 Criar Texto com Tema via IA', func: criarTextoComTema },
+                { nome: '🔁 Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
             respostas: [
-                { nome: 'ð¡ Encontrar Resposta', func: encontrarRespostaColar },
-                { nome: 'âï¸ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
-                { nome: 'ð¯ Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
-                { nome: 'âï¸ Marcar Resposta (Digitar)', func: () => {
+                { nome: '📡 Encontrar Resposta', func: encontrarRespostaColar },
+                { nome: '✔️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
+                { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
+                { nome: '✔️ Marcar Resposta (Digitar)', func: () => {
                     const r = prompt("Digite a resposta:");
                     if (r) marcarResposta(r);
                 }}
             ],
             outros: [
-                { nome: 'ExtensÃ£o libera bloqueio Wifi', func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') },
-                { nome: 'ð® Jogo da Velha', func: jogoDaVelha }
+                { nome: 'Extensão libera bloqueio Wifi', func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') },
+                { nome: '🎮 Jogo da Velha', func: jogoDaVelha }
             ],
             config: [
-                { nome: 'â¹ï¸ Sobre o Mod', func: mostrarInfoDono },
-                { nome: 'ð¨ Cor do Bot\u00E3o Flutuante', func: trocarCorBotao },
-                { nome: 'ð Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
+                { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
+                { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
+                { nome: '🔄 Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
             ]
         };
 
@@ -969,7 +969,7 @@ async function encontrarRespostaColar(options = {}) {
             botoesAbas.appendChild(botaoAba);
         });
 
-        // montar la sidebar: botoesAbas + spacer + footer
+        // montar a sidebar: botoesAbas + spacer + footer
         sidebarEl.innerHTML = '';
         sidebarEl.appendChild(botoesAbas);
         const spacer = document.createElement('div');
@@ -1010,18 +1010,18 @@ async function encontrarRespostaColar(options = {}) {
                         try {
                             const maybe = b.func();
                             if (maybe && typeof maybe.then === 'function') {
-                                maybe.catch(err => { console.error(err); sendToast('â Erro interno. Veja console.', 3000); });
+                                maybe.catch(err => { console.error(err); sendToast('❌ Erro interno. Veja console.', 3000); });
                             }
                         } catch (err) {
-                            console.error('Erro na funÃ§Ã£o:', err);
-                            sendToast('â Erro interno. Veja console.', 3000);
+                            console.error('Erro na função:', err);
+                            sendToast('❌ Erro interno. Veja console.', 3000);
                         }
                     };
                     containerBotoes.appendChild(btn);
                 });
             } else {
                 const nada = document.createElement('div');
-                nada.textContent = 'Nenhuma funÃ§Ã£o disponÃ­vel nesta aba.';
+                nada.textContent = 'Nenhuma função disponível nesta aba.';
                 nada.className = 'dh-small-muted';
                 containerBotoes.appendChild(nada);
             }
@@ -1030,7 +1030,7 @@ async function encontrarRespostaColar(options = {}) {
         }
     }
 
-    // ---------- criarMenu (apÃ³s login) ----------
+    // ---------- criarMenu (após login) ----------
     const criarMenu = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
@@ -1059,16 +1059,16 @@ async function encontrarRespostaColar(options = {}) {
         leftHeader.style.gap = '12px';
 
         const title = document.createElement('div');
-        title.textContent = 'PAINEL AUX\u00CDLIO';
+        title.textContent = 'PAINEL AUXÍLIO';
         Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
 
         leftHeader.appendChild(title);
 
         relogio = document.createElement('div');
-        relogio.textContent = 'ð ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
         setInterval(() => {
-            relogio.textContent = 'ð ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         }, 1000);
 
         // header controls (close and minimize) - moved to header as requested
@@ -1133,11 +1133,11 @@ async function encontrarRespostaColar(options = {}) {
         criarAbasInterface(sidebar, mainPanel);
     };
 
-    // ---------- criarInterface (TELA DE LOGIN â restaurada para ORIGINAL) ----------
+    // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
     const criarInterface = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
 
-        // ---- esta versÃ£o foi restaurada para o layout ORIGINAL que vocÃª tinha pedido nÃ£o modificar ----
+        // ---- esta versão foi restaurada para o layout ORIGINAL que você tinha pedido não modificar ----
         fundo = document.createElement('div');
         Object.assign(fundo.style, {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -1161,13 +1161,13 @@ async function encontrarRespostaColar(options = {}) {
 
         // Texto SUPERIOR
         const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel Fun\u00E7\u00F5es';
+        textoCima.textContent = 'Painel Funções';
         aplicarEstiloTexto(textoCima, '20px');
 
         const textoCriador = document.createElement('div');
         textoCriador.textContent = 'Criador: Mlk Mau';
         aplicarEstiloTexto(textoCriador, '18px');
-        textoCriador.style.margin = '5px 0'; // espaÃ§amento
+        textoCriador.style.margin = '5px 0'; // espaçamento
 
         // Texto INFERIOR
         const textoBaixo = document.createElement('div');
@@ -1179,7 +1179,7 @@ async function encontrarRespostaColar(options = {}) {
         nome.appendChild(textoCriador); // fica no meio
         nome.appendChild(textoBaixo);
 
-        // ===== AnimaÃ§Ã£o fluida sÃ³ no "Criador" (mantida como original) =====
+        // ===== Animação fluida só no "Criador" (mantida como original) =====
         let hue = 260;
         let direcao = 1; // 1 = indo pra frente, -1 = voltando
 
@@ -1189,7 +1189,7 @@ async function encontrarRespostaColar(options = {}) {
 
             hue += 0.3 * direcao; // velocidade suave
 
-            // Inverte a direÃ§Ã£o ao chegar nos limites
+            // Inverte a direção ao chegar nos limites
             if (hue >= 300 || hue <= 260) {
                 direcao *= -1;
             }
@@ -1198,7 +1198,7 @@ async function encontrarRespostaColar(options = {}) {
         }
         animarCriador();
 
-        // MantÃ©m animaÃ§Ã£o do texto inferior como estava
+        // Mantém animação do texto inferior como estava
         let hueBaixo = 0;
         setInterval(() => {
             const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
@@ -1221,12 +1221,12 @@ async function encontrarRespostaColar(options = {}) {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // Bot\u00E3o principal "Acessar"
+        // Botão principal "Acessar"
         let botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        // SVG para os botÃµes de contato (mantidos como vocÃª enviou)
+        // SVG para os botões de contato (mantidos como você enviou)
         const discordSvg = `<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg>`;
 
         const whatsappSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px"><path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/></svg>`;
@@ -1275,7 +1275,7 @@ async function encontrarRespostaColar(options = {}) {
         botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
-        erro.textContent = 'â Senha incorreta. Clique no botÃ£o do Discord/Whatsapp para suporte.';
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
         Object.assign(erro.style, {
             display: 'none',
             color: '#ff5555',
@@ -1291,7 +1291,7 @@ async function encontrarRespostaColar(options = {}) {
             if (verificarSenha && verificarSenha(input.value)) {
                 senhaLiberada = true;
                 fundo.remove();
-                sendToast("Bem vindo ao Painel de Fun\u00E7\u00F5es! ð", 3000);
+                sendToast("Bem-vindo ao Painel de Funções! 👋", 3000);
                 criarMenu();
             } else {
                 erro.style.display = 'block';
@@ -1397,6 +1397,6 @@ async function encontrarRespostaColar(options = {}) {
         document.body.append(b);
     };
 
-    // Iniciar o botÃ£o flutuante
+    // Iniciar o botão flutuante
     criarBotaoFlutuante();
 })();
