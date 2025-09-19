@@ -1026,7 +1026,7 @@ async function encontrarRespostaColar(options = {}) {
         Object.assign(tituloMenu.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '6px', fontWeight: '800' });
         botoesAbas.appendChild(tituloMenu);
 
-        ['scripts', 'textos', 'respostas', 'outros', 'config', Copyright].forEach((id, idx) => {
+        ['scripts', 'textos', 'respostas', 'outros', 'config', 'Copyright'].forEach((id, idx) => {
             const botaoAba = document.createElement('button');
             botaoAba.textContent = id === 'scripts' ? 'Scripts' : id.charAt(0).toUpperCase() + id.slice(1);
             botaoAba.className = 'sidebar-nav-btn dh-btn';
