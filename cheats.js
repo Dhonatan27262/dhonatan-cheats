@@ -490,7 +490,7 @@ async function encontrarRespostaColar(options = {}) {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
 
-    // FunÃ§Ãµes adicionais dos botÃµes
+    // Fun\u00E7\u00F5es adicionais dos botÃµes
     const khanAcademy = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (msg) => sendToast(msg, 3000);
@@ -941,7 +941,7 @@ async function encontrarRespostaColar(options = {}) {
             ],
             config: [
                 { nome: 'â¹ï¸ Sobre o Mod', func: mostrarInfoDono },
-                { nome: 'ð¨ Cor do BotÃ£o Flutuante', func: trocarCorBotao },
+                { nome: 'ð¨ Cor do Bot\u00E3o Flutuante', func: trocarCorBotao },
                 { nome: 'ð Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
             ]
         };
@@ -1060,7 +1060,7 @@ async function encontrarRespostaColar(options = {}) {
         leftHeader.style.gap = '12px';
 
         const title = document.createElement('div');
-        title.textContent = 'PAINEL AUXÃLIO';
+        title.textContent = 'PAINEL AUX\u00CDLIO';
         Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
 
         leftHeader.appendChild(title);
@@ -1162,7 +1162,7 @@ async function encontrarRespostaColar(options = {}) {
 
         // Texto SUPERIOR
         const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel FunÃ§Ãµes';
+        textoCima.textContent = 'Painel Fun\u00E7\u00F5es';
         aplicarEstiloTexto(textoCima, '20px');
 
         const textoCriador = document.createElement('div');
@@ -1222,7 +1222,7 @@ async function encontrarRespostaColar(options = {}) {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // BotÃ£o principal "Acessar"
+        // Bot\u00E3o principal "Acessar"
         let botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
@@ -1292,7 +1292,7 @@ async function encontrarRespostaColar(options = {}) {
             if (verificarSenha && verificarSenha(input.value)) {
                 senhaLiberada = true;
                 fundo.remove();
-                sendToast("Bem vindo ao Painel de FunÃ§Ãµes! ð", 3000);
+                sendToast("Bem vindo ao Painel de Fun\u00E7\u00F5es! ð", 3000);
                 criarMenu();
             } else {
                 erro.style.display = 'block';
