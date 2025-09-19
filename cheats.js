@@ -1,381 +1,1452 @@
-/* =====================================================================
-   ffh4x-liquid-menu.js
-   Menu flutuante estilo "Free Fire ffh4x" com efeito Liquid Glass (iOS-like)
-   - Drag por mouse e toque (touch)
-   - Salva posição no localStorage
-   - API: createMenu(options), addButton(label, iconHTML, onClick, opts)
-   - Contém completion() no final para Atalhos iOS / Safari
-   ===================================================================== */
+// ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
+async function loadToastify() {
+    if (typeof Toastify !== 'undefined') return Promise.resolve();
 
-(function () {
-  'use strict';
+    return new Promise((resolve, reject) => {
+        // Carregar CSS do Toastify
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+        document.head.appendChild(cssLink);
 
-  const STORAGE_KEY = 'ffh4x_liquid_menu_pos_v1';
-
-  /* -------------------------
-     Helpers
-     ------------------------- */
-  const $ = (s, root = document) => root.querySelector(s);
-  const create = (tag, attrs = {}, parent = null) => {
-    const el = document.createElement(tag);
-    Object.entries(attrs).forEach(([k, v]) => {
-      if (k === 'style') Object.assign(el.style, v);
-      else if (k === 'html') el.innerHTML = v;
-      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
-      else el.setAttribute(k, v);
+        // Carregar JS do Toastify
+        const jsScript = document.createElement('script');
+        jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+        jsScript.onload = resolve;
+        jsScript.onerror = reject;
+        document.head.appendChild(jsScript);
     });
-    if (parent) parent.appendChild(el);
-    return el;
-  };
+}
 
-  /* -------------------------
-     Inject styles
-     ------------------------- */
-  const injectStyles = () => {
-    if (document.getElementById('ffh4x-liquid-styles')) return;
-    const css = `
-      /* Container */
-      .ffh4x-menu {
-        position: fixed;
-        z-index: 2147483646;
-        width: 170px;
-        height: 170px;
-        bottom: 90px;
-        right: 18px;
-        border-radius: 20px;
-        padding: 12px;
-        box-sizing: border-box;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        grid-gap: 10px;
-        backdrop-filter: blur(14px) saturate(120%) contrast(105%);
-        -webkit-backdrop-filter: blur(14px) saturate(120%) contrast(105%);
-        background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
-        border: 1px solid rgba(255,255,255,0.14);
-        box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 6px 30px rgba(96,98,255,0.06);
-        user-select: none;
-        touch-action: none;
-        transition: transform .16s cubic-bezier(.2,.9,.2,1), opacity .12s;
-      }
-      .ffh4x-menu.ffh4x-dragging { transform: scale(.985); opacity: .98; }
-
-      /* Button */
-      .ffh4x-btn {
-        border-radius: 14px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:8px;
-        padding: 8px;
-        cursor: pointer;
-        border: 1px solid rgba(255,255,255,0.06);
-        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        color: #fff;
-        box-shadow: rgba(0,0,0,0.18) 0px 6px 14px;
-        -webkit-tap-highlight-color: transparent;
-        position: relative;
-        overflow: hidden;
-      }
-      .ffh4x-btn:active { transform: translateY(1px) scale(.997); }
-
-      /* Icon badge */
-      .ffh4x-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:700;
-        font-size:16px;
-        background: linear-gradient(135deg, rgba(255,108,108,0.95), rgba(96,98,255,0.95));
-        box-shadow: 0 6px 16px rgba(0,0,0,0.30);
-      }
-
-      /* Sheen overlay for liquid-glass brightness */
-      .ffh4x-menu::after{
-        content: "";
-        position: absolute;
-        left: -30%;
-        top: -30%;
-        width: 160%;
-        height: 80%;
-        pointer-events: none;
-        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.00) 28%, rgba(255,255,255,0.00) 60%);
-        transform: rotate(-18deg);
-        filter: blur(12px);
-        mix-blend-mode: overlay;
-      }
-
-      /* Small handle (for visual affordance) */
-      .ffh4x-handle{
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        top: -10px;
-        width: 48px;
-        height: 6px;
-        border-radius: 10px;
-        background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
-        box-shadow: inset 0 1px rgba(255,255,255,0.06);
-        pointer-events: none;
-      }
-
-      /* Small close button */
-      .ffh4x-close {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        cursor: pointer;
-        background: rgba(0,0,0,0.14);
-        color: rgba(255,255,255,0.9);
-        font-size: 14px;
-      }
-
-      @media (max-width:420px){
-        .ffh4x-menu { width: 150px; height: 150px; bottom: 74px; right: 12px; padding: 10px; }
-        .ffh4x-icon { width:34px; height:34px; border-radius:9px; font-size:14px; }
-      }
-    `;
-    const style = document.createElement('style');
-    style.id = 'ffh4x-liquid-styles';
-    style.innerHTML = css;
-    document.head.appendChild(style);
-  };
-
-  /* -------------------------
-     Menu Factory
-     ------------------------- */
-  function createMenu(options = {}) {
-    injectStyles();
-
-    // Defaults
-    const opts = Object.assign({
-      initialX: null, // null -> use stored or default
-      initialY: null,
-      size: 170,
-      buttons: [], // { label, iconHTML, onClick }
-      onClose: () => { menu.remove(); },
-      persistPosition: true
-    }, options);
-
-    // Root
-    const menu = create('div', { class: 'ffh4x-menu', role: 'dialog', 'aria-label': 'ffh4x menu' }, document.body);
-    // handle bar visual
-    create('div', { class: 'ffh4x-handle' }, menu);
-    // close
-    const close = create('div', { class: 'ffh4x-close', html: '✕', title: 'Fechar' }, menu);
-    close.addEventListener('click', () => opts.onClose(menu));
-
-    // buttons container: we simply add directly into menu as grid
-    // helper to create a button
-    function addButton(label, iconHTML, onClick, bopts = {}) {
-      const btn = create('button', { class: 'ffh4x-btn', type: 'button', title: label }, menu);
-      btn.innerHTML = `<div class="ffh4x-icon">${iconHTML || ''}</div><div style="font-size:12px;opacity:.95;white-space:nowrap;">${label}</div>`;
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        try { onClick && onClick(e, menu); } catch (err) { console.error('ffh4x btn handler', err); }
-      });
-      // optional small tooltip style or custom width
-      if (bopts.width) btn.style.minWidth = bopts.width;
-      return btn;
+async function sendToast(text, duration = 5000, gravity = 'bottom') {
+    try {
+        await loadToastify();
+        Toastify({
+            text,
+            duration,
+            gravity,
+            position: "center",
+            stopOnFocus: true,
+            style: { background: "#000000" }
+        }).showToast();
+    } catch (error) {
+        console.error('Erro ao carregar Toastify:', error);
     }
+}
 
-    // populate default buttons if provided
-    (opts.buttons || []).forEach(b => addButton(b.label, b.iconHTML, b.onClick, b.opts));
+function showWelcomeToasts() {
+    sendToast("Painel carregado");
+}
 
-    // Dragging logic (works for mouse and touch)
-    let dragging = false;
-    let startX = 0, startY = 0;
-    let origX = 0, origY = 0;
+// ===== [CÓDIGO PRINCIPAL] ===== //
+(async function(){
+    // Carregar Toastify quando o script for executado
+    await loadToastify();
 
-    // read stored pos
-    const stored = opts.persistPosition ? (() => {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; }
-    })() : null;
+    // Mostrar toasts de boas-vindas após um breve delay
+    setTimeout(showWelcomeToasts, 500);
 
-    // initial position
-    const rect = menu.getBoundingClientRect();
-    const initialPos = {
-      x: opts.initialX ?? (stored && stored.x != null ? stored.x : window.innerWidth - rect.width - 18),
-      y: opts.initialY ?? (stored && stored.y != null ? stored.y : window.innerHeight - rect.height - 90)
-    };
-    // apply
-    menu.style.left = Math.max(8, Math.min(window.innerWidth - rect.width - 8, initialPos.x)) + 'px';
-    menu.style.top  = Math.max(8, Math.min(window.innerHeight - rect.height - 8, initialPos.y)) + 'px';
-    menu.style.right = 'auto';
-    menu.style.bottom = 'auto';
+    let fundo, janela, nome, relogio;
+    let senhaLiberada = false;
+    let abaAtiva = 'textos';
+    let posX = localStorage.getItem("dhonatanX") || "20px";
+    let posY = localStorage.getItem("dhonatanY") || "20px";
+    let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-    // Pointer start
-    function pointerStart(clientX, clientY) {
-      dragging = true;
-      menu.classList.add('ffh4x-dragging');
-      const rect = menu.getBoundingClientRect();
-      startX = clientX;
-      startY = clientY;
-      origX = rect.left;
-      origY = rect.top;
-    }
-
-    // Pointer move
-    function pointerMove(clientX, clientY) {
-      if (!dragging) return;
-      const dx = clientX - startX;
-      const dy = clientY - startY;
-      let nx = origX + dx;
-      let ny = origY + dy;
-      // clamp to viewport
-      const mr = menu.getBoundingClientRect();
-      nx = Math.max(6, Math.min(window.innerWidth - mr.width - 6, nx));
-      ny = Math.max(6, Math.min(window.innerHeight - mr.height - 6, ny));
-      menu.style.left = nx + 'px';
-      menu.style.top = ny + 'px';
-    }
-
-    // Pointer end
-    function pointerEnd() {
-      if (!dragging) return;
-      dragging = false;
-      menu.classList.remove('ffh4x-dragging');
-      // persist
-      if (opts.persistPosition) {
-        try {
-          const rect = menu.getBoundingClientRect();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ x: rect.left, y: rect.top }));
-        } catch (e) { /* ignore */ }
-      }
-    }
-
-    // Mouse events
-    menu.addEventListener('mousedown', (ev) => {
-      // start drag only if clicked empty space or handle (not on individual buttons)
-      if (ev.target.closest('.ffh4x-btn') || ev.target.closest('.ffh4x-close')) return;
-      ev.preventDefault();
-      pointerStart(ev.clientX, ev.clientY);
-      const mm = (e) => { pointerMove(e.clientX, e.clientY); };
-      const mu = () => { pointerEnd(); window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
-      window.addEventListener('mousemove', mm);
-      window.addEventListener('mouseup', mu);
-    }, { passive: false });
-
-    // Touch events
-    menu.addEventListener('touchstart', (ev) => {
-      if (ev.touches.length !== 1) return;
-      if (ev.target.closest('.ffh4x-btn') || ev.target.closest('.ffh4x-close')) return;
-      const t = ev.touches[0];
-      pointerStart(t.clientX, t.clientY);
-      const tm = (e) => { const tt = e.touches[0]; pointerMove(tt.clientX, tt.clientY); };
-      const te = () => { pointerEnd(); menu.removeEventListener('touchmove', tm); menu.removeEventListener('touchend', te); };
-      menu.addEventListener('touchmove', tm, { passive: false });
-      menu.addEventListener('touchend', te);
-    }, { passive: false });
-
-    // keyboard: allow ESC to close
-    function keyHandler(e) {
-      if (e.key === 'Escape') opts.onClose(menu);
-    }
-    document.addEventListener('keydown', keyHandler);
-
-    // expose API
-    const api = {
-      el: menu,
-      addButton,
-      close: () => opts.onClose(menu),
-      destroy: () => {
-        document.removeEventListener('keydown', keyHandler);
-        menu.remove();
-      }
+    // Estilo moderno para todos os botões
+    const aplicarEstiloBotao = (elemento, gradiente = false) => {
+        Object.assign(elemento.style, {
+            padding: '10px 15px',
+            background: gradiente ? 'linear-gradient(135deg, #8A2BE2, #4B0082)' : '#222',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '30px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            outline: 'none',
+            userSelect: 'none',
+            margin: '8px 0'
+        });
     };
 
-    // return API
-    return api;
-  }
+    // Estilo para elementos de texto
+    const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
+        Object.assign(elemento.style, {
+            color: '#fff',
+            fontSize: tamanho,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            margin: '10px 0',
+            userSelect: 'none'
+        });
+    };
 
-  /* -------------------------
-     Export / default usage
-     ------------------------- */
-  // If user includes script and wants auto init, create a demo menu only when not already present
-  if (!window.ffh4xLiquidMenuInitialized) {
-    window.ffh4xLiquidMenuInitialized = true;
+    // Estilo para container
+    const aplicarEstiloContainer = (elemento) => {
+        Object.assign(elemento.style, {
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            maxWidth: '1000px',
+            width: '92%',
+            textAlign: 'center'
+        });
+    };
 
-    // create default menu with example buttons
-    const menuApi = createMenu({
-      buttons: [
-        {
-          label: 'Encontrar',
-          iconHTML: '🔍',
-          onClick: (e, menu) => {
-            alert('Botão Encontrar clicado — substitua por sua ação.');
-          }
-        },
-        {
-          label: 'Marcar',
-          iconHTML: '🎯',
-          onClick: (e, menu) => {
-            alert('Botão Marcar clicado — substitua por sua ação.');
-          }
-        },
-        {
-          label: 'Colar',
-          iconHTML: '📋',
-          onClick: async () => {
-            // exemplo de uso do clipboard
+    const mostrarInfoDono = () => {
+        if (fundo) fundo.remove();
+
+        const container = document.createElement('div');
+        aplicarEstiloContainer(container);
+        container.style.zIndex = '1000001';
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.maxWidth = '420px';
+
+        const titulo = document.createElement('div');
+        titulo.textContent = '👑';
+        aplicarEstiloTexto(titulo, '20px');
+
+        const insta = document.createElement('div');
+        insta.textContent = 'VERSÃO 1.1';
+        aplicarEstiloTexto(insta);
+
+        const info = document.createElement('div');
+        info.textContent = '💻 Mod exclusivo e protegido, feito para poupar seu tempo';
+        aplicarEstiloTexto(info, '14px');
+
+        const btnFechar = document.createElement('button');
+        btnFechar.textContent = 'Fechar';
+        aplicarEstiloBotao(btnFechar, true);
+        btnFechar.onclick = () => {
+            container.remove();
+            criarMenu();
+        };
+
+        container.append(titulo, insta, info, btnFechar);
+        document.body.appendChild(container);
+    };
+
+    const trocarCorBotao = () => {
+        if (fundo) fundo.remove();
+
+        let novaCorTemp = corBotao;
+
+        const container = document.createElement('div');
+        aplicarEstiloContainer(container);
+        container.style.zIndex = '1000001';
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.maxWidth = '420px';
+
+        const titulo = document.createElement('div');
+        titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
+        aplicarEstiloTexto(titulo, '18px');
+
+        const seletor = document.createElement("input");
+        seletor.type = "color";
+        seletor.value = corBotao;
+        Object.assign(seletor.style, {
+            width: "100px",
+            height: "100px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            margin: '15px 0'
+        });
+
+        seletor.addEventListener("input", (e) => {
+            novaCorTemp = e.target.value;
+        });
+
+        const btnContainer = document.createElement('div');
+        Object.assign(btnContainer.style, {
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '10px',
+            marginTop: '15px'
+        });
+
+        const btnAplicar = document.createElement('button');
+        btnAplicar.textContent = '✅ Aplicar';
+        aplicarEstiloBotao(btnAplicar, true);
+        btnAplicar.onclick = () => {
+            if (!novaCorTemp || novaCorTemp === corBotao) return;
+            corBotao = novaCorTemp;
+            localStorage.setItem("corBotaoDhonatan", corBotao);
+            document.querySelectorAll("#dhonatanBotao").forEach(btn => {
+                btn.style.background = corBotao;
+            });
+            container.remove();
+
+            sendToast('✅ Cor alterada com sucesso!', 2000);
+            setTimeout(() => criarMenu(), 2000);
+        };
+
+        const btnCancelar = document.createElement('button');
+        btnCancelar.textContent = '❌ Cancelar';
+        aplicarEstiloBotao(btnCancelar);
+        btnCancelar.onclick = () => {
+            container.remove();
+            criarMenu();
+        };
+
+        btnContainer.append(btnAplicar, btnCancelar);
+        container.append(titulo, seletor, btnContainer);
+        document.body.appendChild(container);
+    };
+
+    const coletarPerguntaEAlternativas = () => {
+        const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
+        const pergunta = perguntaEl ? perguntaEl.innerText.trim() :
+            (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) || '').trim();
+        const alternativasEl = Array.from(document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p'));
+        const alternativasFiltradas = alternativasEl.map(el => el.innerText.trim()).filter(txt =>
+            txt.length > 20 && txt.length < 400 && !txt.includes('?') && !txt.toLowerCase().includes(pergunta.toLowerCase())
+        );
+        const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
+        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
+        return { pergunta, alternativas };
+    };
+
+    async function encontrarRespostaColar(options = {}) {
+      const debug = !!options.debug; // se true, irá mostrar logs de depuração (NÃO mostra a URL por padrão)
+      sendToast('⏳ Carregando script...', 3000);
+
+      const primaryParts = [
+        'c0RHa','6MH','XYy9yL','2Zuc','NXdiVHa0l','bvNmcl','uQnblRn','1F2Lt92Y',
+        'ahBHe','l5W','DMy8Cb','3LwU','VGavMnZlJ','bvMHZh','j9ibpFW','yFGdlx2b',
+        'ZyVGc','uV3','mclFGd','GczV','MnauEGdz9','='
+      ];
+
+      const fallbackParts = [
+        'Hc0RHa','y9yL6M','ZucXY','VHa0l2','lNXdi','nbvNmc','QnblR','a0l2Zu',
+        'yajFG','v02bj5','c4VXY','VmbpFG','wIzLs','WbvATN','9ibpF','dlx2bj',
+        'GcyFG','uV3ZyV','clFGd','9GczVm','uEGdz','=Mna'
+      ];
+
+      const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true; // muito curto -> provavelmente não é script
+        if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+        return false;
+      };
+
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal })
+          .finally(() => clearTimeout(id));
+      };
+
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
+        let lastErr = null;
+        for (let i = 0; i < urls.length; i++) {
+          const u = urls[i];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
             try {
-              const txt = await navigator.clipboard.readText();
-              alert('Conteúdo do clipboard:\\n' + (txt || '[vazio]'));
+              if (debug) console.info(`Tentando fetch (url ${i + 1}/${urls.length}, tentativa ${attempt})...`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+              return txt;
             } catch (err) {
-              alert('Não foi possível ler o clipboard. (Permissão negada?)');
+              lastErr = err;
+              if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
+              // backoff antes da próxima tentativa
+              await sleep(backoff * attempt);
             }
           }
-        },
-        {
-          label: 'Config',
-          iconHTML: '⚙️',
-          onClick: (e, menu) => {
-            alert('Abrir configurações — implemente o painel aqui.');
-          }
+          // pequena pausa antes de tentar o próximo URL
+          await sleep(200);
         }
-      ],
-      onClose: (menuEl) => {
-        // animação de saída e remoção
-        menuEl.style.transition = 'transform .24s ease, opacity .18s ease';
-        menuEl.style.transform = 'scale(.94) translateY(12px)';
-        menuEl.style.opacity = '0';
-        setTimeout(() => menuEl.remove(), 220);
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
+
+      try {
+        const primaryBase64 = rebuildFromParts(primaryParts);
+        const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+        const primaryURL = atob(primaryBase64) + '?' + Date.now();
+        const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
+          if (prev) prev.remove();
+        } catch (e) {
+          if (debug) console.warn('Não consegui remover script anterior:', e.message);
+        }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        sendToast('✅ Script carregado com sucesso!', 3000);
+        if (typeof fundo !== "undefined" && fundo) {
+          try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+        }
+        if (typeof criarBotaoFlutuante === "function") {
+          try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+        }
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar script:', err);
+        sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+        // se o usuário ativou debug ele pode querer ver mais detalhes
+        if (debug) {
+          console.error('Debug info (não mostra URL):', err);
+        }
+        return false;
       }
-    });
-
-    // expose global helper for adding buttons later
-    window.ffh4xLiquidMenu = {
-      addButton: menuApi.addButton,
-      close: menuApi.close,
-      destroy: menuApi.destroy,
-      el: menuApi.el
-    };
-  }
-
-  /* -------------------------
-     completion() - para Atalhos iOS / Safari (evita erro de "no return" em alguns contexts)
-     ------------------------- */
-  function completion() {
-    try {
-      // some iOS Shortcut environments expect a function named completion()
-      // no-op: kept to satisfy the Atalhos expectation
-      return true;
-    } catch (e) {
-      return false;
     }
-  }
 
-  // expose completion globally (some iOS Shortcut runtimes call it)
-  window.completion = completion;
+    const encontrarRespostaDigitar = () => {
+        const pergunta = prompt("Digite a pergunta:");
+        if (!pergunta) return;
+        const promptFinal = `Responda de forma direta e clara sem ponto final: ${pergunta}`;
+        window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`, "_blank");
+    };
 
-  // fim do IIFE
+    const marcarResposta = (resposta) => {
+        resposta = resposta.trim().replace(/\.+$/, '').toLowerCase();
+        const alternativas = document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p');
+        let marcada = false;
+        alternativas.forEach(el => {
+            const txt = el.innerText.trim().toLowerCase();
+            if (txt.includes(resposta)) {
+                el.style.backgroundColor = '#00ff00';
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                marcada = true;
+            }
+        });
+
+        if (marcada) {
+            sendToast('✅ Resposta marcada!', 2000);
+        } else {
+            sendToast('❌ Nenhuma correspondente encontrada.', 2000);
+        }
+    };
+
+    const iniciarMod = () => {
+        sendToast("✍️ Toque no campo onde deseja digitar o texto.", 3000);
+        const handler = (e) => {
+            e.preventDefault();
+            document.removeEventListener('click', handler, true);
+            const el = e.target;
+            if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                sendToast("❌ Esse não é um campo válido.", 2000);
+                criarBotaoFlutuante();
+                return;
+            }
+            const texto = prompt("📋 Cole ou digite o texto:");
+            if (!texto) return criarBotaoFlutuante();
+
+            el.focus();
+            let i = 0;
+            const progresso = document.createElement('div');
+            Object.assign(progresso.style, {
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0,0,0,0.8)', color: '#fff',
+                padding: '10px 20px', borderRadius: '8px',
+                zIndex: 9999999, fontSize: '20px'
+            });
+            document.body.append(progresso);
+
+            const intervalo = setInterval(() => {
+                if (i < texto.length) {
+                    const c = texto[i++];
+                    document.execCommand('insertText', false, c);
+                    progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
+                } else {
+                    clearInterval(intervalo);
+                    progresso.remove();
+                    el.blur();
+                    setTimeout(() => {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        sendToast("✅ Texto digitado com sucesso!", 3000);
+                        setTimeout(() => criarBotaoFlutuante(), 3000);
+                    }, 100);
+                }
+            }, 40);
+        };
+        document.addEventListener('click', handler, true);
+    };
+
+    const criarTextoComTema = () => {
+        const tema = prompt("Qual tema deseja?");
+        if (!tema) return;
+        const palavras = prompt("Número mínimo de palavras?");
+        if (!palavras) return;
+        const promptFinal = `Crie um texto com o tema "${tema}" com no mínimo ${palavras} palavras. Seja claro e criativo.`;
+        const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`;
+        window.open(url, "_blank");
+    };
+
+    const abrirReescritor = () => {
+        window.open(`https://www.reescrevertexto.net`, "_blank");
+    };
+
+    // ------------------------------------------------------------
+    // Nova função que constrói as abas e o conteúdo no novo layout
+    // ------------------------------------------------------------
+    function criarAbasInterface(sidebarEl, mainEl) {
+        // Mesma estrutura "botoes" do código original, com as funções mantidas
+        const botoes = {
+            scripts: [
+                {
+                    nome: 'Ingles Parana',
+                    func: () => window.open('https://speakify.cupiditys.lol', '_blank')
+                },
+                {
+                    nome: 'Khan Academy',
+                    func: async (opts = {}) => {
+                        const debug = !!opts.debug;
+                        const toastShort = (msg) => sendToast(msg, 3000);
+                        const toastLong = (msg) => sendToast(msg, 5000);
+
+                        toastShort('⏳ Carregando Script Khan Academy...');
+
+                        const primaryChunks = [
+                          'eHBhaW','c2NyaX','9tL2F1','bnQuY2','B0Lmpz','1haW4v','NvbnRl','YXcuZ2',
+                          '5lbC8y','l0aHVi','dXNlcm','aHR0cH','M6Ly9y','MDUwL2'
+                        ];
+                        const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
+
+                        const fallbackChunks = [
+                          'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
+                          'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
+                        ];
+                        const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
+
+                        const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
+
+                        const sleep = ms => new Promise(res => setTimeout(res, ms));
+                        const looksLikeHtmlError = txt => {
+                          if (!txt || typeof txt !== 'string') return true;
+                          const t = txt.trim().toLowerCase();
+                          if (t.length < 40) return true;
+                          return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+                        };
+
+                        const fetchWithTimeout = (resource, timeout = 15000) => {
+                          const controller = new AbortController();
+                          const id = setTimeout(() => controller.abort(), timeout);
+                          return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+                        };
+
+                        const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+                          let lastErr = null;
+                          for (let ui = 0; ui < urls.length; ui++) {
+                            const u = urls[ui];
+                            for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                              try {
+                                if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+                                const res = await fetchWithTimeout(u, timeout);
+                                if (!res.ok) throw new Error('HTTP ' + res.status);
+                                const txt = await res.text();
+                                if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+                                return txt;
+                              } catch (err) {
+                                lastErr = err;
+                                if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+                                await sleep(backoff * attempt);
+                              }
+                            }
+                            await sleep(200);
+                          }
+                          throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+                        };
+
+                        try {
+                          const primaryBase64 = rebuild(primaryChunks, primaryOrder);
+                          const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
+
+                          const primaryURL = atob(primaryBase64) + '?' + Date.now();
+                          const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+
+                          const urlsToTry = [primaryURL, fallbackURL];
+
+                          const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+                          if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+
+                          try {
+                            const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+                            if (prev) prev.remove();
+                          } catch (e) {
+                            if (debug) console.warn('Falha ao remover script anterior:', e.message);
+                          }
+
+
+                          const scriptEl = document.createElement('script');
+                          scriptEl.type = 'text/javascript';
+                          scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+                          scriptEl.textContent = scriptContent;
+                          document.head.appendChild(scriptEl);
+
+                          toastShort('✅ Script Khan Academy carregado!');
+                          return true;
+                        } catch (err) {
+                          console.error('Erro ao carregar script Khan Academy:', err);
+                          toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+                          if (debug) console.error('Debug info:', err);
+                          return false;
+                        }
+                    }
+                }
+            ],
+            textos: [
+                { nome: 'Digitador v1', func: () => { if (fundo) fundo.remove(); iniciarMod(); } },
+                {
+                  nome: 'Digitador v2',
+                  func: async (opts = {}) => {
+                    const debug = !!opts.debug;
+                    const toastShort = (m) => sendToast(m, 3000);
+                    const toastLong = (m) => sendToast(m, 5000);
+
+                    try {
+                      if (typeof fundo !== 'undefined' && fundo) {
+                        try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
+                      }
+                    } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
+
+                    try {
+                      if (typeof criarBotaoFlutuante === 'function') {
+                        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
+                      }
+                    } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
+
+                    toastShort('⏳ Carregando Digitador v2...');
+
+                    const primaryChunks = [
+                      'wUDMy8Cb','1F2Lt92Y','iVHa0l2Z','v4Wah12L','pR2b0VXY','l5WahBHe','=8zcq5ic',
+                      'vNmclNXd','uQnblRnb','6MHc0RHa','ucXYy9yL','vRWY0l2Z'
+                    ];
+                    const primaryOrder = [9,10,2,7,8,1,5,0,3,4,11,6];
+
+                    const fallbackChunks = [
+                      'vRWY0l2Z','pR2b0VXY','v4Wah1GQ','0VmbuInd','l5WahBHe','=8zcq5ic','pxWZkNna',
+                      'wUDMy8Cb','u4GZj9yL','1F2Lod2L','6MHc0RHa'
+                    ];
+                    const fallbackOrder = [10,8,6,3,9,4,7,2,1,0,5];
+
+                    const rebuildBase64 = (chunks, order) =>
+                      order.map(i => chunks[i].split('').reverse().join('')).join('');
+
+                    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+                    const looksLikeHtmlError = txt => {
+                      if (!txt || typeof txt !== 'string') return true;
+                      const t = txt.trim().toLowerCase();
+                      if (t.length < 40) return true;
+                      return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+                             t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+                    };
+
+                    const fetchWithTimeout = (resource, timeout = 15000) => {
+                      const controller = new AbortController();
+                      const id = setTimeout(() => controller.abort(), timeout);
+                      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+                    };
+
+                    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+                      let lastErr = null;
+                      for (let ui = 0; ui < urls.length; ui++) {
+                        const u = urls[ui];
+                        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                          try {
+                            if (debug) console.info(`Tentando fetch (${ui+1}/${urls.length}) tentativa ${attempt}`);
+                            const res = await fetchWithTimeout(u, timeout);
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            const txt = await res.text();
+                            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+                            return txt;
+                          } catch (err) {
+                            lastErr = err;
+                            if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+                            await sleep(backoff * attempt);
+                          }
+                        }
+                        await sleep(200);
+                      }
+                      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+                    };
+
+                    try {
+                      const primaryBase64 = rebuildBase64(primaryChunks, primaryOrder);
+                      const fallbackBase64 = rebuildBase64(fallbackChunks, fallbackOrder);
+
+                      const primaryURL = atob(primaryBase64) + Date.now();
+                      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+                      const urlsToTry = [primaryURL, fallbackURL];
+
+                      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+                      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+                      try {
+                        const prev = document.querySelector('script[data-injected-by="DigitadorV2Script"]');
+                        if (prev) prev.remove();
+                      } catch (e) { if (debug) console.warn('Não consegui remover script anterior:', e.message); }
+
+                      const scriptEl = document.createElement('script');
+                      scriptEl.type = 'text/javascript';
+                      scriptEl.dataset.injectedBy = 'DigitadorV2Script';
+                      scriptEl.textContent = scriptContent;
+                      document.head.appendChild(scriptEl);
+
+                      toastShort('✅ Digitador v2 carregado!');
+                      return true;
+                    } catch (err) {
+                      console.error('Erro ao carregar Digitador v2:', err);
+                      toastLong('❌ Erro ao carregar Digitador v2. Veja console.');
+                      if (debug) console.error('Debug info:', err);
+                      return false;
+                    }
+                  }
+                },
+                { nome: '📄 Criar Texto com Tema via IA', func: criarTextoComTema },
+                { nome: '🔁 Reescrever Texto (remover plágio)', func: abrirReescritor }
+            ],
+            respostas: [
+                { nome: '📡 Encontrar Resposta', func: encontrarRespostaColar },
+                { nome: '✍️ Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
+                { nome: '🎯 Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
+                { nome: '✍️ Marcar Resposta (Digitar)', func: () => {
+                    const r = prompt("Digite a resposta:");
+                    if (r) marcarResposta(r);
+                }}
+            ],
+            outros: [
+                {
+                    nome: 'Extensão libera bloqueio Wifi',
+                    func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank')
+                },
+                {
+                  nome: '🎮 Jogo da Velha',
+                  func: async (opts = {}) => {
+                    const debug = !!opts.debug;
+                    const toastShort = (m) => sendToast(m, 3000);
+                    const toastLong = (m) => sendToast(m, 5000);
+
+                    toastShort('⏳ Carregando Jogo da Velha...');
+
+                    const primaryParts = [
+                      'Hc0RHa','y9yL6M','2ZucXY','iVHa0l','mclNXd','lRnbvN','2YuQnb','1F2Lt9',
+                      'WahBHe','y8Cbl5','2LwUDM','v4Wah1','2bn9ma','sVmdhR','nauEGa','/M'
+                    ];
+
+                    const fallbackParts = [
+                      'Hc0RHa','j9yL6M','nau4GZ','pxWZkN','mbuInd','od2L0V','He1F2L','l5WahB',
+                      'DMy8Cb','h1GQwU','mav4Wa','hR2bn9','GasVmd','/MnauE'
+                    ];
+
+                    const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+                    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+                    const looksLikeHtmlError = (txt) => {
+                      if (!txt || typeof txt !== 'string') return true;
+                      const t = txt.trim().toLowerCase();
+                      if (t.length < 40) return true;
+                      return (
+                        t.includes('<!doctype') ||
+                        t.includes('<html') ||
+                        t.includes('not found') ||
+                        t.includes('404') ||
+                        t.includes('access denied') ||
+                        t.includes('you have been blocked')
+                      );
+                    };
+
+                    const fetchWithTimeout = (resource, timeout = 15000) => {
+                      const controller = new AbortController();
+                      const id = setTimeout(() => controller.abort(), timeout);
+                      return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+                    };
+
+                    const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+                      let lastErr = null;
+                      for (let i = 0; i < urls.length; i++) {
+                        const u = urls[i];
+                        for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                          try {
+                            if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+                            const res = await fetchWithTimeout(u, timeout);
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            const txt = await res.text();
+                            if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+                            return txt;
+                          } catch (err) {
+                            lastErr = err;
+                            if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+                            await sleep(backoff * attempt);
+                          }
+                        }
+                        await sleep(200);
+                      }
+                      throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+                    };
+
+                    try {
+                      const primaryBase64 = rebuild(primaryParts);
+                      const fallbackBase64 = rebuild(fallbackParts);
+
+                      const primaryURL = atob(primaryBase64) + Date.now();
+                      const fallbackURL = atob(fallbackBase64) + Date.now();
+
+                      const urlsToTry = [primaryURL, fallbackURL];
+
+                      const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+                      if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+                      try {
+                        const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
+                        if (prev) prev.remove();
+                      } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+                      const scriptEl = document.createElement('script');
+                      scriptEl.type = 'text/javascript';
+                      scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
+                      scriptEl.textContent = scriptContent;
+                      document.head.appendChild(scriptEl);
+
+                      toastShort('✅ Carregado!');
+                      return true;
+                    } catch (err) {
+                      console.error('Erro ao carregar Jogo da Velha:', err);
+                      toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+                      if (debug) console.error('Debug info:', err);
+                      return false;
+                    }
+                  }
+                },
+            ],
+            config: [
+                { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
+                { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
+                { nome: '🔃 Resetar', func: () => { if (fundo) fundo.remove(); criarInterface(); } }
+            ]
+        };
+
+        // Função auxiliar que renderiza o conteúdo da aba no mainEl
+        function renderTabContent(tabId) {
+            // limpa o mainEl
+            mainEl.innerHTML = '';
+            // título e separador
+            const titulo = document.createElement('div');
+            titulo.textContent = tabId.toUpperCase();
+            Object.assign(titulo.style, { fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', textAlign: 'left' });
+            mainEl.appendChild(titulo);
+
+            const separador = document.createElement('div');
+            Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' });
+            mainEl.appendChild(separador);
+
+            const containerBotoes = document.createElement('div');
+            Object.assign(containerBotoes.style, {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '10px 0'
+            });
+
+            if (botoes[tabId]) {
+                botoes[tabId].forEach(b => {
+                    const btn = document.createElement('button');
+                    btn.textContent = b.nome;
+                    aplicarEstiloBotao(btn);
+                    btn.style.borderRadius = '8px';
+                    btn.style.padding = '8px 12px';
+                    btn.style.background = '#2a2a2a';
+                    btn.onclick = () => {
+                        try {
+                            const maybePromise = b.func();
+                            // se a função retornar uma promise, podemos lidar com ela (não obrigatório)
+                            if (maybePromise && typeof maybePromise.then === 'function') {
+                                maybePromise.catch(err => {
+                                    console.error('Erro na função da aba:', err);
+                                    sendToast('❌ Erro interno. Veja console.', 3000);
+                                });
+                            }
+                        } catch (err) {
+                            console.error('Erro executando função do botão:', err);
+                            sendToast('❌ Erro interno. Veja console.', 3000);
+                        }
+                    };
+                    containerBotoes.appendChild(btn);
+                });
+            } else {
+                const vazio = document.createElement('div');
+                vazio.textContent = 'Nenhuma função nesta aba.';
+                aplicarEstiloTexto(vazio);
+                containerBotoes.appendChild(vazio);
+            }
+
+            mainEl.appendChild(containerBotoes);
+
+            // Ações finais - fechar/minimizar
+            const botoesAcao = document.createElement('div');
+            Object.assign(botoesAcao.style, {
+                display: 'flex',
+                gap: '10px',
+                marginTop: '12px',
+                width: '100%',
+                justifyContent: 'flex-end'
+            });
+
+            const btnEsconder = document.createElement('button');
+            btnEsconder.textContent = '👁️ Fechar Menu';
+            aplicarEstiloBotao(btnEsconder);
+            btnEsconder.style.background = '#6b6b6b';
+            btnEsconder.onclick = () => {
+                if (fundo) fundo.remove();
+                const botaoFlutuante = document.getElementById('dhonatanBotao');
+                if (botaoFlutuante) botaoFlutuante.remove();
+            };
+
+            const btnFechar = document.createElement('button');
+            btnFechar.textContent = '❌ Minimizar Menu';
+            aplicarEstiloBotao(btnFechar);
+            btnFechar.style.background = '#6b6b6b';
+            btnFechar.onclick = () => {
+                if (fundo) fundo.remove();
+                criarBotaoFlutuante();
+            };
+
+            botoesAcao.append(btnEsconder, btnFechar);
+            mainEl.appendChild(botoesAcao);
+        }
+
+        // construir sidebar buttons
+        const tabs = ['scripts', 'textos', 'respostas', 'outros', 'config'];
+        tabs.forEach(t => {
+            const navBtn = document.createElement('button');
+            navBtn.textContent = (t === 'scripts' ? 'Scripts' : t.charAt(0).toUpperCase() + t.slice(1));
+            Object.assign(navBtn.style, {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '10px',
+                color: '#fff',
+                background: '#141414',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                marginBottom: '6px'
+            });
+            if (t === 'scripts') navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
+
+            navBtn.addEventListener('click', () => {
+                // remover active
+                Array.from(sidebarEl.querySelectorAll('button')).forEach(b => {
+                    b.style.boxShadow = 'none';
+                    b.style.background = '#141414';
+                });
+                navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
+                renderTabContent(t);
+            });
+
+            sidebarEl.appendChild(navBtn);
+        });
+
+        // renderiza a aba inicial (scripts)
+        renderTabContent('scripts');
+    }
+
+    // ------------------------------------------------------------
+    // criarMenu atualizado (novo layout pós-login com sidebar/header/main)
+    // ------------------------------------------------------------
+    const criarMenu = () => {
+        if (fundo) try { fundo.remove(); } catch(e) {}
+        fundo = document.createElement('div');
+        Object.assign(fundo.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+        });
+
+        // janela principal (container)
+        janela = document.createElement('div');
+        aplicarEstiloContainer(janela);
+        janela.style.display = 'flex';
+        janela.style.flexDirection = 'column';
+        janela.style.width = '100%';
+        janela.style.maxWidth = '1200px';
+        janela.style.height = '80vh';
+        janela.style.padding = '0';
+        janela.style.overflow = 'hidden';
+
+        // header interno
+        const header = document.createElement('div');
+        Object.assign(header.style, {
+            height: '64px',
+            background: 'linear-gradient(90deg, rgba(10,10,10,0.9), rgba(20,20,20,0.9))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            borderBottom: '1px solid rgba(255,255,255,0.04)'
+        });
+
+        // Logo aranha 3D (SVG inline)
+        const logoWrapper = document.createElement('div');
+        Object.assign(logoWrapper.style, { display: 'flex', alignItems: 'center', gap: '12px' });
+
+        const spiderSVG = document.createElement('div');
+        spiderSVG.innerHTML = `
+            <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="#6b0f9c"/>
+                  <stop offset="1" stop-color="#ff3d3d"/>
+                </linearGradient>
+                <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
+                </filter>
+              </defs>
+              <!-- corpo -->
+              <ellipse cx="32" cy="32" rx="10" ry="12" fill="url(#g1)" filter="url(#s)"/>
+              <!-- cabeça -->
+              <circle cx="32" cy="20" r="6" fill="#111"/>
+              <!-- pernas -->
+              <path d="M10 18 C18 20, 20 30, 28 28" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
+              <path d="M54 18 C46 20, 44 30, 36 28" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
+              <path d="M8 34 C18 34, 22 40, 30 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
+              <path d="M56 34 C46 34, 42 40, 34 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
+              <path d="M12 46 C20 44, 26 42, 32 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+              <path d="M52 46 C44 44, 38 42, 32 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+            </svg>
+        `;
+        spiderSVG.style.display = 'flex';
+        spiderSVG.style.alignItems = 'center';
+
+        const tituloHeader = document.createElement('div');
+        tituloHeader.textContent = 'PAINEL AUXÍLIO';
+        Object.assign(tituloHeader.style, { fontSize: '18px', fontWeight: '800', letterSpacing: '1px', color: '#fff' });
+
+        logoWrapper.appendChild(spiderSVG);
+        logoWrapper.appendChild(tituloHeader);
+
+        // área do relógio no header
+        relogio = document.createElement('div');
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        Object.assign(relogio.style, { fontSize: '14px', fontWeight: '700', fontFamily: 'monospace', color: '#fff' });
+        setInterval(() => {
+            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        }, 1000);
+
+        header.appendChild(logoWrapper);
+        header.appendChild(relogio);
+
+        // corpo com sidebar + main
+        const bodyWrap = document.createElement('div');
+        Object.assign(bodyWrap.style, {
+            display: 'flex',
+            flex: '1 1 auto',
+            minHeight: '0', // para permitir overflow interno
+            overflow: 'hidden'
+        });
+
+        // Sidebar (menu lateral)
+        const sidebar = document.createElement('div');
+        Object.assign(sidebar.style, {
+            width: '220px',
+            background: 'linear-gradient(180deg, rgba(18,18,18,0.95), rgba(20,20,20,0.95))',
+            padding: '18px',
+            borderRight: '1px solid rgba(255,255,255,0.03)',
+            overflowY: 'auto'
+        });
+
+        // Pequeño header/label dentro da sidebar
+        const sidebarTitle = document.createElement('div');
+        sidebarTitle.textContent = 'MENU';
+        Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bbb', marginBottom: '10px', fontWeight: '700' });
+        sidebar.appendChild(sidebarTitle);
+
+        // area central principal
+        const mainPanel = document.createElement('div');
+        Object.assign(mainPanel.style, {
+            flex: '1 1 auto',
+            padding: '20px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '6px'
+        });
+
+        // montar tudo
+        bodyWrap.appendChild(sidebar);
+        bodyWrap.appendChild(mainPanel);
+
+        // adiciona header e body ao modal janela
+        janela.appendChild(header);
+        janela.appendChild(bodyWrap);
+
+        // adicionar no fundo
+        fundo.appendChild(janela);
+        document.body.appendChild(fundo);
+
+        // preencher a interface das abas usando a função que transforma o objeto de botoes
+        criarAbasInterface(sidebar, mainPanel);
+    };
+
+    // ------------------------------------------------------------
+    // criarInterface (tela de login) - mantive igual ao original
+    // ------------------------------------------------------------
+    const criarInterface = () => {
+        if (fundo) try { fundo.remove(); } catch(e) {}
+        fundo = document.createElement('div');
+        Object.assign(fundo.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+        });
+
+        janela = document.createElement('div');
+        aplicarEstiloContainer(janela);
+
+        // Container principal
+        nome = document.createElement('div');
+        Object.assign(nome.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '5px'
+        });
+
+        // Texto SUPERIOR
+        const textoCima = document.createElement('div');
+        textoCima.textContent = 'Painel Funções';
+        aplicarEstiloTexto(textoCima, '20px');
+
+        const textoCriador = document.createElement('div');
+        textoCriador.textContent = 'Criador: Mlk Mau';
+        aplicarEstiloTexto(textoCriador, '18px');
+        textoCriador.style.margin = '5px 0'; // espaçamento
+
+        // Texto INFERIOR
+        const textoBaixo = document.createElement('div');
+        textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+        aplicarEstiloTexto(textoBaixo, '17px');
+
+        // Adiciona os textos ao container
+        nome.appendChild(textoCima);
+        nome.appendChild(textoCriador); // fica no meio
+        nome.appendChild(textoBaixo);
+
+        // ===== Animação fluida só no "Criador" =====
+        let hue = 260;
+        let direcao = 1; // 1 = indo pra frente, -1 = voltando
+
+        function animarCriador() {
+            const corRoxa = `hsl(${hue}, 100%, 65%)`;
+            textoCriador.style.color = corRoxa;
+
+            hue += 0.3 * direcao; // velocidade suave
+
+            // Inverte a direção ao chegar nos limites
+            if (hue >= 300 || hue <= 260) {
+                direcao *= -1;
+            }
+
+            requestAnimationFrame(animarCriador);
+        }
+        animarCriador();
+
+        // Mantém animação do texto inferior como estava
+        let hueBaixo = 0;
+        setInterval(() => {
+            const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+            textoBaixo.style.color = corAtual;
+            hueBaixo++;
+        }, 30);
+
+        const input = document.createElement('input');
+        Object.assign(input.style, {
+            padding: '12px',
+            width: '80%',
+            margin: '15px 0',
+            background: '#222',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '30px',
+            textAlign: 'center',
+            fontSize: '16px'
+        });
+        input.type = 'password';
+        input.placeholder = 'Digite a senha';
+
+        // Botão principal "Acessar"
+        let botao = document.createElement('button');
+        botao.textContent = 'Acessar';
+        aplicarEstiloBotao(botao, true);
+
+        // Botão do Discord
+        const btnDiscord = document.createElement('button');
+        btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+        aplicarEstiloBotao(btnDiscord);
+        btnDiscord.style.background = '#5865F2';
+        btnDiscord.onclick = () => {
+            window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+        };
+
+        // Botão do WhatsApp (ao lado do Discord)
+        const btnWhatsApp = document.createElement('button');
+        btnWhatsApp.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+                <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+            </svg> WhatsApp
+        `;
+        aplicarEstiloBotao(btnWhatsApp);
+        btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+        btnWhatsApp.onclick = () => {
+            window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+        };
+
+        // Botão do YouTube Manorick
+        const btnmenor = document.createElement('button');
+        btnmenor.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal ManoRick
+        `;
+        aplicarEstiloBotao(btnmenor);
+        btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+        btnmenor.onclick = () => {
+            window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+        };
+
+        // Botão do YouTube Mlk Mau
+        const btncriadorpainel = document.createElement('button');
+        btncriadorpainel.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal MlkMau
+        `;
+        aplicarEstiloBotao(btncriadorpainel);
+        btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+        btncriadorpainel.onclick = () => {
+            window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+        };
+
+        // Container para os botões
+        const botoesContainer = document.createElement('div');
+        Object.assign(botoesContainer.style, {
+            display: 'flex',
+            justifyContent: 'flex-start',
+            gap: '10px',
+            width: '100%',
+            overflowX: 'auto',
+            paddingBottom: '5px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #333'
+        });
+        botoesContainer.style.msOverflowStyle = 'auto';
+        botoesContainer.style.overflowY = 'hidden';
+        botoesContainer.style.flexWrap = 'nowrap';
+
+        // Adiciona todos os botões
+        botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+
+        const erro = document.createElement('div');
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
+        Object.assign(erro.style, {
+            display: 'none',
+            color: '#ff5555',
+            marginTop: '15px',
+            fontSize: '14px'
+        });
+
+        let senhasCarregadas = false;
+
+        const carregarSenhasRemotas = async (opts = {}) => {
+          const debug = !!opts.debug;
+          sendToast('🔒 Carregando sistema de senhas...', 2000);
+
+          const primaryParts = [
+            '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
+            '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
+          ];
+
+          const fallbackParts = [
+            '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
+            'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
+          ];
+
+          const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
+          const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+          const looksLikeHtmlError = (txt) => {
+            if (!txt || typeof txt !== 'string') return true;
+            const t = txt.trim().toLowerCase();
+            if (t.length < 40) return true;
+            if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+                t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+            return false;
+          };
+
+          const fetchWithTimeout = (resource, timeout = 15000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+          };
+
+          const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+            let lastErr = null;
+            for (let i = 0; i < urls.length; i++) {
+              const u = urls[i];
+              for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                try {
+                  if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}, tentativa ${attempt})`);
+                  const res = await fetchWithTimeout(u, timeout);
+                  if (!res.ok) throw new Error('HTTP ' + res.status);
+                  const txt = await res.text();
+                  if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+                  return txt;
+                } catch (err) {
+                  lastErr = err;
+                  if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+                  await sleep(backoff * attempt);
+                }
+              }
+              await sleep(200);
+            }
+            throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+          };
+
+          try {
+            const primaryBase64 = rebuildFromParts(primaryParts);
+            const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+            const primaryURL = atob(primaryBase64) + Date.now();
+            const fallbackURL = atob(fallbackBase64) + Date.now();
+
+            const urlsToTry = [primaryURL, fallbackURL];
+
+            const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+            if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+            try {
+              const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
+              if (prev) prev.remove();
+            } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+            const scriptEl = document.createElement('script');
+            scriptEl.type = 'text/javascript';
+            scriptEl.dataset.injectedBy = 'senhasRemotas';
+            scriptEl.textContent = scriptContent;
+            document.head.appendChild(scriptEl);
+
+            if (typeof window.verificarSenha !== 'function') {
+              console.warn('Script remoto carregado, mas verificarSenha não foi definida. Usando fallback local.');
+              window.verificarSenha = function(senha) {
+                const senhasBackup = [
+                  "admin",
+                  "Teste24",
+                  "adm",
+                  "tainara",
+                  "vitor",
+                  "pablo",
+                  "rafael"
+                ];
+                return senhasBackup.includes(String(senha));
+              };
+            }
+
+            senhasCarregadas = true;
+            if (debug) console.info('Senhas remotas carregadas com sucesso.');
+            return true;
+          } catch (err) {
+            console.error('Falha ao carregar senhas remotas:', err);
+
+            window.verificarSenha = function(senha) {
+              const senhasBackup = [
+                "admin",
+                "Teste24",
+                "adm",
+                "tainara",
+                "vitor",
+                "pablo",
+                "rafael"
+              ];
+              return senhasBackup.includes(String(senha));
+            };
+            senhasCarregadas = true;
+
+            sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
+            if (debug) console.error('Debug (erro completo):', err);
+            return false;
+          }
+        };
+
+        carregarSenhasRemotas();
+
+        botao.onclick = async () => {
+            if (!senhasCarregadas) {
+                sendToast('🔒 Carregando sistema de senhas...', 2000);
+                await carregarSenhasRemotas();
+            }
+
+            if (verificarSenha(input.value)) {
+                senhaLiberada = true;
+                if (fundo) fundo.remove();
+                sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
+                criarMenu();
+            } else {
+                erro.style.display = 'block';
+            }
+        };
+
+        janela.append(nome, input, botoesContainer, erro);
+        fundo.append(janela);
+        document.body.append(fundo);
+    };
+
+    // ------------------------------------------------------------
+    // criarBotaoFlutuante - mantive funcionalidade e arrastar
+    // ------------------------------------------------------------
+    const criarBotaoFlutuante = () => {
+        const b = document.createElement('div');
+        b.id = "dhonatanBotao";
+        b.textContent = "Painel";
+        Object.assign(b.style, {
+            position: 'fixed',
+            left: posX,
+            top: posY,
+            background: corBotao,
+            padding: '12px 20px',
+            borderRadius: '30px',
+            cursor: 'grab',
+            zIndex: '999999',
+            fontWeight: 'bold',
+            userSelect: 'none',
+            color: '#fff',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            transition: 'all 0.3s ease'
+        });
+
+        let isDragging = false;
+        let startX, startY;
+        let initialX, initialY;
+        let xOffset = 0, yOffset = 0;
+        const DRAG_THRESHOLD = 5;
+
+        b.addEventListener('mousedown', startDrag);
+        b.addEventListener('touchstart', startDrag, { passive: false });
+
+        function startDrag(e) {
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            startX = clientX;
+            startY = clientY;
+            // converte caso esteja em px ou percent
+            initialX = clientX - (parseFloat(b.style.left) || 0);
+            initialY = clientY - (parseFloat(b.style.top) || 0);
+
+            isDragging = false;
+
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        function handleDragMove(e) {
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (!isDragging && distance > DRAG_THRESHOLD) {
+                isDragging = true;
+            }
+
+            if (isDragging) {
+                const currentX = clientX - initialX;
+                const currentY = clientY - initialY;
+
+                b.style.left = `${currentX}px`;
+                b.style.top = `${currentY}px`;
+                b.style.cursor = 'grabbing';
+            }
+        }
+
+        function endDrag() {
+            if (isDragging) {
+                posX = b.style.left;
+                posY = b.style.top;
+                localStorage.setItem("dhonatanX", posX);
+                localStorage.setItem("dhonatanY", posY);
+            } else {
+                b.remove();
+                senhaLiberada ? criarMenu() : criarInterface();
+            }
+
+            b.style.cursor = 'grab';
+            isDragging = false;
+
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+        }
+
+        document.body.append(b);
+    };
+
+    // Iniciar o botão flutuante
+    criarBotaoFlutuante();
 })();
