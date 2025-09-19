@@ -942,7 +942,77 @@ async function encontrarRespostaColar(options = {}) {
                 { nome: 'ℹ️ Sobre o Mod', func: mostrarInfoDono },
                 { nome: '🎨 Cor do Botão Flutuante', func: trocarCorBotao },
                 { nome: '🔄 Resetar', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
-            ]
+            ],
+            Copyright: [
+    { 
+        nome: '© MLK MAU', 
+        func: () => {
+            // Criar modal
+            const modal = document.createElement('div');
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.backgroundColor = "rgba(0,0,0,0.7)";
+            modal.style.display = "flex";
+            modal.style.justifyContent = "center";
+            modal.style.alignItems = "center";
+            modal.style.zIndex = "9999";
+
+            // Caixa interna
+            const modalBox = document.createElement('div');
+            modalBox.style.background = "#111";
+            modalBox.style.color = "#fff";
+            modalBox.style.padding = "20px";
+            modalBox.style.borderRadius = "8px";
+            modalBox.style.width = "400px";
+            modalBox.style.maxWidth = "90%";
+            modalBox.style.textAlign = "justify";
+            modalBox.style.boxShadow = "0 0 10px rgba(255,255,255,0.3)";
+
+            modalBox.innerHTML = `
+              <h2 style="text-align:center; color:#f33;">📜 Termo de Responsabilidade</h2>
+              <p>
+                Este painel possui sistemas de segurança e proteções internas.
+                No entanto, <b>não nos responsabilizamos</b> por qualquer uso
+                indevido, danos, prejuízos ou consequências que possam
+                resultar da utilização deste software.
+              </p>
+              <p>
+                Ao utilizar este painel, você declara estar ciente e de acordo
+                com os termos aqui descritos.
+              </p>
+              <hr>
+              <p style="text-align:center; font-size:12px; color:#aaa;">
+                Copyright © 2025 - MLK MAU
+              </p>
+              <div style="text-align:center; margin-top:15px;">
+                <button id="btnFecharModal" style="
+                  background:#f33; 
+                  color:#fff; 
+                  padding:8px 16px; 
+                  border:none; 
+                  border-radius:5px; 
+                  cursor:pointer;">
+                  Fechar
+                </button>
+              </div>
+            `;
+
+            modal.appendChild(modalBox);
+            document.body.appendChild(modal);
+
+            // Evento fechar (botão + clique fora)
+            modalBox.querySelector("#btnFecharModal").addEventListener('click', () => {
+                modal.remove();
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+    }
+]
         };
 
         // container topo com o texto MENU (restaurado conforme pedido)
@@ -956,7 +1026,7 @@ async function encontrarRespostaColar(options = {}) {
         Object.assign(tituloMenu.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '6px', fontWeight: '800' });
         botoesAbas.appendChild(tituloMenu);
 
-        ['scripts', 'textos', 'respostas', 'outros', 'config'].forEach((id, idx) => {
+        ['scripts', 'textos', 'respostas', 'outros', 'config', Copyright].forEach((id, idx) => {
             const botaoAba = document.createElement('button');
             botaoAba.textContent = id === 'scripts' ? 'Scripts' : id.charAt(0).toUpperCase() + id.slice(1);
             botaoAba.className = 'sidebar-nav-btn dh-btn';
