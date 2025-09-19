@@ -1,5 +1,4 @@
-
-Resolva o problema de palavras erradas como na imagem// ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
+// ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
 
