@@ -87,25 +87,32 @@ function showWelcomeToasts() {
             display:block;
         }
         .sidebar-nav-btn:hover { transform: translateX(6px); background: #181818; }
-        .sidebar-nav-btn.active { background: linear-gradient(90deg,#ff4747,#b60000); color: #fff; box-shadow: 0 8px 24px rgba(179,0,0,0.18); }
+        /* agora a aba selecionada herda a cor do botão Acessar (gradient similar) */
+        .sidebar-nav-btn.active { background: linear-gradient(135deg,#8A2BE2,#4B0082); color: #fff; box-shadow: 0 8px 24px rgba(138,43,226,0.18); }
 
-        /* footer action buttons (sidebar) */
+        /* footer action buttons (sidebar) - agora pequenos e elegantes */
         .sidebar-footer {
-            display:flex; flex-direction:column; gap:12px; width:100%; padding:12px; box-sizing:border-box; align-items:center;
+            display:flex; flex-direction:row; gap:8px; width:100%; padding:12px; box-sizing:border-box; align-items:center; justify-content:center;
         }
         .sidebar-footer-btn {
-            width:86%;
-            border-radius:28px;
-            padding:12px 14px;
-            background: rgba(255,255,255,0.04);
+            min-width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            padding: 8px;
+            background: rgba(255,255,255,0.03);
             color:#fff;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
             font-weight:800;
-            transition: transform .16s ease, background .16s ease;
+            transition: transform .12s ease, background .12s ease;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:6px;
+            font-size:13px;
         }
         .sidebar-footer-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); }
 
-        /* main button (Efeito CodePen 24 adaptado) */
+        /* main button (Efeito CodePen 24 adaptado) - evitar corte do efeito definindo overflow: visible */
         .main-btn {
             background: linear-gradient(180deg,#2a0b0b,#3a0f0f);
             color:#f0dede;
@@ -113,7 +120,7 @@ function showWelcomeToasts() {
             border-radius: 14px;
             box-shadow: 0 12px 30px rgba(0,0,0,0.5);
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* alterado para não cortar os spans animados */
             display: inline-block;
             font-weight: 800;
             min-width: 160px;
@@ -124,18 +131,18 @@ function showWelcomeToasts() {
         .main-btn:hover{ transform: translateY(-3px); }
 
         /* quatro spans que animam ao redor do botão */
-        .main-btn .edge { position:absolute; pointer-events:none; background: linear-gradient(90deg, transparent, rgba(255,100,100,0.95), transparent); }
-        .main-btn .edge.top { top: -2px; left: -50%; width: 200%; height: 3px; transform: translateX(-100%); animation: edgeTop 2.2s linear infinite; }
-        .main-btn .edge.right { right: -2px; top: -50%; width: 3px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(-100%); animation: edgeRight 2.2s linear .55s infinite; }
-        .main-btn .edge.bottom { bottom: -2px; left: -50%; width: 200%; height: 3px; transform: translateX(100%); animation: edgeBottom 2.2s linear .95s infinite; }
-        .main-btn .edge.left { left: -2px; top: -50%; width: 3px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(100%); animation: edgeLeft 2.2s linear 1.5s infinite; }
+        .main-btn .edge { position:absolute; pointer-events:none; background: linear-gradient(90deg, transparent, rgba(255,100,100,0.95), transparent); border-radius:2px; }
+        .main-btn .edge.top { top: -4px; left: -50%; width: 200%; height: 4px; transform: translateX(-100%); animation: edgeTop 2.2s linear infinite; }
+        .main-btn .edge.right { right: -4px; top: -50%; width: 4px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(-100%); animation: edgeRight 2.2s linear .55s infinite; }
+        .main-btn .edge.bottom { bottom: -4px; left: -50%; width: 200%; height: 4px; transform: translateX(100%); animation: edgeBottom 2.2s linear .95s infinite; }
+        .main-btn .edge.left { left: -4px; top: -50%; width: 4px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(100%); animation: edgeLeft 2.2s linear 1.5s infinite; }
 
         @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
         @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
         @keyframes edgeBottom { 0% { transform: translateX(100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(-100%);} }
         @keyframes edgeLeft { 0% { transform: translateY(100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(-100%);} }
 
-        .main-btn::before{ content:''; position:absolute; inset:0; background: rgba(255,255,255,0.02); opacity:0; transition: .2s; pointer-events:none; }
+        .main-btn::before{ content:''; position:absolute; inset:0; background: rgba(255,255,255,0.02); opacity:0; transition: .2s; pointer-events:none; border-radius:14px; }
         .main-btn:hover::before{ opacity: .06; }
 
         /* helper small text */
@@ -148,7 +155,7 @@ function showWelcomeToasts() {
         @media (max-width:760px){
             .main-btn { width:100%; box-sizing:border-box; min-width: unset; }
             .sidebar-nav-btn{ font-size:14px; padding:12px; }
-            .sidebar-footer-btn{ width:92%; padding:14px; border-radius:26px; }
+            .sidebar-footer-btn{ width:auto; padding:10px 12px; border-radius:10px; }
         }
         `;
         document.head.appendChild(style);
@@ -179,6 +186,24 @@ function showWelcomeToasts() {
             textAlign: 'center'
         });
     };
+
+    // small util: cria botão com SVG inline (string) + texto
+    const criarBotaoComSVG = (svgString, texto, gradiente=false) => {
+        const btn = document.createElement('button');
+        btn.className = 'dh-btn';
+        if (gradiente) btn.style.background = 'linear-gradient(135deg, #8A2BE2, #4B0082)';
+        btn.innerHTML = svgString + '<span style="pointer-events:none;">' + texto + '</span>';
+        Object.assign(btn.style, { gap: '10px' });
+        return btn;
+    };
+
+    // SVGs (pequenas e simples — inline)
+    const svgLock = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M17 8V7a5 5 0 10-10 0v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="8" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const svgDiscord = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M7 8.5c1.1-.8 2.1-1.2 3.5-1.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 8.5c-1.1-.8-2.1-1.2-3.5-1.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 13.5a1 1 0 11.001-2.001A1 1 0 018.5 13.5zM15.5 13.5a1 1 0 11.001-2.001A1 1 0 0115.5 13.5z" fill="currentColor"/></svg>';
+    const svgWhats = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M21 12a9 9 0 10-2.6 6.1L21 21l-2.9-1.1A9 9 0 0021 12z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 11c-.2-.1-1.2-.6-1.4-.6s-.3-.1-.5.1-.6.6-.8.8-.3.2-.6.1c-.2-.1-.8-.3-1.6-.9-1.1-.9-1.9-2-1.9-2s.4-.4.9-.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const svgYou = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M22 7s-.2-1.6-.8-2.2C20.2 4 18.8 4 18.8 4H5.2s-1.4 0-2 .8C2.2 5.4 2 7 2 7s-.2 2-.2 4v2c0 2 .2 4 .2 4s.2 1.6.8 2.2c.6.8 1.6.8 1.6.8h13.6s1 0 1.6-.8c.6-.6.8-2.2.8-2.2s.2-2 .2-4v-2c0-2-.2-4-.2-4z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const svgClose = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const svgMin = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // ---------- funções originais (mantidas) ----------
     const mostrarInfoDono = () => {
@@ -276,7 +301,7 @@ function showWelcomeToasts() {
             txt.length > 20 && txt.length < 400 && !txt.includes('?') && !txt.toLowerCase().includes(pergunta.toLowerCase())
         );
         const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
-        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
+        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\\n');
         return { pergunta, alternativas };
     };
 
@@ -403,7 +428,7 @@ async function encontrarRespostaColar(options = {}) {
                 marcada = true;
             }
         });
-        
+
         if (marcada) {
             sendToast('✅ Resposta marcada!', 2000);
         } else {
@@ -551,7 +576,7 @@ async function encontrarRespostaColar(options = {}) {
           if (debug) console.warn('Falha ao remover script anterior:', e.message);
         }
 
-        
+
         const scriptEl = document.createElement('script');
         scriptEl.type = 'text/javascript';
         scriptEl.dataset.injectedBy = 'KhanAcademyScript';
@@ -773,11 +798,11 @@ async function encontrarRespostaColar(options = {}) {
       }
     };
 
-    // ---------- carregar senhas remotas ----------
+    // ---------- carregar senhas remotas (OBS: toasts de "carregando senhas" removidos conforme solicitado) ----------
     let senhasCarregadas = false;
     const carregarSenhasRemotas = async (opts = {}) => {
       const debug = !!opts.debug;
-      sendToast('🔒 Carregando sistema de senhas...', 2000);
+      // nota: mensagem de carregamento removida por solicitação do usuário
 
       const primaryParts = [
         '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
@@ -888,13 +913,14 @@ async function encontrarRespostaColar(options = {}) {
         };
         senhasCarregadas = true;
 
+        // mantive um aviso de fallback, mas a mensagem de "carregando" inicial foi removida
         sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
         if (debug) console.error('Debug (erro completo):', err);
         return false;
       }
     };
 
-    carregarSenhasRemotas();
+    // carregarSenhasRemotas(); // opcional — se preferir, pode descomentar para pré-carregar as senhas
 
     // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
     function criarAbasInterface(sidebarEl, mainEl) {
@@ -954,13 +980,14 @@ async function encontrarRespostaColar(options = {}) {
             botoesAbas.appendChild(botaoAba);
         });
 
-        // footer com botões Fechar/Minimizar (fixados na base da sidebar) — bug corrigido: aparecem apenas aqui
+        // footer com botões Fechar/Minimizar (fixados na base da sidebar) — agora pequenos e bonitos
         const footer = document.createElement('div');
         footer.className = 'sidebar-footer';
 
         const btnFechar = document.createElement('button');
         btnFechar.className = 'sidebar-footer-btn dh-btn';
-        btnFechar.innerHTML = '👁️ &nbsp; Fechar Menu';
+        btnFechar.innerHTML = svgClose;
+        btnFechar.title = 'Fechar Menu';
         btnFechar.onclick = () => {
             if (fundo) try { fundo.remove(); } catch(e){}
             const botaoFlutuante = document.getElementById('dhonatanBotao');
@@ -969,7 +996,8 @@ async function encontrarRespostaColar(options = {}) {
 
         const btnMinim = document.createElement('button');
         btnMinim.className = 'sidebar-footer-btn dh-btn';
-        btnMinim.innerHTML = '❌ &nbsp; Minimizar Menu';
+        btnMinim.innerHTML = svgMin;
+        btnMinim.title = 'Minimizar Menu';
         btnMinim.onclick = () => {
             if (fundo) try { fundo.remove(); } catch(e){}
             criarBotaoFlutuante();
@@ -1108,7 +1136,7 @@ async function encontrarRespostaColar(options = {}) {
     // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
     const criarInterface = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
-        
+
         // ---- esta versão foi restaurada para o layout ORIGINAL que você tinha pedido não modificar ----
         fundo = document.createElement('div');
         Object.assign(fundo.style, {
@@ -1116,13 +1144,13 @@ async function encontrarRespostaColar(options = {}) {
             backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
             display: 'flex', alignItems: 'center', justifyContent: 'center'
         });
-        
+
         janela = document.createElement('div');
         aplicarEstiloContainer(janela);
         janela.style.maxWidth = '780px';
         janela.style.padding = '28px';
         janela.style.borderRadius = '14px';
-        
+
         nome = document.createElement('div');
         Object.assign(nome.style, {
             display: 'flex',
@@ -1193,33 +1221,25 @@ async function encontrarRespostaColar(options = {}) {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // Botão principal "Acessar"
-        let botao = document.createElement('button');
-        botao.textContent = 'Acessar';
-        aplicarEstiloBotao(botao, true);
+        // Botão principal "Acessar" - com SVG
+        let botao = criarBotaoComSVG(svgLock, 'Acessar', true);
+        botao.style.padding = '12px 28px';
+        botao.setAttribute('aria-label', 'Acessar');
 
-        // Botões de contato (mantidos)
-        const btnDiscord = document.createElement('button');
-        btnDiscord.innerHTML = 'Discord';
-        aplicarEstiloBotao(btnDiscord);
+        // Botões de contato (mantidos) com SVGs
+        const btnDiscord = criarBotaoComSVG(svgDiscord, 'Discord');
         btnDiscord.style.background = '#5865F2';
         btnDiscord.onclick = () => { window.open('https://discord.gg/NfVKXRSvYK', '_blank'); };
 
-        const btnWhatsApp = document.createElement('button');
-        btnWhatsApp.innerHTML = 'WhatsApp';
-        aplicarEstiloBotao(btnWhatsApp);
+        const btnWhatsApp = criarBotaoComSVG(svgWhats, 'WhatsApp');
         btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
         btnWhatsApp.onclick = () => { window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank'); };
 
-        const btnmenor = document.createElement('button');
-        btnmenor.innerHTML = 'Canal ManoRick';
-        aplicarEstiloBotao(btnmenor);
+        const btnmenor = criarBotaoComSVG(svgYou, 'Canal ManoRick');
         btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
         btnmenor.onclick = () => { window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank'); };
 
-        const btncriadorpainel = document.createElement('button');
-        btncriadorpainel.innerHTML = 'Canal MlkMau';
-        aplicarEstiloBotao(btncriadorpainel);
+        const btncriadorpainel = criarBotaoComSVG(svgYou, 'Canal MlkMau');
         btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
         btncriadorpainel.onclick = () => { window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank'); };
 
@@ -1249,15 +1269,16 @@ async function encontrarRespostaColar(options = {}) {
             fontSize: '14px'
         });
 
-        let senhasCarregadas = false;
+        let senhasCarregadasLocal = false;
 
         botao.onclick = async () => {
-            if (!senhasCarregadas) {
-                sendToast('🔒 Carregando sistema de senhas...', 2000);
+            // removi a toast de "carregando sistema de senhas" conforme solicitado
+            if (!senhasCarregadasLocal) {
                 await carregarSenhasRemotas();
+                senhasCarregadasLocal = true;
             }
 
-            if (verificarSenha && verificarSenha(input.value)) {
+            if (window.verificarSenha && window.verificarSenha(input.value)) {
                 senhaLiberada = true;
                 fundo.remove();
                 sendToast("Bem vindo ao Painel de Funções! 👋", 3000);
@@ -1307,14 +1328,14 @@ async function encontrarRespostaColar(options = {}) {
         function startDrag(e) {
             const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            
+
             startX = clientX;
             startY = clientY;
             initialX = clientX - (parseFloat(b.style.left) || 0);
             initialY = clientY - (parseFloat(b.style.top) || 0);
-            
+
             isDragging = false;
-            
+
             document.addEventListener('mousemove', handleDragMove);
             document.addEventListener('touchmove', handleDragMove, { passive: false });
             document.addEventListener('mouseup', endDrag);
@@ -1324,19 +1345,19 @@ async function encontrarRespostaColar(options = {}) {
         function handleDragMove(e) {
             const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            
+
             const dx = clientX - startX;
             const dy = clientY - startY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (!isDragging && distance > DRAG_THRESHOLD) {
                 isDragging = true;
             }
-            
+
             if (isDragging) {
                 const currentX = clientX - initialX;
                 const currentY = clientY - initialY;
-                
+
                 b.style.left = `${Math.max(8, Math.min(window.innerWidth - 60, currentX))}px`;
                 b.style.top = `${Math.max(8, Math.min(window.innerHeight - 40, currentY))}px`;
                 b.style.cursor = 'grabbing';
@@ -1353,10 +1374,10 @@ async function encontrarRespostaColar(options = {}) {
                 b.remove();
                 senhaLiberada ? criarMenu() : criarInterface();
             }
-            
+
             b.style.cursor = 'grab';
             isDragging = false;
-            
+
             document.removeEventListener('mousemove', handleDragMove);
             document.removeEventListener('touchmove', handleDragMove);
             document.removeEventListener('mouseup', endDrag);
