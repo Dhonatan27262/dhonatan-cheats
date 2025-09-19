@@ -1,3 +1,4 @@
+
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
@@ -49,130 +50,149 @@ function showWelcomeToasts() {
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
     // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estável) ----------
-const injectStyles = () => {
-    if (document.getElementById('dh-global-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'dh-global-styles';
-    style.textContent = `
-    /* base */
-    .dh-btn {
-        padding: 8px 12px;
-        color: #fff;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        font-weight: 700;
-        transition: all .18s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 13px;
-        outline: none;
-        user-select: none;
-    }
+    const injectStyles = () => {
+        if (document.getElementById('dh-global-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'dh-global-styles';
+        style.textContent = `
+        /* base */
+        .dh-btn {
+            padding: 8px 12px;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: 700;
+            transition: all .18s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            outline: none;
+            user-select: none;
+        }
 
-    /* header control buttons */
-    .dh-header-controls { display:flex; align-items:center; gap:8px; }
-    .dh-header-btn { background: transparent; border: 1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer; color:#fff; font-weight:700; }
-    .dh-header-btn:hover { background: rgba(255,255,255,0.03); transform: translateY(-2px); }
+        /* header control buttons */
+        .dh-header-controls { display:flex; align-items:center; gap:8px; }
+        .dh-header-btn { background: transparent; border: 1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer; color:#fff; font-weight:700; }
+        .dh-header-btn:hover { background: rgba(255,255,255,0.03); transform: translateY(-2px); }
 
-    /* sidebar nav */
-    .sidebar-nav-btn {
-        width: 100%;
-        text-align: left;
-        background: #0f0f0f;
-        padding: 10px 12px;
-        border-radius: 10px;
-        color: #e6e6e6;
-        opacity: .95;
-        margin-bottom: 8px;
-        transition: background .22s ease, transform .12s ease;
-        display:block;
-        font-size: 14px;
-    }
-    .sidebar-nav-btn:hover { transform: translateX(6px); background: #151515; }
-    .sidebar-nav-btn.active { background: linear-gradient(135deg, #8A2BE2, #4B0082); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+        /* sidebar nav */
+        .sidebar-nav-btn {
+            width: 100%;
+            text-align: left;
+            background: #0f0f0f;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #e6e6e6;
+            opacity: .95;
+            margin-bottom: 8px;
+            transition: background .22s ease, transform .12s ease;
+            display:block;
+            font-size: 14px;
+        }
+        .sidebar-nav-btn:hover { transform: translateX(6px); background: #151515; }
+        .sidebar-nav-btn.active { background: linear-gradient(135deg, #8A2BE2, #4B0082); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
 
-    /* main button (Efeito CodePen 24 refeito para não vazar) */
-    .main-btn {
-        background: linear-gradient(180deg,#36143b,#4b0f5f); /* fundo roxo */
-        color:#f0dede;
-        padding: 8px 14px;
-        border-radius: 10px;
-        box-shadow: 0 8px 22px rgba(0,0,0,0.45);
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        font-weight: 800;
-        min-width: 130px;
-        text-align: center;
-        border: 1px solid rgba(255,255,255,0.03);
-        transition: transform .12s ease;
-        font-size: 13px;
-    }
-    .main-btn:hover{ transform: translateY(-2px); }
+        /* main button (Efeito CodePen 24 refeito para não vazar) */
+        .main-btn {
+    background: linear-gradient(180deg,#36143b,#4b0f5f); /* roxo */
+            color:#f0dede;
+            padding: 8px 14px;
+            border-radius: 10px;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+            position: relative;
+            overflow: hidden; /* importante: animação ficará dentro do botão */
+            display: inline-block;
+            font-weight: 800;
+            min-width: 130px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+            transition: transform .12s ease;
+            font-size: 13px;
+        }
+        .main-btn:hover{ transform: translateY(-2px); }
 
-    /* quatro spans que animam ao redor do botão (dentro) */
-    .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
-    .main-btn .edge.top { left: 0; right: 0; top: 0; height: 2px; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent); animation: edgeTop 2.2s linear infinite; }
-    .main-btn .edge.right { top: 0; bottom: 0; right: 0; width: 2px; transform: translateY(-100%); background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent); animation: edgeRight 2.2s linear .55s infinite; }
-    .main-btn .edge.bottom { left: 0; right: 0; bottom: 0; height: 2px; transform: translateX(100%); background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent); animation: edgeBottom 2.2s linear .95s infinite; }
-    .main-btn .edge.left { top: 0; bottom: 0; left: 0; width: 2px; transform: translateY(100%); background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent); animation: edgeLeft 2.2s linear 1.5s infinite; }
+        /* quatro spans que animam ao redor do botão (dentro) */
+        .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
+        .main-btn .edge.top {
+    left: 0; right: 0; top: 0; height: 2px;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeTop 2.2s linear infinite;
+}
+.main-btn .edge.right {
+    top: 0; bottom: 0; right: 0; width: 2px;
+    transform: translateY(-100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeRight 2.2s linear .55s infinite;
+}
+.main-btn .edge.bottom {
+    left: 0; right: 0; bottom: 0; height: 2px;
+    transform: translateX(100%);
+    background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeBottom 2.2s linear .95s infinite;
+}
+.main-btn .edge.left {
+    top: 0; bottom: 0; left: 0; width: 2px;
+    transform: translateY(100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeLeft 2.2s linear 1.5s infinite;
+}
 
-    @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
-    @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
-    @keyframes edgeBottom { 0% { transform: translateX(100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(-100%);} }
-    @keyframes edgeLeft { 0% { transform: translateY(100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(-100%);} }
+        @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
+        @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
+        @keyframes edgeBottom { 0% { transform: translateX(100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(-100%);} }
+        @keyframes edgeLeft { 0% { transform: translateY(100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(-100%);} }
 
-    .main-btn::before{ content:''; position:absolute; inset:0; background: rgba(255,255,255,0.02); opacity:0; transition: .18s; pointer-events:none; }
-    .main-btn:hover::before{ opacity: .05; }
+        .main-btn::before{ content:''; position:absolute; inset:0; background: rgba(255,255,255,0.02); opacity:0; transition: .18s; pointer-events:none; }
+        .main-btn:hover::before{ opacity: .05; }
 
-    /* helper small text */
-    .dh-small-muted { color: #bdbdbd; font-size: 12px; }
+        /* helper small text */
+        .dh-small-muted { color: #bdbdbd; font-size: 12px; }
 
-    /* container */
-    .dh-container { max-width: 820px; width: 94%; }
+        /* container */
+        .dh-container { max-width: 820px; width: 94%; }
 
-    /* botões pequenos */
-    .small-btn {
-        padding: 6px 10px;
-        border-radius:14px;
-        font-size: 12px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.06);
-        color: white;
-        cursor: pointer;
-        transition: all 0.16s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-    }
-    .small-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-    .small-btn svg { width: 14px; height: 14px; fill: currentColor; }
+        /* botões pequenos e bonitos */
+        .small-btn {
+            padding: 6px 10px;
+            border-radius:14px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: white;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
 
-    /* Áreas de botões roláveis (todas as abas) */
-    .panel-section {
-        max-height: 260px;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-    .panel-section::-webkit-scrollbar { width: 6px; }
-    .panel-section::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-    .panel-section::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7c3aed, #9333ea); border-radius: 10px; }
+        .small-btn:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-2px);
+        }
 
-    /* responsive */
-    @media (max-width:760px){
-        .main-btn { width:100%; box-sizing:border-box; min-width: unset; font-size:14px; }
-        .sidebar-nav-btn{ font-size:13px; padding:10px; }
-        .dh-btn{ font-size:13px; padding:8px 10px; }
-    }
-    `;
-    document.head.appendChild(style);
-};
-injectStyles();
+        .small-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        /* responsive */
+        @media (max-width:760px){
+            .main-btn { width:100%; box-sizing:border-box; min-width: unset; font-size:14px; }
+            .sidebar-nav-btn{ font-size:13px; padding:10px; }
+            .dh-btn{ font-size:13px; padding:8px 10px; }
+        }
+        `;
+        document.head.appendChild(style);
+    };
+    injectStyles();
 
     // ---------- helpers ----------
     const aplicarEstiloBotao = (elemento, gradiente = false) => {
@@ -1018,10 +1038,10 @@ function showTermoResponsabilidade(onAccept, onReject) {
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
                 { nome: 'Digitador v2', func: digitadorV2 },
                 { nome: 'Criar Texto com Tema via IA', func: criarTextoComTema },
-                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor },
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
-                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } }
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
+                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
             respostas: [
                 { nome: 'Encontrar Resposta Via Menu', func: encontrarRespostaColar },
@@ -1088,17 +1108,8 @@ function showTermoResponsabilidade(onAccept, onReject) {
             Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.03)', margin: '6px 0 12px 0' });
             mainEl.appendChild(separador);
 
-            // por este (aplica a classe panel-section automaticamente em todas as abas)
-const containerBotoes = document.createElement('div');
-containerBotoes.className = 'panel-section'; // -> aqui torna rolável verticalmente para TODAS as abas
-Object.assign(containerBotoes.style, {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-    alignItems: 'flex-start',
-    // opcional: garante que o conteúdo não 'cole' no topo quando rolado
-    paddingRight: '6px',
-});
+            const containerBotoes = document.createElement('div');
+            Object.assign(containerBotoes.style, { display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start' });
 
             if (botoes[tabId]) {
                 botoes[tabId].forEach(b => {
