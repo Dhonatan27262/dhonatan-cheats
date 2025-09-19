@@ -2,6 +2,7 @@ let loadedPlugins = [];
 let videoExploitEnabled = true;
 let autoClickEnabled = true;
 let autoClickPaused = false;
+let correctAnswerSystemEnabled = true; // Nova variável para controlar o sistema de respostas
 
 console.clear();
 const noop = () => {};
@@ -55,7 +56,7 @@ function sendToast(text, duration = 5000, gravity = 'bottom') {
 
 async function showSplashScreen() {
   splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">KHAN.</span><span style="color:#ff1717;">mod</span>';
+  splashScreen.innerHTML = '<span style="color:white;">MLK</span><span style="color:#ff1717;"> MAU O PROPRIO</span>';
   document.body.appendChild(splashScreen);
   setTimeout(() => splashScreen.style.opacity = '1', 10);
 }
@@ -256,7 +257,46 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(autoClickOption);
   
-  // Opção de controle de velocidade
+  // Switch para sistema de respostas corretas
+  const correctAnswerOption = document.createElement('div');
+  correctAnswerOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  correctAnswerOption.innerHTML = `
+    <span>Sistema de Respostas</span>
+    <div id="correct-answer-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${correctAnswerSystemEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${correctAnswerSystemEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(correctAnswerOption);
+  
+  // Opção de controle de velocidade (atualizada para ir até 60 segundos)
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -278,7 +318,7 @@ function createFloatingMenu() {
       <span>Velocidade</span>
       <span id="speed-value">${savedSpeed}s</span>
     </div>
-    <input type="range" min="1" max="5" step="0.1" value="${savedSpeed}" 
+    <input type="range" min="0.5" max="60" step="0.5" value="${savedSpeed}" 
            id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
   `;
   
@@ -388,6 +428,24 @@ function createFloatingMenu() {
       autoClickSwitchInner.style.left = '2px';
       if (speedSlider) speedSlider.disabled = true;
       sendToast("🖱️｜Automação de cliques DESATIVADA", 1500);
+    }
+  });
+  
+  // Alternar sistema de respostas corretas
+  correctAnswerOption.addEventListener('click', () => {
+    correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
+    
+    const correctAnswerSwitch = correctAnswerOption.querySelector('#correct-answer-toggle-switch');
+    const correctAnswerSwitchInner = correctAnswerSwitch.querySelector('div');
+    
+    if (correctAnswerSystemEnabled) {
+      correctAnswerSwitch.style.background = '#4CAF50';
+      correctAnswerSwitchInner.style.left = '22px';
+      sendToast("✅｜Sistema de respostas ATIVADO", 1500);
+    } else {
+      correctAnswerSwitch.style.background = '#ccc';
+      correctAnswerSwitchInner.style.left = '2px';
+      sendToast("❌｜Sistema de respostas DESATIVADO", 1500);
     }
   });
   
@@ -589,7 +647,7 @@ function createFloatingMenu() {
     }
   });
   
-  // Controle de velocidade
+  // Controle de velocidade (atualizado para ir até 60 segundos)
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
@@ -645,45 +703,46 @@ function setupMain() {
 
     const originalResponse = await originalFetch.apply(this, arguments);
 
-    // Esta parte (modificação de exercícios) SEMPRE será executada
-    // independente do estado do exploit de vídeo
-    try {
-      const clonedResponse = originalResponse.clone();
-      const responseBody = await clonedResponse.text();
-      let responseObj = JSON.parse(responseBody);
-      
-      if (responseObj?.data?.assessmentItem?.item?.itemData) {
-        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+    // Esta parte (modificação de exercícios) será controlada pela opção
+    if (correctAnswerSystemEnabled) {
+      try {
+        const clonedResponse = originalResponse.clone();
+        const responseBody = await clonedResponse.text();
+        let responseObj = JSON.parse(responseBody);
         
-        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-          itemData.answerArea = {
-            calculator: false,
-            chi2Table: false,
-            periodicTable: false,
-            tTable: false,
-            zTable: false
-          };
+        if (responseObj?.data?.assessmentItem?.item?.itemData) {
+          let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
           
-          itemData.question.content = "Assinale abaixo " + `[[☃ radio 1]]`;
-          itemData.question.widgets = {
-            "radio 1": {
-              type: "radio",
-              options: {
-                choices: [{ content: "correta", correct: true }]
+          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+            itemData.answerArea = {
+              calculator: false,
+              chi2Table: false,
+              periodicTable: false,
+              tTable: false,
+              zTable: false
+            };
+            
+            itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
+            itemData.question.widgets = {
+              "radio 1": {
+                type: "radio",
+                options: {
+                  choices: [{ content: "correta", correct: true }]
+                }
               }
-            }
-          };
-          
-          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-          
-          return new Response(JSON.stringify(responseObj), {
-            status: originalResponse.status,
-            statusText: originalResponse.statusText,
-            headers: originalResponse.headers
-          });
+            };
+            
+            responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+            
+            return new Response(JSON.stringify(responseObj), {
+              status: originalResponse.status,
+              statusText: originalResponse.statusText,
+              headers: originalResponse.headers
+            });
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
     
     return originalResponse;
   };
@@ -742,12 +801,12 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     createFloatingMenu();
     setupMain();
     
-    sendToast("INICIOU SEU CHEAT NO KHAN🌟 kkk!");
+    sendToast("Carregando...!");
     setTimeout(() => {
-        sendToast("Isso mesmo estudar é bom demais", 2500);
+        sendToast("Carregado", 2500);
     }, 1000);
     setTimeout(() => {
-        sendToast("Sou muito estudioso", 2500);
+        sendToast("KHAN MENU INICIADO", 2500);
     }, 3500);
     
     console.clear();
