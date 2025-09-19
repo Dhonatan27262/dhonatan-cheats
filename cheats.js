@@ -1409,19 +1409,34 @@ botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpaine
         });
 
         botao.onclick = async () => {
-            if (!senhasCarregadas) {
-                await carregarSenhasRemotas();
-            }
+    if (!senhasCarregadas) {
+        await carregarSenhasRemotas();
+    }
 
-            if (verificarSenha && verificarSenha(input.value)) {
-                senhaLiberada = true;
-                fundo.remove();
-                sendToast("Bem-vindo ao Painel de Funções! 👋", 3000);
+    if (verificarSenha && verificarSenha(input.value)) {
+        senhaLiberada = true;
+
+        // remove a tela de login (fundo) e exibe o termo imediatamente
+        try { if (fundo) fundo.remove(); } catch(e){}
+
+        showTermoResponsabilidade(
+            // onAccept
+            () => {
+                sendToast("✔️ Obrigado — termo aceito. Entrando no painel...", 3000);
                 criarMenu();
-            } else {
-                erro.style.display = 'block';
+            },
+            // onReject
+            () => {
+                sendToast("❌ Acesso cancelado. Você será redirecionado para o login.", 3000);
+                // reabrir a interface de login
+                setTimeout(() => criarInterface(), 800);
             }
-        };
+        );
+
+    } else {
+        erro.style.display = 'block';
+    }
+};
 
         janela.append(nome, input, botoesContainer, erro);
         fundo.append(janela);
