@@ -231,15 +231,15 @@ function showWelcomeToasts() {
         container.style.maxWidth = '420px';
 
         const titulo = document.createElement('div');
-        titulo.textContent = '👑';
+        titulo.textContent = 'Painel Auxilio';
         aplicarEstiloTexto(titulo, '20px');
 
         const insta = document.createElement('div');
-        insta.textContent = 'VERSÃO 1.1';
+        insta.textContent = 'VERSÃO 3.0';
         aplicarEstiloTexto(insta);
 
         const info = document.createElement('div');
-        info.textContent = '💎 Mod exclusivo e protegido, feito para poupar seu tempo';
+        info.textContent = 'Mod exclusivo e protegido, feito para poupar seu tempo';
         aplicarEstiloTexto(info);
 
         const btnFechar = document.createElement('button');
@@ -1275,7 +1275,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
         // Texto SUPERIOR
         const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel Funções';
+        textoCima.textContent = 'Painel Auxílio';
         aplicarEstiloTexto(textoCima, '20px');
 
         const textoCriador = document.createElement('div');
