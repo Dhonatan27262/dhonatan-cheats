@@ -1,15 +1,10 @@
-// ================= CONFIGURAÇÕES PRINCIPAIS =================
+// Variável para controlar o estado do anti-cheat
+let antiCheatEnabled = false;
 let loadedPlugins = [];
 let videoExploitEnabled = true;
 let autoClickEnabled = true;
 let autoClickPaused = false;
 let correctAnswerSystemEnabled = true;
-
-// ================= SISTEMA ANTI-DETECÇÃO =================
-let antiDetectionEnabled = true;
-let randomBehaviorEnabled = true;
-let humanPatternsEnabled = true;
-let cleanupTracesEnabled = true;
 
 console.clear();
 const noop = () => {};
@@ -48,205 +43,7 @@ new MutationObserver(mutationsList =>
 ).observe(document.body, { childList: true, subtree: true });
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// ================= SISTEMA ANTI-DETECÇÃO AVANÇADO =================
-const AntiDetectionSystem = {
-    lastActionTime: Date.now(),
-    activityPattern: [],
-    mouseMovements: [],
-    
-    randomizeTiming: function(baseDelay) {
-        if (!randomBehaviorEnabled) return baseDelay;
-        
-        const variation = baseDelay * 0.3;
-        const randomVariation = (Math.random() * variation * 2) - variation;
-        return Math.max(0.5, baseDelay + randomVariation);
-    },
-    
-    simulateHumanMouseMovement: function(element) {
-        if (!humanPatternsEnabled || !element) return;
-        
-        try {
-            const rect = element.getBoundingClientRect();
-            const targetX = rect.left + (rect.width / 2);
-            const targetY = rect.top + (rect.height / 2);
-            
-            const points = this.generateCurvedPath(
-                Math.random() * window.innerWidth, 
-                Math.random() * window.innerHeight,
-                targetX,
-                targetY,
-                3 + Math.floor(Math.random() * 3)
-            );
-            
-            points.forEach((point, index) => {
-                setTimeout(() => {
-                    const mouseMoveEvent = new MouseEvent('mousemove', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: point.x,
-                        clientY: point.y
-                    });
-                    document.dispatchEvent(mouseMoveEvent);
-                    
-                    this.mouseMovements.push({
-                        x: point.x,
-                        y: point.y,
-                        t: Date.now()
-                    });
-                }, index * (50 + Math.random() * 100));
-            });
-            
-            if (this.mouseMovements.length > 100) {
-                this.mouseMovements = this.mouseMovements.slice(-50);
-            }
-        } catch (e) {
-            console.debug("Simulação de mouse falhou silenciosamente");
-        }
-    },
-    
-    generateCurvedPath: function(startX, startY, endX, endY, numPoints) {
-        const points = [];
-        for (let i = 0; i <= numPoints; i++) {
-            const t = i / numPoints;
-            const controlX = (startX + endX) / 2 + (Math.random() - 0.5) * 200;
-            const controlY = (startY + endY) / 2 + (Math.random() - 0.5) * 200;
-            
-            const x = Math.pow(1 - t, 2) * startX + 2 * (1 - t) * t * controlX + Math.pow(t, 2) * endX;
-            const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * controlY + Math.pow(t, 2) * endY;
-            
-            points.push({ x, y });
-        }
-        return points;
-    },
-    
-    humanClick: function(element) {
-        if (!humanPatternsEnabled || !element) return element?.click();
-        
-        this.simulateHumanMouseMovement(element);
-        
-        setTimeout(() => {
-            try {
-                const rect = element.getBoundingClientRect();
-                const clickX = rect.left + (rect.width * (0.3 + Math.random() * 0.4));
-                const clickY = rect.top + (rect.height * (0.3 + Math.random() * 0.4));
-                
-                const events = [
-                    new MouseEvent('mousedown', { bubbles: true, clientX: clickX, clientY: clickY }),
-                    new MouseEvent('mouseup', { bubbles: true, clientX: clickX, clientY: clickY }),
-                    new MouseEvent('click', { bubbles: true, clientX: clickX, clientY: clickY })
-                ];
-                
-                events.forEach(event => {
-                    setTimeout(() => {
-                        element.dispatchEvent(event);
-                    }, 50 + Math.random() * 100);
-                });
-            } catch (e) {
-                element.click();
-            }
-        }, 200 + Math.random() * 300);
-    },
-    
-    cleanupTraces: function() {
-        if (!cleanupTracesEnabled) return;
-        
-        try {
-            document.querySelectorAll('[class*="santos"], [id*="santos"]').forEach(el => {
-                el.removeAttribute('data-added');
-                el.removeAttribute('data-modified');
-            });
-            
-            Object.keys(window).forEach(key => {
-                if (key.includes('santos') && key !== 'santosConfig') {
-                    try { delete window[key]; } catch (e) {}
-                }
-            });
-            
-            const maxId = setTimeout(() => {}, 0);
-            for (let i = 1; i < maxId; i++) {
-                try {
-                    clearTimeout(i);
-                    clearInterval(i);
-                } catch (e) {}
-            }
-        } catch (e) {
-            console.debug("Limpeza de rastros falhou silenciosamente");
-        }
-    },
-    
-    obfuscateScriptSignature: function() {
-        setInterval(() => {
-            try {
-                if (window.santosConfig && Math.random() < 0.3) {
-                    const newName = 'cfg_' + Math.random().toString(36).substring(2, 8);
-                    window[newName] = window.santosConfig;
-                    delete window.santosConfig;
-                    window.santosConfig = window[newName];
-                    delete window[newName];
-                }
-            } catch (e) {}
-        }, 60000 + Math.random() * 120000);
-    },
-    
-    generateHumanActivityPattern: function() {
-        const now = Date.now();
-        const timeSinceLastAction = now - this.lastActionTime;
-        
-        this.activityPattern.push({
-            time: now,
-            action: 'auto_click',
-            delay: timeSinceLastAction
-        });
-        
-        if (this.activityPattern.length > 100) {
-            this.activityPattern = this.activityPattern.slice(-100);
-        }
-        
-        this.lastActionTime = now;
-        
-        if (Math.random() < 0.05) {
-            return 3000 + Math.random() * 7000;
-        }
-        
-        return 0;
-    },
-    
-    init: function() {
-        if (!antiDetectionEnabled) return;
-        
-        setInterval(() => this.cleanupTraces(), 30000 + Math.random() * 60000);
-        
-        this.obfuscateScriptSignature();
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C'))) {
-                console.debug("Ferramentas de desenvolvedor acionadas");
-                this.activityPattern.push({
-                    time: Date.now(),
-                    action: 'devtools_opened'
-                });
-            }
-        });
-        
-        console.debug("Sistema anti-detecção inicializado");
-    }
-};
-
-// ================= FUNÇÕES PRINCIPAIS =================
-const findAndClickBySelector = selector => {
-    const element = document.querySelector(selector);
-    if (!element) return;
-    
-    if (antiDetectionEnabled && humanPatternsEnabled) {
-        AntiDetectionSystem.humanClick(element);
-    } else {
-        element.click();
-    }
-    
-    return element;
-};
+const findAndClickBySelector = selector => document.querySelector(selector)?.click();
 
 function sendToast(text, duration = 5000, gravity = 'bottom') {
   Toastify({
@@ -289,239 +86,149 @@ async function loadCss(url) {
   });
 }
 
-// ================= MENU FLUTUANTE COM OPÇÕES ANTI-DETECÇÃO =================
-function addAntiDetectionOptions(optionsMenu) {
-    const antiDetectionHeader = document.createElement('div');
-    antiDetectionHeader.style.cssText = `
-        color: #ff9900;
-        font-weight: bold;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        padding-top: 10px;
-        margin-top: 10px;
-        user-select: none;
-    `;
-    antiDetectionHeader.textContent = 'Proteção Anti-Detecção';
-    optionsMenu.appendChild(antiDetectionHeader);
-    
-    const antiDetectionOption = document.createElement('div');
-    antiDetectionOption.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-        color: white;
-        font-size: 14px;
-        user-select: none;
-    `;
-    antiDetectionOption.innerHTML = `
-        <span>Proteção Anti-Detecção</span>
-        <div id="anti-detection-toggle-switch" style="
-            width: 40px;
-            height: 20px;
-            background: ${antiDetectionEnabled ? '#4CAF50' : '#ccc'};
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-        ">
-            <div style="
-                position: absolute;
-                top: 2px;
-                left: ${antiDetectionEnabled ? '22px' : '2px'};
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                transition: left 0.2s;
-            "></div>
-        </div>
-    `;
-    optionsMenu.appendChild(antiDetectionOption);
-    
-    const randomBehaviorOption = document.createElement('div');
-    randomBehaviorOption.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-        color: white;
-        font-size: 14px;
-        user-select: none;
-    `;
-    randomBehaviorOption.innerHTML = `
-        <span>Comportamento Aleatório</span>
-        <div id="random-behavior-toggle-switch" style="
-            width: 40px;
-            height: 20px;
-            background: ${randomBehaviorEnabled ? '#4CAF50' : '#ccc'};
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-        ">
-            <div style="
-                position: absolute;
-                top: 2px;
-                left: ${randomBehaviorEnabled ? '22px' : '2px'};
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                transition: left 0.2s;
-            "></div>
-        </div>
-    `;
-    optionsMenu.appendChild(randomBehaviorOption);
-    
-    const humanPatternsOption = document.createElement('div');
-    humanPatternsOption.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-        color: white;
-        font-size: 14px;
-        user-select: none;
-    `;
-    humanPatternsOption.innerHTML = `
-        <span>Padrões Humanos</span>
-        <div id="human-patterns-toggle-switch" style="
-            width: 40px;
-            height: 20px;
-            background: ${humanPatternsEnabled ? '#4CAF50' : '#ccc'};
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-        ">
-            <div style="
-                position: absolute;
-                top: 2px;
-                left: ${humanPatternsEnabled ? '22px' : '2px'};
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                transition: left 0.2s;
-            "></div>
-        </div>
-    `;
-    optionsMenu.appendChild(humanPatternsOption);
-    
-    const cleanupTracesOption = document.createElement('div');
-    cleanupTracesOption.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-        color: white;
-        font-size: 14px;
-        user-select: none;
-    `;
-    cleanupTracesOption.innerHTML = `
-        <span>Limpeza de Rastros</span>
-        <div id="cleanup-traces-toggle-switch" style="
-            width: 40px;
-            height: 20px;
-            background: ${cleanupTracesEnabled ? '#4CAF50' : '#ccc'};
-            border-radius: 10px;
-            position: relative;
-            cursor: pointer;
-        ">
-            <div style="
-                position: absolute;
-                top: 2px;
-                left: ${cleanupTracesEnabled ? '22px' : '2px'};
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                transition: left 0.2s;
-            "></div>
-        </div>
-    `;
-    optionsMenu.appendChild(cleanupTracesOption);
-    
-    antiDetectionOption.addEventListener('click', () => {
-        antiDetectionEnabled = !antiDetectionEnabled;
-        const switchEl = antiDetectionOption.querySelector('#anti-detection-toggle-switch');
-        const innerEl = switchEl.querySelector('div');
+// Função para ativar o sistema anti-cheat
+function enableAntiCheat() {
+  antiCheatEnabled = true;
+  
+  // Ocultar elementos do menu que podem ser detectados
+  const menu = document.getElementById('santos-floating-menu');
+  if (menu) menu.style.display = 'none';
+  
+  // Restaurar console methods originais para evitar detecção
+  if (window.originalConsole) {
+    console.warn = window.originalConsole.warn;
+    console.error = window.originalConsole.error;
+  }
+  
+  // Restaurar fetch original
+  if (window.originalFetch) {
+    window.fetch = window.originalFetch;
+  }
+  
+  // Remover qualquer assinatura do script no DOM
+  document.querySelectorAll('[id*="santos"], [class*="santos"]').forEach(el => {
+    el.remove();
+  });
+  
+  // Atualizar status
+  const statusElement = document.getElementById('anti-cheat-status');
+  if (statusElement) {
+    statusElement.textContent = 'ATIVO';
+    statusElement.classList.add('active');
+  }
+  
+  sendToast("🛡️｜Sistema anti-cheat ATIVADO", 3000);
+}
+
+// Função para desativar o sistema anti-cheat
+function disableAntiCheat() {
+  antiCheatEnabled = false;
+  
+  // Mostrar menu novamente
+  const menu = document.getElementById('santos-floating-menu');
+  if (menu) menu.style.display = 'block';
+  
+  // Reaplicar substituições do console
+  console.warn = console.error = window.debug = noop;
+  
+  // Reaplicar fetch personalizado
+  if (window.originalFetch) {
+    window.fetch = createCustomFetch(window.originalFetch);
+  }
+  
+  // Atualizar status
+  const statusElement = document.getElementById('anti-cheat-status');
+  if (statusElement) {
+    statusElement.textContent = 'INATIVO';
+    statusElement.classList.remove('active');
+  }
+  
+  sendToast("🛡️｜Sistema anti-cheat DESATIVADO", 3000);
+}
+
+// Função para criar fetch personalizado
+function createCustomFetch(originalFetch) {
+  return async function(input, init) {
+    // Verificar se o exploit de vídeo está ativado
+    if (videoExploitEnabled && !antiCheatEnabled) {
+      let body;
+      if (input instanceof Request) {
+        body = await input.clone().text();
+      } else if (init?.body) {
+        body = init.body;
+      }
+
+      if (body?.includes('"operationName":"updateUserVideoProgress"')) {
+        try {
+          let bodyObj = JSON.parse(body);
+          if (bodyObj.variables?.input) {
+            const durationSeconds = bodyObj.variables.input.durationSeconds;
+            bodyObj.variables.input.secondsWatched = durationSeconds;
+            bodyObj.variables.input.lastSecondWatched = durationSeconds;
+            body = JSON.stringify(bodyObj);
+            
+            if (input instanceof Request) {
+              input = new Request(input, { body });
+            } else {
+              init.body = body;
+            }
+            if (!antiCheatEnabled) {
+              sendToast("🔄｜Vídeo exploitado.", 1000);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    const originalResponse = await originalFetch.apply(this, arguments);
+
+    // Esta parte (modificação de exercícios) será controlada pela opção
+    if (correctAnswerSystemEnabled && !antiCheatEnabled) {
+      try {
+        const clonedResponse = originalResponse.clone();
+        const responseBody = await clonedResponse.text();
+        let responseObj = JSON.parse(responseBody);
         
-        if (antiDetectionEnabled) {
-            switchEl.style.background = '#4CAF50';
-            innerEl.style.left = '22px';
-            AntiDetectionSystem.init();
-            sendToast("🛡️｜Proteção anti-detecção ATIVADA", 1500);
-        } else {
-            switchEl.style.background = '#ccc';
-            innerEl.style.left = '2px';
-            sendToast("⚠️｜Proteção anti-detecção DESATIVADA", 1500);
+        if (responseObj?.data?.assessmentItem?.item?.itemData) {
+          let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+          
+          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+            itemData.answerArea = {
+              calculator: false,
+              chi2Table: false,
+              periodicTable: false,
+              tTable: false,
+              zTable: false
+            };
+            
+            itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
+            itemData.question.widgets = {
+              "radio 1": {
+                type: "radio",
+                options: {
+                  choices: [{ content: "correta", correct: true }]
+                }
+              }
+            };
+            
+            responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+            
+            return new Response(JSON.stringify(responseObj), {
+              status: originalResponse.status,
+              statusText: originalResponse.statusText,
+              headers: originalResponse.headers
+            });
+          }
         }
-    });
+      } catch (e) {}
+    }
     
-    randomBehaviorOption.addEventListener('click', () => {
-        randomBehaviorEnabled = !randomBehaviorEnabled;
-        const switchEl = randomBehaviorOption.querySelector('#random-behavior-toggle-switch');
-        const innerEl = switchEl.querySelector('div');
-        
-        if (randomBehaviorEnabled) {
-            switchEl.style.background = '#4CAF50';
-            innerEl.style.left = '22px';
-            sendToast("🎲｜Comportamento aleatório ATIVADO", 1500);
-        } else {
-            switchEl.style.background = '#ccc';
-            innerEl.style.left = '2px';
-            sendToast("⚙️｜Comportamento aleatório DESATIVADO", 1500);
-        }
-    });
-    
-    humanPatternsOption.addEventListener('click', () => {
-        humanPatternsEnabled = !humanPatternsEnabled;
-        const switchEl = humanPatternsOption.querySelector('#human-patterns-toggle-switch');
-        const innerEl = switchEl.querySelector('div');
-        
-        if (humanPatternsEnabled) {
-            switchEl.style.background = '#4CAF50';
-            innerEl.style.left = '22px';
-            sendToast("👤｜Padrões humanos ATIVADOS", 1500);
-        } else {
-            switchEl.style.background = '#ccc';
-            innerEl.style.left = '2px';
-            sendToast("🤖｜Padrões humanos DESATIVADOS", 1500);
-        }
-    });
-    
-    cleanupTracesOption.addEventListener('click', () => {
-        cleanupTracesEnabled = !cleanupTracesEnabled;
-        const switchEl = cleanupTracesOption.querySelector('#cleanup-traces-toggle-switch');
-        const innerEl = switchEl.querySelector('div');
-        
-        if (cleanupTracesEnabled) {
-            switchEl.style.background = '#4CAF50';
-            innerEl.style.left = '22px';
-            sendToast("🧹｜Limpeza de rastros ATIVADA", 1500);
-        } else {
-            switchEl.style.background = '#ccc';
-            innerEl.style.left = '2px';
-            sendToast("🗑️｜Limpeza de rastros DESATIVADA", 1500);
-        }
-    });
+    return originalResponse;
+  };
 }
 
 function createFloatingMenu() {
+  // Contêiner principal arrastável
   const container = document.createElement('div');
   container.id = 'santos-floating-menu';
   container.style.cssText = `
@@ -533,6 +240,7 @@ function createFloatingMenu() {
     user-select: none;
   `;
 
+  // Botão principal
   const mainButton = document.createElement('button');
   mainButton.id = 'santos-main-btn';
   mainButton.innerHTML = 'PainelV2';
@@ -556,6 +264,7 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
+  // Menu de opções (inicialmente oculto)
   const optionsMenu = document.createElement('div');
   optionsMenu.id = 'santos-options-menu';
   optionsMenu.style.cssText = `
@@ -572,6 +281,58 @@ function createFloatingMenu() {
     border: 1px solid rgba(255,255,255,0.1);
     user-select: none;
   `;
+  
+  // Opção anti-cheat
+  const antiCheatOption = document.createElement('div');
+  antiCheatOption.id = 'anti-cheat-toggle';
+  antiCheatOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+    margin-bottom: 10px;
+  `;
+  
+  antiCheatOption.innerHTML = `
+    <span>Anti-Cheat</span>
+    <div style="display: flex; align-items: center;">
+      <span id="anti-cheat-status" style="
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-right: 8px;
+        background: #ff4444;
+      ">INATIVO</span>
+      <div id="anti-cheat-switch" style="
+        width: 40px;
+        height: 20px;
+        background: #ccc;
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+      ">
+        <div style="
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          width: 16px;
+          height: 16px;
+          background: white;
+          border-radius: 50%;
+          transition: left 0.2s;
+        "></div>
+      </div>
+    </div>
+  `;
+  
+  optionsMenu.appendChild(antiCheatOption);
   
   // Opção de tema
   const themeOption = document.createElement('div');
@@ -730,7 +491,7 @@ function createFloatingMenu() {
   `;
   optionsMenu.appendChild(correctAnswerOption);
   
-  // Opção de controle de velocidade
+  // Opção de controle de velocidade (atualizada para ir até 60 segundos)
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -744,6 +505,7 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
+  // Recuperar velocidade salva ou usar 1.5s como padrão
   const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
   
   speedControl.innerHTML = `
@@ -756,9 +518,6 @@ function createFloatingMenu() {
   `;
   
   optionsMenu.appendChild(speedControl);
-  
-  // Adicionar opções anti-detecção
-  addAntiDetectionOptions(optionsMenu);
   
   // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
@@ -779,6 +538,21 @@ function createFloatingMenu() {
   hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
   optionsMenu.appendChild(hideMenuOption);
   
+  // Adicionar espaço para futuras opções
+  const futureOptions = document.createElement('div');
+  futureOptions.id = 'santos-future-options';
+  futureOptions.style.cssText = `
+    color: #aaa;
+    font-size: 12px;
+    text-align: center;
+    padding: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 10px;
+    user-select: none;
+  `;
+  futureOptions.textContent = 'Mais opções em breve...';
+  optionsMenu.appendChild(futureOptions);
+  
   container.appendChild(mainButton);
   container.appendChild(optionsMenu);
   document.body.appendChild(container);
@@ -786,6 +560,7 @@ function createFloatingMenu() {
   // Estado do tema (dark mode ativo por padrão)
   let isDarkMode = true;
   
+  // Função para atualizar o switch de tema
   function updateThemeSwitch() {
     const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
     if (isDarkMode) {
@@ -797,6 +572,7 @@ function createFloatingMenu() {
     }
   }
   
+  // Alternar tema
   themeOption.addEventListener('click', () => {
     isDarkMode = !isDarkMode;
     
@@ -811,6 +587,7 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
+  // Alternar exploit de vídeo
   exploitOption.addEventListener('click', () => {
     videoExploitEnabled = !videoExploitEnabled;
     
@@ -828,6 +605,7 @@ function createFloatingMenu() {
     }
   });
   
+  // Alternar automação de cliques
   autoClickOption.addEventListener('click', () => {
     autoClickEnabled = !autoClickEnabled;
     
@@ -848,6 +626,7 @@ function createFloatingMenu() {
     }
   });
   
+  // Alternar sistema de respostas corretas
   correctAnswerOption.addEventListener('click', () => {
     correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
     
@@ -865,8 +644,30 @@ function createFloatingMenu() {
     }
   });
   
+  // Alternar anti-cheat
+  antiCheatOption.addEventListener('click', () => {
+    if (antiCheatEnabled) {
+      disableAntiCheat();
+    } else {
+      enableAntiCheat();
+    }
+    
+    const antiCheatSwitch = antiCheatOption.querySelector('#anti-cheat-switch');
+    const antiCheatSwitchInner = antiCheatSwitch.querySelector('div');
+    
+    if (antiCheatEnabled) {
+      antiCheatSwitch.style.background = '#4CAF50';
+      antiCheatSwitchInner.style.left = '22px';
+    } else {
+      antiCheatSwitch.style.background = '#ccc';
+      antiCheatSwitchInner.style.left = '2px';
+    }
+  });
+  
+  // Estado do menu
   let isMenuOpen = false;
   
+  // Função para fechar o menu e retomar a automação
   function closeMenu() {
     if (!isMenuOpen) return;
     
@@ -874,10 +675,12 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'none';
     mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     
+    // Retomar a automação
     autoClickPaused = false;
     sendToast("▶️｜Automação retomada", 1000);
   }
   
+  // Função para abrir o menu e pausar a automação
   function openMenu() {
     if (isMenuOpen) return;
     
@@ -885,10 +688,12 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'flex';
     mainButton.style.boxShadow = '0 4px 15px rgba(255, 138, 0, 0.5)';
     
+    // Pausar a automação
     autoClickPaused = true;
     sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
   }
   
+  // Abrir/fechar menu
   function toggleMenu() {
     if (isMenuOpen) {
       closeMenu();
@@ -902,18 +707,22 @@ function createFloatingMenu() {
     toggleMenu();
   });
   
+  // Fechar menu ao clicar fora
   document.addEventListener('click', (e) => {
     if (!container.contains(e.target) && isMenuOpen) {
       closeMenu();
     }
   });
   
+  // Esconder o menu
   hideMenuOption.addEventListener('click', () => {
+    // Fechar o menu antes de esconder
     closeMenu();
     
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
     
+    // Criar botão de reativação
     const reactivateBtn = document.createElement('div');
     reactivateBtn.id = 'santos-reactivate-btn';
     reactivateBtn.style.cssText = `
@@ -936,6 +745,7 @@ function createFloatingMenu() {
     reactivateBtn.innerHTML = '☰';
     document.body.appendChild(reactivateBtn);
     
+    // Mostrar menu ao passar o mouse
     reactivateBtn.addEventListener('mouseenter', () => {
       reactivateBtn.style.background = 'rgba(255, 138, 0, 0.5)';
       reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
@@ -946,6 +756,7 @@ function createFloatingMenu() {
       reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
     });
     
+    // Reativar menu ao clicar
     reactivateBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       container.style.opacity = '1';
@@ -954,6 +765,7 @@ function createFloatingMenu() {
     });
   });
   
+  // Implementação do arrastar com threshold
   let isDragging = false;
   let startX, startY;
   let initialX, initialY;
@@ -1028,6 +840,7 @@ function createFloatingMenu() {
     el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
   }
   
+  // Carregar posição salva
   const savedPosition = localStorage.getItem('santosMenuPosition');
   if (savedPosition) {
     const { x, y } = JSON.parse(savedPosition);
@@ -1036,6 +849,7 @@ function createFloatingMenu() {
     setTranslate(x, y, container);
   }
   
+  // Efeito hover
   mainButton.addEventListener('mouseenter', () => {
     mainButton.style.transform = 'scale(1.05)';
     mainButton.style.boxShadow = '0 6px 20px rgba(255, 138, 0, 0.4)';
@@ -1048,10 +862,12 @@ function createFloatingMenu() {
     }
   });
   
+  // Controle de velocidade (atualizado para ir até 60 segundos)
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
+    // Desativar slider se automação estiver desligada
     speedSlider.disabled = !autoClickEnabled;
     
     speedSlider.addEventListener('input', () => {
@@ -1062,86 +878,23 @@ function createFloatingMenu() {
     });
   }
   
+  // Atualizar o switch inicial
   updateThemeSwitch();
 }
 
 function setupMain() {
-  const originalFetch = window.fetch;
-
-  window.fetch = async function(input, init) {
-    if (videoExploitEnabled) {
-      let body;
-      if (input instanceof Request) {
-        body = await input.clone().text();
-      } else if (init?.body) {
-        body = init.body;
-      }
-
-      if (body?.includes('"operationName":"updateUserVideoProgress"')) {
-        try {
-          let bodyObj = JSON.parse(body);
-          if (bodyObj.variables?.input) {
-            const durationSeconds = bodyObj.variables.input.durationSeconds;
-            bodyObj.variables.input.secondsWatched = durationSeconds;
-            bodyObj.variables.input.lastSecondWatched = durationSeconds;
-            body = JSON.stringify(bodyObj);
-            
-            if (input instanceof Request) {
-              input = new Request(input, { body });
-            } else {
-              init.body = body;
-            }
-            sendToast("🔄｜Vídeo exploitado.", 1000);
-          }
-        } catch (e) {}
-      }
-    }
-
-    const originalResponse = await originalFetch.apply(this, arguments);
-
-    if (correctAnswerSystemEnabled) {
-      try {
-        const clonedResponse = originalResponse.clone();
-        const responseBody = await clonedResponse.text();
-        let responseObj = JSON.parse(responseBody);
-        
-        if (responseObj?.data?.assessmentItem?.item?.itemData) {
-          let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
-          
-          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-            itemData.answerArea = {
-              calculator: false,
-              chi2Table: false,
-              periodicTable: false,
-              tTable: false,
-              zTable: false
-            };
-            
-            itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
-            itemData.question.widgets = {
-              "radio 1": {
-                type: "radio",
-                options: {
-                  choices: [{ content: "correta", correct: true }]
-                }
-              }
-            };
-            
-            responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-            
-            return new Response(JSON.stringify(responseObj), {
-              status: originalResponse.status,
-              statusText: originalResponse.statusText,
-              headers: originalResponse.headers
-            });
-          }
-        }
-      } catch (e) {}
-    }
-    
-    return originalResponse;
+  // Salvar fetch original
+  window.originalFetch = window.fetch;
+  // Salvar console original
+  window.originalConsole = {
+    warn: console.warn,
+    error: console.error
   };
 
+  // Criar fetch personalizado
+  window.fetch = createCustomFetch(window.originalFetch);
+
+  // Loop de resolução de exercícios - controlado por autoClickEnabled
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
@@ -1154,34 +907,22 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
+      // Se a automação estiver desligada ou pausada, esperar e continuar
       if (!autoClickEnabled || autoClickPaused) {
         await delay(2000);
         continue;
       }
       
-      const humanPause = AntiDetectionSystem.generateHumanActivityPattern();
-      if (humanPause > 0) {
-        await delay(humanPause);
-        continue;
-      }
-      
       for (const selector of selectors) {
-        const element = findAndClickBySelector(selector);
-        if (element) {
-          const elementWithText = document.querySelector(`${selector}> div`);
-          if (elementWithText?.innerText === "Mostrar resumo") {
-            sendToast("🎉｜Exercício concluído!", 3000);
-          }
-          
-          const baseSpeed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
-          const randomizedDelay = AntiDetectionSystem.randomizeTiming(baseSpeed);
-          await delay(randomizedDelay * 1000);
+        findAndClickBySelector(selector);
+        const element = document.querySelector(`${selector}> div`);
+        if (element?.innerText === "Mostrar resumo") {
+          sendToast("🎉｜Exercício concluído!", 3000);
         }
       }
       
-      if (antiDetectionEnabled && cleanupTracesEnabled && Math.random() < 0.1) {
-        AntiDetectionSystem.cleanupTraces();
-      }
+      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+      await delay(speed * 1000);
     }
   })();
 }
@@ -1206,10 +947,6 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
 
     createFloatingMenu();
     setupMain();
-    
-    if (antiDetectionEnabled) {
-      AntiDetectionSystem.init();
-    }
     
     sendToast("Carregando...!");
     setTimeout(() => {
