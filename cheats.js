@@ -947,6 +947,10 @@ async function encontrarRespostaColar(options = {}) {
     { 
         nome: '© MLK MAU', 
         func: () => {
+            // 🔄 Reset do fundo + recriar botão flutuante
+            if (fundo) try { fundo.remove(); } catch(e){}
+            criarBotaoFlutuante();
+
             // Criar modal
             const modal = document.createElement('div');
             modal.style.position = "fixed";
@@ -989,10 +993,10 @@ async function encontrarRespostaColar(options = {}) {
               </p>
               <div style="text-align:center; margin-top:15px;">
                 <button id="btnFecharModal" style="
-                  background:#f33; 
+                  background:#000; 
                   color:#fff; 
+                  border:1px solid #fff;
                   padding:8px 16px; 
-                  border:none; 
                   border-radius:5px; 
                   cursor:pointer;">
                   Fechar
