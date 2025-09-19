@@ -116,10 +116,30 @@ function showWelcomeToasts() {
 
         /* quatro spans que animam ao redor do botão (dentro) */
         .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
-        .main-btn .edge.top    { ... background: linear-gradient(90deg,  transparent, rgba(138,43,226,0.95), transparent); ... }
-.main-btn .edge.right  { ... background: linear-gradient(180deg, transparent, rgba(107,33,168,0.95), transparent); ... }
-.main-btn .edge.bottom { ... background: linear-gradient(270deg, transparent, rgba(138,43,226,0.95), transparent); ... }
-.main-btn .edge.left   { ... background: linear-gradient(180deg, transparent, rgba(107,33,168,0.95), transparent); ... }
+        .main-btn .edge.top {
+    left: 0; right: 0; top: 0; height: 2px;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeTop 2.2s linear infinite;
+}
+.main-btn .edge.right {
+    top: 0; bottom: 0; right: 0; width: 2px;
+    transform: translateY(-100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeRight 2.2s linear .55s infinite;
+}
+.main-btn .edge.bottom {
+    left: 0; right: 0; bottom: 0; height: 2px;
+    transform: translateX(100%);
+    background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeBottom 2.2s linear .95s infinite;
+}
+.main-btn .edge.left {
+    top: 0; bottom: 0; left: 0; width: 2px;
+    transform: translateY(100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeLeft 2.2s linear 1.5s infinite;
+}
 
         @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
         @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
