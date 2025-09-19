@@ -417,6 +417,7 @@ function showWelcomeToasts() {
 
     // ------------------------------------------------------------
     // Nova função que constrói as abas e o conteúdo no novo layout
+    // - agora a sidebar é um flex-column com espaço entre, para fixar os botões inferiores
     // ------------------------------------------------------------
     function criarAbasInterface(sidebarEl, mainEl) {
         // Mesma estrutura "botoes" do código original, com as funções mantidas
@@ -760,6 +761,87 @@ function showWelcomeToasts() {
             ]
         };
 
+        // constrói top container (links) e footer (ações)
+        const topContainer = document.createElement('div');
+        topContainer.style.display = 'flex';
+        topContainer.style.flexDirection = 'column';
+        topContainer.style.gap = '8px';
+        topContainer.style.paddingBottom = '10px';
+
+        // construir sidebar buttons (aproveitando o array de tabs)
+        const tabs = ['scripts', 'textos', 'respostas', 'outros', 'config'];
+        tabs.forEach(t => {
+            const navBtn = document.createElement('button');
+            navBtn.textContent = (t === 'scripts' ? 'Scripts' : t.charAt(0).toUpperCase() + t.slice(1));
+            Object.assign(navBtn.style, {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '12px 10px',
+                color: '#fff',
+                background: '#141414',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'left'
+            });
+            if (t === 'scripts') navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
+
+            navBtn.addEventListener('click', () => {
+                // remover destaque de todos
+                Array.from(sidebarEl.querySelectorAll('button')).forEach(b => {
+                    b.style.boxShadow = 'none';
+                    b.style.background = '#141414';
+                });
+                navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
+                // renderiza conteúdo
+                renderTabContent(t);
+            });
+
+            topContainer.appendChild(navBtn);
+        });
+
+        // footer com botões de ação (fixado na base da sidebar)
+        const footer = document.createElement('div');
+        footer.style.display = 'flex';
+        footer.style.flexDirection = 'column';
+        footer.style.gap = '10px';
+        footer.style.paddingTop = '10px';
+
+        const btnEsconder = document.createElement('button');
+        btnEsconder.textContent = '👁️ Fechar Menu';
+        aplicarEstiloBotao(btnEsconder);
+        btnEsconder.style.borderRadius = '18px';
+        btnEsconder.style.padding = '10px 12px';
+        btnEsconder.style.background = '#6b6b6b';
+        btnEsconder.onclick = () => {
+            if (fundo) fundo.remove();
+            const botaoFlutuante = document.getElementById('dhonatanBotao');
+            if (botaoFlutuante) botaoFlutuante.remove();
+        };
+
+        const btnFechar = document.createElement('button');
+        btnFechar.textContent = '❌ Minimizar Menu';
+        aplicarEstiloBotao(btnFechar);
+        btnFechar.style.borderRadius = '18px';
+        btnFechar.style.padding = '10px 12px';
+        btnFechar.style.background = '#6b6b6b';
+        btnFechar.onclick = () => {
+            if (fundo) fundo.remove();
+            criarBotaoFlutuante();
+        };
+
+        footer.appendChild(btnEsconder);
+        footer.appendChild(btnFechar);
+
+        // coloca topContainer e footer na sidebarEl (sidebarEl está configurada para space-between)
+        sidebarEl.appendChild(topContainer);
+        sidebarEl.appendChild(footer);
+
+        // renderiza a aba inicial (scripts)
+        renderTabContent('scripts');
+
         // Função auxiliar que renderiza o conteúdo da aba no mainEl
         function renderTabContent(tabId) {
             // limpa o mainEl
@@ -794,7 +876,6 @@ function showWelcomeToasts() {
                     btn.onclick = () => {
                         try {
                             const maybePromise = b.func();
-                            // se a função retornar uma promise, podemos lidar com ela (não obrigatório)
                             if (maybePromise && typeof maybePromise.then === 'function') {
                                 maybePromise.catch(err => {
                                     console.error('Erro na função da aba:', err);
@@ -816,76 +897,7 @@ function showWelcomeToasts() {
             }
 
             mainEl.appendChild(containerBotoes);
-
-            // Ações finais - fechar/minimizar
-            const botoesAcao = document.createElement('div');
-            Object.assign(botoesAcao.style, {
-                display: 'flex',
-                gap: '10px',
-                marginTop: '12px',
-                width: '100%',
-                justifyContent: 'flex-end'
-            });
-
-            const btnEsconder = document.createElement('button');
-            btnEsconder.textContent = '👁️ Fechar Menu';
-            aplicarEstiloBotao(btnEsconder);
-            btnEsconder.style.background = '#6b6b6b';
-            btnEsconder.onclick = () => {
-                if (fundo) fundo.remove();
-                const botaoFlutuante = document.getElementById('dhonatanBotao');
-                if (botaoFlutuante) botaoFlutuante.remove();
-            };
-
-            const btnFechar = document.createElement('button');
-            btnFechar.textContent = '❌ Minimizar Menu';
-            aplicarEstiloBotao(btnFechar);
-            btnFechar.style.background = '#6b6b6b';
-            btnFechar.onclick = () => {
-                if (fundo) fundo.remove();
-                criarBotaoFlutuante();
-            };
-
-            botoesAcao.append(btnEsconder, btnFechar);
-            mainEl.appendChild(botoesAcao);
         }
-
-        // construir sidebar buttons
-        const tabs = ['scripts', 'textos', 'respostas', 'outros', 'config'];
-        tabs.forEach(t => {
-            const navBtn = document.createElement('button');
-            navBtn.textContent = (t === 'scripts' ? 'Scripts' : t.charAt(0).toUpperCase() + t.slice(1));
-            Object.assign(navBtn.style, {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px',
-                color: '#fff',
-                background: '#141414',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                marginBottom: '6px'
-            });
-            if (t === 'scripts') navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
-
-            navBtn.addEventListener('click', () => {
-                // remover active
-                Array.from(sidebarEl.querySelectorAll('button')).forEach(b => {
-                    b.style.boxShadow = 'none';
-                    b.style.background = '#141414';
-                });
-                navBtn.style.background = 'linear-gradient(90deg,#ff4d4d,#b30000)';
-                renderTabContent(t);
-            });
-
-            sidebarEl.appendChild(navBtn);
-        });
-
-        // renderiza a aba inicial (scripts)
-        renderTabContent('scripts');
     }
 
     // ------------------------------------------------------------
@@ -900,22 +912,22 @@ function showWelcomeToasts() {
             display: 'flex', alignItems: 'center', justifyContent: 'center'
         });
 
-        // janela principal (container)
+        // janela principal (container) - tamanho reduzido para ficar menos dominante em mobiles
         janela = document.createElement('div');
         aplicarEstiloContainer(janela);
         janela.style.display = 'flex';
         janela.style.flexDirection = 'column';
-        janela.style.width = '100%';
-        janela.style.maxWidth = '1200px';
-        janela.style.height = '80vh';
+        janela.style.width = '92%';
+        janela.style.maxWidth = '900px';   // reduzido
+        janela.style.height = '70vh';      // reduzido
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
 
-        // header interno
+        // header interno (sem aranha)
         const header = document.createElement('div');
         Object.assign(header.style, {
-            height: '64px',
-            background: 'linear-gradient(90deg, rgba(10,10,10,0.9), rgba(20,20,20,0.9))',
+            height: '56px',
+            background: 'linear-gradient(90deg, rgba(10,10,10,0.95), rgba(20,20,20,0.95))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -923,54 +935,19 @@ function showWelcomeToasts() {
             borderBottom: '1px solid rgba(255,255,255,0.04)'
         });
 
-        // Logo aranha 3D (SVG inline)
-        const logoWrapper = document.createElement('div');
-        Object.assign(logoWrapper.style, { display: 'flex', alignItems: 'center', gap: '12px' });
-
-        const spiderSVG = document.createElement('div');
-        spiderSVG.innerHTML = `
-            <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0" stop-color="#6b0f9c"/>
-                  <stop offset="1" stop-color="#ff3d3d"/>
-                </linearGradient>
-                <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
-                </filter>
-              </defs>
-              <!-- corpo -->
-              <ellipse cx="32" cy="32" rx="10" ry="12" fill="url(#g1)" filter="url(#s)"/>
-              <!-- cabeça -->
-              <circle cx="32" cy="20" r="6" fill="#111"/>
-              <!-- pernas -->
-              <path d="M10 18 C18 20, 20 30, 28 28" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
-              <path d="M54 18 C46 20, 44 30, 36 28" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
-              <path d="M8 34 C18 34, 22 40, 30 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
-              <path d="M56 34 C46 34, 42 40, 34 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.9"/>
-              <path d="M12 46 C20 44, 26 42, 32 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
-              <path d="M52 46 C44 44, 38 42, 32 36" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
-            </svg>
-        `;
-        spiderSVG.style.display = 'flex';
-        spiderSVG.style.alignItems = 'center';
-
         const tituloHeader = document.createElement('div');
         tituloHeader.textContent = 'PAINEL AUXÍLIO';
-        Object.assign(tituloHeader.style, { fontSize: '18px', fontWeight: '800', letterSpacing: '1px', color: '#fff' });
+        Object.assign(tituloHeader.style, { fontSize: '16px', fontWeight: '800', letterSpacing: '1px', color: '#fff' });
 
-        logoWrapper.appendChild(spiderSVG);
-        logoWrapper.appendChild(tituloHeader);
-
-        // área do relógio no header
+        // área do relógio no header (horário de Brasília)
         relogio = document.createElement('div');
         relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        Object.assign(relogio.style, { fontSize: '14px', fontWeight: '700', fontFamily: 'monospace', color: '#fff' });
+        Object.assign(relogio.style, { fontSize: '13px', fontWeight: '700', fontFamily: 'monospace', color: '#fff' });
         setInterval(() => {
             relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         }, 1000);
 
-        header.appendChild(logoWrapper);
+        header.appendChild(tituloHeader);
         header.appendChild(relogio);
 
         // corpo com sidebar + main
@@ -982,21 +959,23 @@ function showWelcomeToasts() {
             overflow: 'hidden'
         });
 
-        // Sidebar (menu lateral)
+        // Sidebar (menu lateral) - menor e com layout que fixa ações na base
         const sidebar = document.createElement('div');
         Object.assign(sidebar.style, {
-            width: '220px',
-            background: 'linear-gradient(180deg, rgba(18,18,18,0.95), rgba(20,20,20,0.95))',
+            width: '200px', // ligeiramente menor
+            background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(20,20,20,0.98))',
             padding: '18px',
             borderRight: '1px solid rgba(255,255,255,0.03)',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between' // importante: empurra footer para baixo
         });
 
         // Pequeño header/label dentro da sidebar
         const sidebarTitle = document.createElement('div');
         sidebarTitle.textContent = 'MENU';
         Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bbb', marginBottom: '10px', fontWeight: '700' });
-        sidebar.appendChild(sidebarTitle);
 
         // area central principal
         const mainPanel = document.createElement('div');
@@ -1011,6 +990,7 @@ function showWelcomeToasts() {
         });
 
         // montar tudo
+        sidebar.appendChild(sidebarTitle);
         bodyWrap.appendChild(sidebar);
         bodyWrap.appendChild(mainPanel);
 
