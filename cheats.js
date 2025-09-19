@@ -1085,8 +1085,17 @@ function showTermoResponsabilidade(onAccept, onReject) {
             Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.03)', margin: '6px 0 12px 0' });
             mainEl.appendChild(separador);
 
-            const containerBotoes = document.createElement('div');
-            Object.assign(containerBotoes.style, { display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start' });
+            // por este (aplica a classe panel-section automaticamente em todas as abas)
+const containerBotoes = document.createElement('div');
+containerBotoes.className = 'panel-section'; // -> aqui torna rolável verticalmente para TODAS as abas
+Object.assign(containerBotoes.style, {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+    alignItems: 'flex-start',
+    // opcional: garante que o conteúdo não 'cole' no topo quando rolado
+    paddingRight: '6px',
+});
 
             if (botoes[tabId]) {
                 botoes[tabId].forEach(b => {
