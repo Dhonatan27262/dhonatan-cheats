@@ -89,46 +89,53 @@ function showWelcomeToasts() {
         .sidebar-nav-btn:hover { transform: translateX(6px); background: #181818; }
         .sidebar-nav-btn.active { background: linear-gradient(135deg, #8A2BE2, #4B0082); color: #fff; box-shadow: 0 8px 24px rgba(179,0,0,0.18); }
 
-        /* footer action buttons (sidebar) */
-        .sidebar-footer {
-            display:flex; flex-direction:column; gap:12px; width:100%; padding:12px; box-sizing:border-box; align-items:center;
+        /* header buttons */
+        .header-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
         }
-        .sidebar-footer-btn {
-            width:86%;
-            border-radius:28px;
-            padding:12px 14px;
-            background: rgba(255,255,255,0.04);
-            color:#fff;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.45);
-            font-weight:800;
-            transition: transform .16s ease, background .16s ease;
+        
+        .header-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
         }
-        .sidebar-footer-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); }
 
         /* main button (Efeito CodePen 24 adaptado) */
         .main-btn {
             background: linear-gradient(180deg,#2a0b0b,#3a0f0f);
             color:#f0dede;
-            padding: 12px 22px;
-            border-radius: 14px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            padding: 10px 18px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             position: relative;
             overflow: visible;
             display: inline-block;
-            font-weight: 800;
-            min-width: 160px;
+            font-weight: 700;
+            min-width: 140px;
             text-align: center;
             border: 1px solid rgba(255,255,255,0.03);
             transition: transform .12s ease;
+            font-size: 13px;
         }
-        .main-btn:hover{ transform: translateY(-3px); }
+        .main-btn:hover{ transform: translateY(-2px); }
 
         /* quatro spans que animam ao redor do botão */
         .main-btn .edge { position:absolute; pointer-events:none; background: linear-gradient(90deg, transparent, rgba(255,100,100,0.95), transparent); }
-        .main-btn .edge.top { top: -2px; left: -50%; width: 200%; height: 3px; transform: translateX(-100%); animation: edgeTop 2.2s linear infinite; }
-        .main-btn .edge.right { right: -2px; top: -50%; width: 3px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(-100%); animation: edgeRight 2.2s linear .55s infinite; }
-        .main-btn .edge.bottom { bottom: -2px; left: -50%; width: 200%; height: 3px; transform: translateX(100%); animation: edgeBottom 2.2s linear .95s infinite; }
-        .main-btn .edge.left { left: -2px; top: -50%; width: 3px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(100%); animation: edgeLeft 2.2s linear 1.5s infinite; }
+        .main-btn .edge.top { top: -2px; left: -50%; width: 200%; height: 2px; transform: translateX(-100%); animation: edgeTop 2.2s linear infinite; }
+        .main-btn .edge.right { right: -2px; top: -50%; width: 2px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(-100%); animation: edgeRight 2.2s linear .55s infinite; }
+        .main-btn .edge.bottom { bottom: -2px; left: -50%; width: 200%; height: 2px; transform: translateX(100%); animation: edgeBottom 2.2s linear .95s infinite; }
+        .main-btn .edge.left { left: -2px; top: -50%; width: 2px; height: 200%; background: linear-gradient(180deg, transparent, rgba(255,100,100,0.95), transparent); transform: translateY(100%); animation: edgeLeft 2.2s linear 1.5s infinite; }
 
         @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
         @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
@@ -144,38 +151,10 @@ function showWelcomeToasts() {
         /* container */
         .dh-container { max-width: 1000px; width: 94%; }
 
-        /* botões pequenos e bonitos */
-        .small-btn {
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-        
-        .small-btn:hover {
-            background: rgba(255,255,255,0.15);
-            transform: scale(1.05);
-        }
-        
-        .small-btn svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
-
         /* responsive */
         @media (max-width:760px){
             .main-btn { width:100%; box-sizing:border-box; min-width: unset; }
             .sidebar-nav-btn{ font-size:14px; padding:12px; }
-            .sidebar-footer-btn{ width:92%; padding:14px; border-radius:26px; }
         }
         `;
         document.head.appendChild(style);
@@ -363,52 +342,52 @@ async function encontrarRespostaColar(options = {}) {
       }
       // pequena pausa antes de tentar o próximo URL
       await sleep(200);
-    }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
-
-  try {
-    const primaryBase64 = rebuildFromParts(primaryParts);
-    const fallbackBase64 = rebuildFromParts(fallbackParts);
-
-    const primaryURL = atob(primaryBase64) + '?' + Date.now();
-    const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
-
-    const urlsToTry = [primaryURL, fallbackURL];
-
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
-
-    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+        }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+    };
 
     try {
-      const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
-      if (prev) prev.remove();
-    } catch (e) {
-      if (debug) console.warn('Não consegui remover script anterior:', e.message);
-    }
+        const primaryBase64 = rebuildFromParts(primaryParts);
+        const fallbackBase64 = rebuildFromParts(fallbackParts);
 
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
+        const primaryURL = atob(primaryBase64) + '?' + Date.now();
+        const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
 
-    sendToast('✅ Script carregado com sucesso!', 3000);
-    if (typeof fundo !== "undefined" && fundo) {
-      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
+          if (prev) prev.remove();
+        } catch (e) {
+          if (debug) console.warn('Não consegui remover script anterior:', e.message);
+        }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        sendToast('✅ Script carregado com sucesso!', 3000);
+        if (typeof fundo !== "undefined" && fundo) {
+          try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+        }
+        if (typeof criarBotaoFlutuante === "function") {
+          try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+        }
+        return true;
+    } catch (err) {
+        console.error('Erro ao carregar script:', err);
+        sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+        if (debug) {
+          console.error('Debug info (não mostra URL):', err);
+        }
+        return false;
     }
-    if (typeof criarBotaoFlutuante === "function") {
-      try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
-    }
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar script:', err);
-    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
-    if (debug) {
-      console.error('Debug info (não mostra URL):', err);
-    }
-    return false;
-  }
 }
 
     const encontrarRespostaDigitar = () => {
@@ -514,7 +493,7 @@ async function encontrarRespostaColar(options = {}) {
       const primaryOrder = [11,12,7,9,10,6,3,2,0,8,13,5,1,4];
 
       const fallbackChunks = [
-        'BhaW5l','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
+        'BhaW5e','L2F1eH','ZG4uan','UwQG1h','Lmpz','V0L2do','NyaXB0',
         'bC8yMD','NkZWxp','dnIubm','aHR0cH','M6Ly9j','aW4vc2'
       ];
       const fallbackOrder = [10,11,2,8,9,5,1,0,7,3,12,6,4];
@@ -838,7 +817,7 @@ async function encontrarRespostaColar(options = {}) {
           const u = urls[i];
           for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
             try {
-              if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}, tentativa ${attempt})`);
+              if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length, tentativa ${attempt})`);
               const res = await fetchWithTimeout(u, timeout);
               if (!res.ok) throw new Error('HTTP ' + res.status);
               const txt = await res.text();
@@ -979,49 +958,12 @@ async function encontrarRespostaColar(options = {}) {
             botoesAbas.appendChild(botaoAba);
         });
 
-        // footer com botões Fechar/Minimizar (fixados na base da sidebar) — bug corrigido: aparecem apenas aqui
-        const footer = document.createElement('div');
-        footer.className = 'sidebar-footer';
-
-        // SVG para o botão de fechar
-        const closeSvg = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-        
-        // SVG para o botão de minimizar
-        const minSvg = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-
-        const btnFechar = document.createElement('button');
-        btnFechar.className = 'small-btn';
-        btnFechar.innerHTML = `${closeSvg} Fechar`;
-        btnFechar.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            const botaoFlutuante = document.getElementById('dhonatanBotao');
-            if (botaoFlutuante) botaoFlutuante.remove();
-        };
-
-        const btnMinim = document.createElement('button');
-        btnMinim.className = 'small-btn';
-        btnMinim.innerHTML = `${minSvg} Minimizar`;
-        btnMinim.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            criarBotaoFlutuante();
-        };
-
-        const btnContainer = document.createElement('div');
-        btnContainer.style.display = 'flex';
-        btnContainer.style.gap = '8px';
-        btnContainer.style.justifyContent = 'center';
-        btnContainer.style.width = '100%';
-        
-        btnContainer.append(btnFechar, btnMinim);
-        footer.appendChild(btnContainer);
-
         // montar la sidebar: botoesAbas + spacer + footer
         sidebarEl.innerHTML = '';
         sidebarEl.appendChild(botoesAbas);
         const spacer = document.createElement('div');
         spacer.style.flex = '1 1 auto';
         sidebarEl.appendChild(spacer);
-        sidebarEl.appendChild(footer);
 
         // render inicial
         renderTabContent('scripts');
@@ -1098,7 +1040,14 @@ async function encontrarRespostaColar(options = {}) {
 
         // header
         const header = document.createElement('div');
-        Object.assign(header.style, { height: '56px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)' });
+        Object.assign(header.style, { 
+            height: '56px', 
+            padding: '12px 16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            borderBottom: '1px solid rgba(255,255,255,0.03)' 
+        });
 
         const title = document.createElement('div');
         title.textContent = 'PAINEL AUXÍLIO';
@@ -1111,8 +1060,33 @@ async function encontrarRespostaColar(options = {}) {
             relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         }, 1000);
 
+        // Botões de fechar e minimizar no header
+        const btnFechar = document.createElement('button');
+        btnFechar.className = 'header-btn';
+        btnFechar.innerHTML = '×';
+        btnFechar.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
+            const botaoFlutuante = document.getElementById('dhonatanBotao');
+            if (botaoFlutuante) botaoFlutuante.remove();
+        };
+
+        const btnMinim = document.createElement('button');
+        btnMinim.className = 'header-btn';
+        btnMinim.innerHTML = '−';
+        btnMinim.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
+            criarBotaoFlutuante();
+        };
+
+        const headerButtons = document.createElement('div');
+        headerButtons.style.display = 'flex';
+        headerButtons.style.gap = '8px';
+        headerButtons.appendChild(btnMinim);
+        headerButtons.appendChild(btnFechar);
+
         header.appendChild(title);
         header.appendChild(relogio);
+        header.appendChild(headerButtons);
 
         // body wrap
         const bodyWrap = document.createElement('div');
@@ -1143,11 +1117,10 @@ async function encontrarRespostaColar(options = {}) {
         criarAbasInterface(sidebar, mainPanel);
     };
 
-    // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
+    // ---------- criarInterface (TELA DE LOGIN) ----------
     const criarInterface = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         
-        // ---- esta versão foi restaurada para o layout ORIGINAL que você tinha pedido não modificar ----
         fundo = document.createElement('div');
         Object.assign(fundo.style, {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -1236,36 +1209,62 @@ async function encontrarRespostaColar(options = {}) {
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        // SVG para os botões de contato
-        const discordSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14.82 4.26a10.14 10.14 0 0 0-.53 1.1 14.66 14.66 0 0 0-4.58 0 10.14 10.14 0 0 0-.53-1.1 16 16 0 0 0-4.13 1.3 17.33 17.33 0 0 0-3 11.59 16.6 16.6 0 0 0 5.07 2.59A12.89 12.89 0 0 0 8.23 18a9.65 9.65 0 0 1-1.71-.83 3.39 3.39 0 0 0 .42-.33 11.66 11.66 0 0 0 10.12 0c.14.09.28.19.42.33a10.14 10.14 0 0 1-1.71.83 12.89 12.89 0 0 0 1.08 1.78 16.44 16.44 0 0 0 5.06-2.59 17.22 17.22 0 0 0-3-11.59 16.09 16.09 0 0 0-4.09-1.35zM8.68 14.81a1.94 1.94 0 0 1-1.8-2 1.93 1.93 0 0 1 1.8-2 1.93 1.93 0 0 1 1.8 2 1.93 1.93 0 0 1-1.8 2zm6.64 0a1.94 1.94 0 0 1-1.8-2 1.93 1.93 0 0 1 1.8-2 1.92 1.92 0 0 1 1.8 2 1.92 1.92 0 0 1-1.8 2z"/></svg>`;
-        
-        const whatsappSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488"/></svg>`;
-        
-        const youtubeSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>`;
-
+        // Botões de contato com os SVGs fornecidos
         const btnDiscord = document.createElement('button');
-        btnDiscord.innerHTML = `${discordSvg}`;
+        btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.170-.1.335-.206.495-.32.010-.008.022-.010.033-.003l.006.004c.013.008.020.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .040-.010 7.96 7.96 0 0 0 3.070-1.525.05.05 0 0 0 .017-.035l.006-.004c.010-.007.022-.005.033.003.160.114.326.220.495.320a.05.05 0 0 1 .015.010c.003.004.005.007.005.010a.05.05 0 0 1-.020.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.020.070c.236.462.510.905.818 1.325a.05.05 0 0 0 .056.020 13.23 13.23 0 0 0 4.001-2.020.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.890 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.950 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.890 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
         aplicarEstiloBotao(btnDiscord);
         btnDiscord.style.background = '#5865F2';
-        btnDiscord.onclick = () => { window.open('https://discord.gg/NfVKXRSvYK', '_blank'); };
+        btnDiscord.onclick = () => {
+            window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+        };
 
         const btnWhatsApp = document.createElement('button');
-        btnWhatsApp.innerHTML = `${whatsappSvg}`;
+        btnWhatsApp.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+                <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+            </svg> WhatsApp
+        `;
         aplicarEstiloBotao(btnWhatsApp);
         btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-        btnWhatsApp.onclick = () => { window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank'); };
+        btnWhatsApp.onclick = () => {
+            window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+        };
 
         const btnmenor = document.createElement('button');
-        btnmenor.innerHTML = `${youtubeSvg}`;
+        btnmenor.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24" style="margin-right:8px">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal ManoRick
+        `;
         aplicarEstiloBotao(btnmenor);
         btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btnmenor.onclick = () => { window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank'); };
+        btnmenor.onclick = () => {
+            window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+        };
 
         const btncriadorpainel = document.createElement('button');
-        btncriadorpainel.innerHTML = `${youtubeSvg}`;
+        btncriadorpainel.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24" style="margin-right:8px">
+                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+                8.568v6.864L15.818 12 9.545 8.568z"/>
+            </svg> Canal MlkMau
+        `;
         aplicarEstiloBotao(btncriadorpainel);
         btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btncriadorpainel.onclick = () => { window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank'); };
+        btncriadorpainel.onclick = () => {
+            window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+        };
 
         const botoesContainer = document.createElement('div');
         Object.assign(botoesContainer.style, {
