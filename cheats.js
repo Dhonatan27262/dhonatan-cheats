@@ -356,7 +356,7 @@ function showWelcomeToasts() {
                 {
                     nome: 'Khan Academy',
                     func: () => {
-                        const scriptURL = "https://raw.githubusercontent.com/painelaux/Dhonatan27262/main/script.js?" + Date.now();
+                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
                         fetch(scriptURL)
                             .then(response => response.text())
                             .then(scriptContent => {
