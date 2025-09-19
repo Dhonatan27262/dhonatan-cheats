@@ -1035,7 +1035,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
-                { nome: 'Digitador v2', func: digitadorV2 },
+                { nome: 'Digitador v2.5', func: digitadorV2 },
                 { nome: '📝 Criar Texto com Tema via IA', func: criarTextoComTema },
                 { nome: '🔁 Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
