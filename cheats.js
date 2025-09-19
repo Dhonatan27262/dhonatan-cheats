@@ -1226,53 +1226,84 @@ async function encontrarRespostaColar(options = {}) {
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        // SVG para os botões de contato (mantidos como você enviou)
-        const discordSvg = `<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg>`;
+        // Botão do Discord
+const btnDiscord = document.createElement('button');
+btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+aplicarEstiloBotao(btnDiscord);
+btnDiscord.style.background = '#5865F2';
+btnDiscord.onclick = () => {
+    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+};
 
-        const whatsappSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px"><path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/></svg>`;
+// Botão do WhatsApp (ao lado do Discord)
+const btnWhatsApp = document.createElement('button');
+btnWhatsApp.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+    </svg> WhatsApp
+`;
+aplicarEstiloBotao(btnWhatsApp);
+btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+btnWhatsApp.onclick = () => {
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+};
 
-        const youtubeSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24"><path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 8.568v6.864L15.818 12 9.545 8.568z"/></svg>`;
+// Botão do YouTube Manorick
+const btnmenor = document.createElement('button');
+btnmenor.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal ManoRick
+`;
+aplicarEstiloBotao(btnmenor);
+btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btnmenor.onclick = () => {
+    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+};
 
-        const btnDiscord = document.createElement('button');
-        btnDiscord.innerHTML = `${discordSvg}`;
-        aplicarEstiloBotao(btnDiscord);
-        btnDiscord.style.background = '#5865F2';
-        btnDiscord.onclick = () => { window.open('https://discord.gg/NfVKXRSvYK', '_blank'); };
+// Botão do YouTube Mlk Mau
+const btncriadorpainel = document.createElement('button');
+btncriadorpainel.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal MlkMau
+`;
+aplicarEstiloBotao(btncriadorpainel);
+btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btncriadorpainel.onclick = () => {
+    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+};
 
-        const btnWhatsApp = document.createElement('button');
-        btnWhatsApp.innerHTML = `${whatsappSvg}`;
-        aplicarEstiloBotao(btnWhatsApp);
-        btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-        btnWhatsApp.onclick = () => { window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank'); };
+// Container para os botões
+const botoesContainer = document.createElement('div');
+Object.assign(botoesContainer.style, {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    gap: '10px',
+    width: '100%',
+    overflowX: 'auto',
+    paddingBottom: '5px',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#888 #333'
+});
+botoesContainer.style.msOverflowStyle = 'auto';
+botoesContainer.style.overflowY = 'hidden';
+botoesContainer.style.flexWrap = 'nowrap';
 
-        const btnmenor = document.createElement('button');
-        btnmenor.innerHTML = `${youtubeSvg}`;
-        aplicarEstiloBotao(btnmenor);
-        btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btnmenor.onclick = () => { window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank'); };
-
-        const btncriadorpainel = document.createElement('button');
-        btncriadorpainel.innerHTML = `${youtubeSvg}`;
-        aplicarEstiloBotao(btncriadorpainel);
-        btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btncriadorpainel.onclick = () => { window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank'); };
-
-        const botoesContainer = document.createElement('div');
-        Object.assign(botoesContainer.style, {
-            display: 'flex',
-            justifyContent: 'flex-start',
-            gap: '10px',
-            width: '100%',
-            overflowX: 'auto',
-            paddingBottom: '5px',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #333'
-        });
-        botoesContainer.style.msOverflowStyle = 'auto';
-        botoesContainer.style.overflowY = 'hidden';
-        botoesContainer.style.flexWrap = 'nowrap';
-
-        botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+// Adiciona todos os botões
+botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
