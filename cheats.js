@@ -33,7 +33,7 @@ async function sendToast(text, duration = 5000, gravity = 'bottom') {
 }
 
 function showWelcomeToasts() {
-    sendToast("Painel carregadoo");
+    sendToast("Painel carregado");
 }
 
 // ===== [CÓDIGO PRINCIPAL] ===== //
