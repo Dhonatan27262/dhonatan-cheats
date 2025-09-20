@@ -896,12 +896,21 @@ function showTermoResponsabilidade(onAccept, onReject) {
         document.head.appendChild(scriptEl);
 
         toastShort('✔️ Carregado!');
-        return true;
-      } catch (err) {
-        console.error('Erro ao carregar Jogo da Velha:', err);
-        toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
-        if (debug) console.error('Debug info:', err);
-        return false;
+        if (typeof fundo !== "undefined" && fundo) {
+      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+    }
+    if (typeof criarBotaoFlutuante === "function") {
+      try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar script:', err);
+    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+    if (debug) {
+      console.error('Debug info (não mostra URL):', err);
+    }
+    return false;
+  }
       }
     };
 //semhasaaaa
