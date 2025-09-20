@@ -1,5 +1,3 @@
-// Variável para controlar o estado do anti-cheat
-let antiCheatEnabled = false;
 let loadedPlugins = [];
 let videoExploitEnabled = true;
 let autoClickEnabled = true;
@@ -86,149 +84,7 @@ async function loadCss(url) {
   });
 }
 
-// Função para ativar o sistema anti-cheat
-function enableAntiCheat() {
-  antiCheatEnabled = true;
-  
-  // Ocultar elementos do menu que podem ser detectados
-  const menu = document.getElementById('santos-floating-menu');
-  if (menu) menu.style.display = 'none';
-  
-  // Restaurar console methods originais para evitar detecção
-  if (window.originalConsole) {
-    console.warn = window.originalConsole.warn;
-    console.error = window.originalConsole.error;
-  }
-  
-  // Restaurar fetch original
-  if (window.originalFetch) {
-    window.fetch = window.originalFetch;
-  }
-  
-  // Remover qualquer assinatura do script no DOM
-  document.querySelectorAll('[id*="santos"], [class*="santos"]').forEach(el => {
-    el.remove();
-  });
-  
-  // Atualizar status
-  const statusElement = document.getElementById('anti-cheat-status');
-  if (statusElement) {
-    statusElement.textContent = 'ATIVO';
-    statusElement.classList.add('active');
-  }
-  
-  sendToast("🛡️｜Sistema anti-cheat ATIVADO", 3000);
-}
-
-// Função para desativar o sistema anti-cheat
-function disableAntiCheat() {
-  antiCheatEnabled = false;
-  
-  // Mostrar menu novamente
-  const menu = document.getElementById('santos-floating-menu');
-  if (menu) menu.style.display = 'block';
-  
-  // Reaplicar substituições do console
-  console.warn = console.error = window.debug = noop;
-  
-  // Reaplicar fetch personalizado
-  if (window.originalFetch) {
-    window.fetch = createCustomFetch(window.originalFetch);
-  }
-  
-  // Atualizar status
-  const statusElement = document.getElementById('anti-cheat-status');
-  if (statusElement) {
-    statusElement.textContent = 'INATIVO';
-    statusElement.classList.remove('active');
-  }
-  
-  sendToast("🛡️｜Sistema anti-cheat DESATIVADO", 3000);
-}
-
-// Função para criar fetch personalizado
-function createCustomFetch(originalFetch) {
-  return async function(input, init) {
-    // Verificar se o exploit de vídeo está ativado
-    if (videoExploitEnabled && !antiCheatEnabled) {
-      let body;
-      if (input instanceof Request) {
-        body = await input.clone().text();
-      } else if (init?.body) {
-        body = init.body;
-      }
-
-      if (body?.includes('"operationName":"updateUserVideoProgress"')) {
-        try {
-          let bodyObj = JSON.parse(body);
-          if (bodyObj.variables?.input) {
-            const durationSeconds = bodyObj.variables.input.durationSeconds;
-            bodyObj.variables.input.secondsWatched = durationSeconds;
-            bodyObj.variables.input.lastSecondWatched = durationSeconds;
-            body = JSON.stringify(bodyObj);
-            
-            if (input instanceof Request) {
-              input = new Request(input, { body });
-            } else {
-              init.body = body;
-            }
-            if (!antiCheatEnabled) {
-              sendToast("🔄｜Vídeo exploitado.", 1000);
-            }
-          }
-        } catch (e) {}
-      }
-    }
-
-    const originalResponse = await originalFetch.apply(this, arguments);
-
-    // Esta parte (modificação de exercícios) será controlada pela opção
-    if (correctAnswerSystemEnabled && !antiCheatEnabled) {
-      try {
-        const clonedResponse = originalResponse.clone();
-        const responseBody = await clonedResponse.text();
-        let responseObj = JSON.parse(responseBody);
-        
-        if (responseObj?.data?.assessmentItem?.item?.itemData) {
-          let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
-          
-          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-            itemData.answerArea = {
-              calculator: false,
-              chi2Table: false,
-              periodicTable: false,
-              tTable: false,
-              zTable: false
-            };
-            
-            itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
-            itemData.question.widgets = {
-              "radio 1": {
-                type: "radio",
-                options: {
-                  choices: [{ content: "correta", correct: true }]
-                }
-              }
-            };
-            
-            responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-            
-            return new Response(JSON.stringify(responseObj), {
-              status: originalResponse.status,
-              statusText: originalResponse.statusText,
-              headers: originalResponse.headers
-            });
-          }
-        }
-      } catch (e) {}
-    }
-    
-    return originalResponse;
-  };
-}
-
 function createFloatingMenu() {
-  // Contêiner principal arrastável
   const container = document.createElement('div');
   container.id = 'santos-floating-menu';
   container.style.cssText = `
@@ -240,14 +96,13 @@ function createFloatingMenu() {
     user-select: none;
   `;
 
-  // Botão principal
   const mainButton = document.createElement('button');
   mainButton.id = 'santos-main-btn';
   mainButton.innerHTML = 'PainelV2';
   
   mainButton.style.cssText = `
     padding: 12px 20px;
-    background: linear-gradient(135deg, #ff8a00, #e52e71);
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border: none;
     border-radius: 30px;
@@ -264,7 +119,6 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
-  // Menu de opções (inicialmente oculto)
   const optionsMenu = document.createElement('div');
   optionsMenu.id = 'santos-options-menu';
   optionsMenu.style.cssText = `
@@ -277,64 +131,11 @@ function createFloatingMenu() {
     display: none;
     flex-direction: column;
     gap: 10px;
-    width: 200px;
+    width: 180px;
     border: 1px solid rgba(255,255,255,0.1);
     user-select: none;
   `;
   
-  // Opção anti-cheat
-  const antiCheatOption = document.createElement('div');
-  antiCheatOption.id = 'anti-cheat-toggle';
-  antiCheatOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-    margin-bottom: 10px;
-  `;
-  
-  antiCheatOption.innerHTML = `
-    <span>Anti-Cheat</span>
-    <div style="display: flex; align-items: center;">
-      <span id="anti-cheat-status" style="
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-right: 8px;
-        background: #ff4444;
-      ">INATIVO</span>
-      <div id="anti-cheat-switch" style="
-        width: 40px;
-        height: 20px;
-        background: #ccc;
-        border-radius: 10px;
-        position: relative;
-        cursor: pointer;
-      ">
-        <div style="
-          position: absolute;
-          top: 2px;
-          left: 2px;
-          width: 16px;
-          height: 16px;
-          background: white;
-          border-radius: 50%;
-          transition: left 0.2s;
-        "></div>
-      </div>
-    </div>
-  `;
-  
-  optionsMenu.appendChild(antiCheatOption);
-  
-  // Opção de tema
   const themeOption = document.createElement('div');
   themeOption.style.cssText = `
     display: flex;
@@ -372,9 +173,6 @@ function createFloatingMenu() {
     </div>
   `;
   
-  optionsMenu.appendChild(themeOption);
-  
-  // Switch para exploit de vídeo
   const exploitOption = document.createElement('div');
   exploitOption.style.cssText = `
     display: flex;
@@ -411,9 +209,7 @@ function createFloatingMenu() {
       "></div>
     </div>
   `;
-  optionsMenu.appendChild(exploitOption);
   
-  // Switch para automação de cliques
   const autoClickOption = document.createElement('div');
   autoClickOption.style.cssText = `
     display: flex;
@@ -450,9 +246,7 @@ function createFloatingMenu() {
       "></div>
     </div>
   `;
-  optionsMenu.appendChild(autoClickOption);
   
-  // Switch para sistema de respostas corretas
   const correctAnswerOption = document.createElement('div');
   correctAnswerOption.style.cssText = `
     display: flex;
@@ -489,9 +283,7 @@ function createFloatingMenu() {
       "></div>
     </div>
   `;
-  optionsMenu.appendChild(correctAnswerOption);
   
-  // Opção de controle de velocidade (atualizada para ir até 60 segundos)
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -505,7 +297,6 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
-  // Recuperar velocidade salva ou usar 1.5s como padrão
   const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
   
   speedControl.innerHTML = `
@@ -513,13 +304,10 @@ function createFloatingMenu() {
       <span>Velocidade</span>
       <span id="speed-value">${savedSpeed}s</span>
     </div>
-    <input type="range" min="0.5" max="60" step="0.5" value="${savedSpeed}" 
+    <input type="range" min="1" max="60" step="0.5" value="${savedSpeed}" 
            id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
   `;
   
-  optionsMenu.appendChild(speedControl);
-  
-  // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
   hideMenuOption.style.cssText = `
     display: flex;
@@ -536,9 +324,7 @@ function createFloatingMenu() {
     margin-top: 5px;
   `;
   hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
-  optionsMenu.appendChild(hideMenuOption);
   
-  // Adicionar espaço para futuras opções
   const futureOptions = document.createElement('div');
   futureOptions.id = 'santos-future-options';
   futureOptions.style.cssText = `
@@ -551,16 +337,22 @@ function createFloatingMenu() {
     user-select: none;
   `;
   futureOptions.textContent = 'Mais opções em breve...';
+  
+  // Adiciona as opções na nova ordem
+  optionsMenu.appendChild(themeOption);
+  optionsMenu.appendChild(exploitOption);
+  optionsMenu.appendChild(correctAnswerOption);
+  optionsMenu.appendChild(autoClickOption);
+  optionsMenu.appendChild(speedControl);
+  optionsMenu.appendChild(hideMenuOption);
   optionsMenu.appendChild(futureOptions);
   
   container.appendChild(mainButton);
   container.appendChild(optionsMenu);
   document.body.appendChild(container);
   
-  // Estado do tema (dark mode ativo por padrão)
   let isDarkMode = true;
   
-  // Função para atualizar o switch de tema
   function updateThemeSwitch() {
     const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
     if (isDarkMode) {
@@ -572,7 +364,6 @@ function createFloatingMenu() {
     }
   }
   
-  // Alternar tema
   themeOption.addEventListener('click', () => {
     isDarkMode = !isDarkMode;
     
@@ -587,7 +378,6 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
-  // Alternar exploit de vídeo
   exploitOption.addEventListener('click', () => {
     videoExploitEnabled = !videoExploitEnabled;
     
@@ -605,7 +395,6 @@ function createFloatingMenu() {
     }
   });
   
-  // Alternar automação de cliques
   autoClickOption.addEventListener('click', () => {
     autoClickEnabled = !autoClickEnabled;
     
@@ -626,7 +415,6 @@ function createFloatingMenu() {
     }
   });
   
-  // Alternar sistema de respostas corretas
   correctAnswerOption.addEventListener('click', () => {
     correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
     
@@ -644,30 +432,8 @@ function createFloatingMenu() {
     }
   });
   
-  // Alternar anti-cheat
-  antiCheatOption.addEventListener('click', () => {
-    if (antiCheatEnabled) {
-      disableAntiCheat();
-    } else {
-      enableAntiCheat();
-    }
-    
-    const antiCheatSwitch = antiCheatOption.querySelector('#anti-cheat-switch');
-    const antiCheatSwitchInner = antiCheatSwitch.querySelector('div');
-    
-    if (antiCheatEnabled) {
-      antiCheatSwitch.style.background = '#4CAF50';
-      antiCheatSwitchInner.style.left = '22px';
-    } else {
-      antiCheatSwitch.style.background = '#ccc';
-      antiCheatSwitchInner.style.left = '2px';
-    }
-  });
-  
-  // Estado do menu
   let isMenuOpen = false;
   
-  // Função para fechar o menu e retomar a automação
   function closeMenu() {
     if (!isMenuOpen) return;
     
@@ -675,25 +441,21 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'none';
     mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     
-    // Retomar a automação
     autoClickPaused = false;
     sendToast("▶️｜Automação retomada", 1000);
   }
   
-  // Função para abrir o menu e pausar a automação
   function openMenu() {
     if (isMenuOpen) return;
     
     isMenuOpen = true;
     optionsMenu.style.display = 'flex';
-    mainButton.style.boxShadow = '0 4px 15px rgba(255, 138, 0, 0.5)';
+    mainButton.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.5)';
     
-    // Pausar a automação
     autoClickPaused = true;
     sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
   }
   
-  // Abrir/fechar menu
   function toggleMenu() {
     if (isMenuOpen) {
       closeMenu();
@@ -707,22 +469,18 @@ function createFloatingMenu() {
     toggleMenu();
   });
   
-  // Fechar menu ao clicar fora
   document.addEventListener('click', (e) => {
     if (!container.contains(e.target) && isMenuOpen) {
       closeMenu();
     }
   });
   
-  // Esconder o menu
   hideMenuOption.addEventListener('click', () => {
-    // Fechar o menu antes de esconder
     closeMenu();
     
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
     
-    // Criar botão de reativação
     const reactivateBtn = document.createElement('div');
     reactivateBtn.id = 'santos-reactivate-btn';
     reactivateBtn.style.cssText = `
@@ -731,7 +489,7 @@ function createFloatingMenu() {
       right: 20px;
       width: 40px;
       height: 40px;
-      background: rgba(255, 138, 0, 0.2);
+      background: rgba(102, 126, 234, 0.2);
       border-radius: 50%;
       cursor: pointer;
       z-index: 10000;
@@ -745,18 +503,16 @@ function createFloatingMenu() {
     reactivateBtn.innerHTML = '☰';
     document.body.appendChild(reactivateBtn);
     
-    // Mostrar menu ao passar o mouse
     reactivateBtn.addEventListener('mouseenter', () => {
-      reactivateBtn.style.background = 'rgba(255, 138, 0, 0.5)';
+      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.5)';
       reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
     });
     
     reactivateBtn.addEventListener('mouseleave', () => {
-      reactivateBtn.style.background = 'rgba(255, 138, 0, 0.2)';
+      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.2)';
       reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
     });
     
-    // Reativar menu ao clicar
     reactivateBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       container.style.opacity = '1';
@@ -765,7 +521,6 @@ function createFloatingMenu() {
     });
   });
   
-  // Implementação do arrastar com threshold
   let isDragging = false;
   let startX, startY;
   let initialX, initialY;
@@ -840,7 +595,6 @@ function createFloatingMenu() {
     el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
   }
   
-  // Carregar posição salva
   const savedPosition = localStorage.getItem('santosMenuPosition');
   if (savedPosition) {
     const { x, y } = JSON.parse(savedPosition);
@@ -849,10 +603,9 @@ function createFloatingMenu() {
     setTranslate(x, y, container);
   }
   
-  // Efeito hover
   mainButton.addEventListener('mouseenter', () => {
     mainButton.style.transform = 'scale(1.05)';
-    mainButton.style.boxShadow = '0 6px 20px rgba(255, 138, 0, 0.4)';
+    mainButton.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
   });
   
   mainButton.addEventListener('mouseleave', () => {
@@ -862,12 +615,10 @@ function createFloatingMenu() {
     }
   });
   
-  // Controle de velocidade (atualizado para ir até 60 segundos)
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
-    // Desativar slider se automação estiver desligada
     speedSlider.disabled = !autoClickEnabled;
     
     speedSlider.addEventListener('input', () => {
@@ -878,23 +629,86 @@ function createFloatingMenu() {
     });
   }
   
-  // Atualizar o switch inicial
   updateThemeSwitch();
 }
 
 function setupMain() {
-  // Salvar fetch original
-  window.originalFetch = window.fetch;
-  // Salvar console original
-  window.originalConsole = {
-    warn: console.warn,
-    error: console.error
+  const originalFetch = window.fetch;
+
+  window.fetch = async function(input, init) {
+    if (videoExploitEnabled) {
+      let body;
+      if (input instanceof Request) {
+        body = await input.clone().text();
+      } else if (init?.body) {
+        body = init.body;
+      }
+
+      if (body?.includes('"operationName":"updateUserVideoProgress"')) {
+        try {
+          let bodyObj = JSON.parse(body);
+          if (bodyObj.variables?.input) {
+            const durationSeconds = bodyObj.variables.input.durationSeconds;
+            bodyObj.variables.input.secondsWatched = durationSeconds;
+            bodyObj.variables.input.lastSecondWatched = durationSeconds;
+            body = JSON.stringify(bodyObj);
+            
+            if (input instanceof Request) {
+              input = new Request(input, { body });
+            } else {
+              init.body = body;
+            }
+            sendToast("🔄｜Vídeo exploitado.", 1000);
+          }
+        } catch (e) {}
+      }
+    }
+
+    const originalResponse = await originalFetch.apply(this, arguments);
+
+    if (correctAnswerSystemEnabled) {
+      try {
+        const clonedResponse = originalResponse.clone();
+        const responseBody = await clonedResponse.text();
+        let responseObj = JSON.parse(responseBody);
+        
+        if (responseObj?.data?.assessmentItem?.item?.itemData) {
+          let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+          
+          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+            itemData.answerArea = {
+              calculator: false,
+              chi2Table: false,
+              periodicTable: false,
+              tTable: false,
+              zTable: false
+            };
+            
+            itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
+            itemData.question.widgets = {
+              "radio 1": {
+                type: "radio",
+                options: {
+                  choices: [{ content: "correta", correct: true }]
+                }
+              }
+            };
+            
+            responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+            
+            return new Response(JSON.stringify(responseObj), {
+              status: originalResponse.status,
+              statusText: originalResponse.statusText,
+              headers: originalResponse.headers
+            });
+          }
+        }
+      } catch (e) {}
+    }
+    
+    return originalResponse;
   };
 
-  // Criar fetch personalizado
-  window.fetch = createCustomFetch(window.originalFetch);
-
-  // Loop de resolução de exercícios - controlado por autoClickEnabled
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
@@ -907,7 +721,6 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
-      // Se a automação estiver desligada ou pausada, esperar e continuar
       if (!autoClickEnabled || autoClickPaused) {
         await delay(2000);
         continue;
