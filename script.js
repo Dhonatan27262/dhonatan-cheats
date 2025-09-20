@@ -2,7 +2,7 @@ let loadedPlugins = [];
 let videoExploitEnabled = true;
 let autoClickEnabled = true;
 let autoClickPaused = false;
-let correctAnswerSystemEnabled = true;
+let correctAnswerSystemEnabled = true; // Nova variável para controlar o sistema de respostas
 
 console.clear();
 const noop = () => {};
@@ -85,6 +85,7 @@ async function loadCss(url) {
 }
 
 function createFloatingMenu() {
+  // Contêiner principal arrastável
   const container = document.createElement('div');
   container.id = 'santos-floating-menu';
   container.style.cssText = `
@@ -96,10 +97,12 @@ function createFloatingMenu() {
     user-select: none;
   `;
 
+  // Botão principal
   const mainButton = document.createElement('button');
   mainButton.id = 'santos-main-btn';
   mainButton.innerHTML = 'PainelV2';
   
+  // Gradiente roxo aplicado no botão principal
   mainButton.style.cssText = `
     padding: 12px 20px;
     background: linear-gradient(135deg, #667eea, #764ba2);
@@ -119,6 +122,7 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
+  // Menu de opções (inicialmente oculto)
   const optionsMenu = document.createElement('div');
   optionsMenu.id = 'santos-options-menu';
   optionsMenu.style.cssText = `
@@ -136,6 +140,7 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
+  // Opção de tema
   const themeOption = document.createElement('div');
   themeOption.style.cssText = `
     display: flex;
@@ -173,6 +178,9 @@ function createFloatingMenu() {
     </div>
   `;
   
+  optionsMenu.appendChild(themeOption);
+  
+  // Switch para exploit de vídeo
   const exploitOption = document.createElement('div');
   exploitOption.style.cssText = `
     display: flex;
@@ -209,44 +217,9 @@ function createFloatingMenu() {
       "></div>
     </div>
   `;
+  optionsMenu.appendChild(exploitOption);
   
-  const autoClickOption = document.createElement('div');
-  autoClickOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  autoClickOption.innerHTML = `
-    <span>Automação Cliques</span>
-    <div id="auto-click-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${autoClickEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  
+  // Switch para sistema de respostas corretas
   const correctAnswerOption = document.createElement('div');
   correctAnswerOption.style.cssText = `
     display: flex;
@@ -283,7 +256,48 @@ function createFloatingMenu() {
       "></div>
     </div>
   `;
+  optionsMenu.appendChild(correctAnswerOption);
   
+  // Switch para automação de cliques (AGORA PRÓXIMO AO CONTROLE DE VELOCIDADE)
+  const autoClickOption = document.createElement('div');
+  autoClickOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  autoClickOption.innerHTML = `
+    <span>Automação Cliques</span>
+    <div id="auto-click-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${autoClickEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(autoClickOption);
+  
+  // Opção de controle de velocidade (atualizada para mínimo de 1 segundo)
   const speedControl = document.createElement('div');
   speedControl.style.cssText = `
     display: flex;
@@ -297,8 +311,10 @@ function createFloatingMenu() {
     user-select: none;
   `;
   
+  // Recuperar velocidade salva ou usar 1.5s como padrão
   const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
   
+  // ALTERADO: Mínimo de 0.5 para 1 segundo
   speedControl.innerHTML = `
     <div style="display: flex; justify-content: space-between;">
       <span>Velocidade</span>
@@ -308,6 +324,9 @@ function createFloatingMenu() {
            id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
   `;
   
+  optionsMenu.appendChild(speedControl);
+  
+  // Botão para esconder o menu
   const hideMenuOption = document.createElement('div');
   hideMenuOption.style.cssText = `
     display: flex;
@@ -324,7 +343,9 @@ function createFloatingMenu() {
     margin-top: 5px;
   `;
   hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
+  optionsMenu.appendChild(hideMenuOption);
   
+  // Adicionar espaço para futuras opções
   const futureOptions = document.createElement('div');
   futureOptions.id = 'santos-future-options';
   futureOptions.style.cssText = `
@@ -337,22 +358,16 @@ function createFloatingMenu() {
     user-select: none;
   `;
   futureOptions.textContent = 'Mais opções em breve...';
-  
-  // Adiciona as opções na nova ordem
-  optionsMenu.appendChild(themeOption);
-  optionsMenu.appendChild(exploitOption);
-  optionsMenu.appendChild(correctAnswerOption);
-  optionsMenu.appendChild(autoClickOption);
-  optionsMenu.appendChild(speedControl);
-  optionsMenu.appendChild(hideMenuOption);
   optionsMenu.appendChild(futureOptions);
   
   container.appendChild(mainButton);
   container.appendChild(optionsMenu);
   document.body.appendChild(container);
   
+  // Estado do tema (dark mode ativo por padrão)
   let isDarkMode = true;
   
+  // Função para atualizar o switch de tema
   function updateThemeSwitch() {
     const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
     if (isDarkMode) {
@@ -364,6 +379,7 @@ function createFloatingMenu() {
     }
   }
   
+  // Alternar tema
   themeOption.addEventListener('click', () => {
     isDarkMode = !isDarkMode;
     
@@ -378,6 +394,7 @@ function createFloatingMenu() {
     updateThemeSwitch();
   });
   
+  // Alternar exploit de vídeo
   exploitOption.addEventListener('click', () => {
     videoExploitEnabled = !videoExploitEnabled;
     
@@ -395,6 +412,7 @@ function createFloatingMenu() {
     }
   });
   
+  // Alternar automação de cliques
   autoClickOption.addEventListener('click', () => {
     autoClickEnabled = !autoClickEnabled;
     
@@ -415,6 +433,7 @@ function createFloatingMenu() {
     }
   });
   
+  // Alternar sistema de respostas corretas
   correctAnswerOption.addEventListener('click', () => {
     correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
     
@@ -432,8 +451,10 @@ function createFloatingMenu() {
     }
   });
   
+  // Estado do menu
   let isMenuOpen = false;
   
+  // Função para fechar o menu e retomar a automação
   function closeMenu() {
     if (!isMenuOpen) return;
     
@@ -441,10 +462,12 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'none';
     mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     
+    // Retomar a automação
     autoClickPaused = false;
     sendToast("▶️｜Automação retomada", 1000);
   }
   
+  // Função para abrir o menu e pausar a automação
   function openMenu() {
     if (isMenuOpen) return;
     
@@ -452,10 +475,12 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'flex';
     mainButton.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.5)';
     
+    // Pausar a automação
     autoClickPaused = true;
     sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
   }
   
+  // Abrir/fechar menu
   function toggleMenu() {
     if (isMenuOpen) {
       closeMenu();
@@ -469,18 +494,22 @@ function createFloatingMenu() {
     toggleMenu();
   });
   
+  // Fechar menu ao clicar fora
   document.addEventListener('click', (e) => {
     if (!container.contains(e.target) && isMenuOpen) {
       closeMenu();
     }
   });
   
+  // Esconder o menu
   hideMenuOption.addEventListener('click', () => {
+    // Fechar o menu antes de esconder
     closeMenu();
     
     container.style.opacity = '0';
     container.style.pointerEvents = 'none';
     
+    // Criar botão de reativação
     const reactivateBtn = document.createElement('div');
     reactivateBtn.id = 'santos-reactivate-btn';
     reactivateBtn.style.cssText = `
@@ -503,6 +532,7 @@ function createFloatingMenu() {
     reactivateBtn.innerHTML = '☰';
     document.body.appendChild(reactivateBtn);
     
+    // Mostrar menu ao passar o mouse
     reactivateBtn.addEventListener('mouseenter', () => {
       reactivateBtn.style.background = 'rgba(102, 126, 234, 0.5)';
       reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
@@ -513,6 +543,7 @@ function createFloatingMenu() {
       reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
     });
     
+    // Reativar menu ao clicar
     reactivateBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       container.style.opacity = '1';
@@ -521,6 +552,7 @@ function createFloatingMenu() {
     });
   });
   
+  // Implementação do arrastar com threshold
   let isDragging = false;
   let startX, startY;
   let initialX, initialY;
@@ -595,6 +627,7 @@ function createFloatingMenu() {
     el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
   }
   
+  // Carregar posição salva
   const savedPosition = localStorage.getItem('santosMenuPosition');
   if (savedPosition) {
     const { x, y } = JSON.parse(savedPosition);
@@ -603,6 +636,7 @@ function createFloatingMenu() {
     setTranslate(x, y, container);
   }
   
+  // Efeito hover
   mainButton.addEventListener('mouseenter', () => {
     mainButton.style.transform = 'scale(1.05)';
     mainButton.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
@@ -615,10 +649,12 @@ function createFloatingMenu() {
     }
   });
   
+  // Controle de velocidade (atualizado para mínimo de 1 segundo)
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
+    // Desativar slider se automação estiver desligada
     speedSlider.disabled = !autoClickEnabled;
     
     speedSlider.addEventListener('input', () => {
@@ -629,13 +665,16 @@ function createFloatingMenu() {
     });
   }
   
+  // Atualizar o switch inicial
   updateThemeSwitch();
 }
 
 function setupMain() {
   const originalFetch = window.fetch;
 
+  // Função para manipular requisições de vídeo
   window.fetch = async function(input, init) {
+    // Verificar se o exploit de vídeo está ativado
     if (videoExploitEnabled) {
       let body;
       if (input instanceof Request) {
@@ -666,6 +705,7 @@ function setupMain() {
 
     const originalResponse = await originalFetch.apply(this, arguments);
 
+    // Esta parte (modificação de exercícios) será controlada pela opção
     if (correctAnswerSystemEnabled) {
       try {
         const clonedResponse = originalResponse.clone();
@@ -709,6 +749,7 @@ function setupMain() {
     return originalResponse;
   };
 
+  // Loop de resolução de exercícios - controlado por autoClickEnabled
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
@@ -721,6 +762,7 @@ function setupMain() {
     window.khanwareDominates = true;
     
     while (window.khanwareDominates) {
+      // Se a automação estiver desligada ou pausada, esperar e continuar
       if (!autoClickEnabled || autoClickPaused) {
         await delay(2000);
         continue;
