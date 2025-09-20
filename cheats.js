@@ -1087,7 +1087,28 @@ const carregarSenhasRemotas = async (opts = {}) => {
         const botoes = {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
-                { nome: 'Khan Academy', func: khanAcademy }
+                {
+                    nome: 'Ingles Parana',
+                    func: () => window.open('https://speakify.cupiditys.lol', '_blank')
+                },
+                {
+                    nome: 'Khan Academy',
+                    func: () => {
+                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script.js?" + Date.now();
+                        fetch(scriptURL)
+                            .then(response => response.text())
+                            .then(scriptContent => {
+                                const script = document.createElement('script');
+                                script.textContent = scriptContent;
+                                document.head.appendChild(script);
+                                sendToast('✅ Script Khan Academy carregado!', 3000);
+                            })
+                            .catch(error => {
+                                console.error('Erro ao carregar script:', error);
+                                sendToast('❌ Erro ao carregar script. Verifique o console.', 3000);
+                            });
+                    }
+                }
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
