@@ -1112,7 +1112,26 @@ const carregarSenhasRemotas = async (opts = {}) => {
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
-                { nome: 'Digitador v2', func: digitadorV2 },
+                {
+                    nome: 'Digitador v2',
+                    func: () => {
+                        fundo.remove();
+                        criarBotaoFlutuante();
+                        const scriptURL = "https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador.js?" + Date.now();
+                        fetch(scriptURL)
+                            .then(response => response.text())
+                            .then(scriptContent => {
+                                const script = document.createElement('script');
+                                script.textContent = scriptContent;
+                                document.head.appendChild(script);
+                                sendToast('Carregado!', 3000);
+                            })
+                            .catch(error => {
+                                console.error('Erro ao carregar Kahoot script:', error);
+                                sendToast('❌ Erro ao carregar o Kahoot script. Verifique o console.', 3000);
+                            });
+                    }
+                },
                 { nome: 'Criar Texto com Tema via IA', func: criarTextoComTema },
                 { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor }
             ],
