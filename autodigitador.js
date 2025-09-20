@@ -28,7 +28,8 @@
     currentText: '',
     currentIndex: 0,
     currentSpeed: 40,
-    currentShowProgress: true
+    currentShowProgress: true,
+    currentShowControls: true // Novo estado para controlar a exibição dos botões
   };
 
   // ---- Toast/aviso rápido ----
@@ -174,6 +175,12 @@
         <span style="font-weight:600; color:#1f2937;">Mostrar porcentagem durante a digitação</span>
       </label>
 
+      <!-- Nova opção para mostrar/ocultar botões de controle -->
+      <label style="display:flex; align-items:center; gap:8px; margin:16px 0; cursor:pointer;">
+        <input type="checkbox" id="digitadorV2-mostrar-botoes" checked style="width:18px; height:18px;">
+        <span style="font-weight:600; color:#1f2937;">Mostrar botões de controle (pausar/continuar/cancelar)</span>
+      </label>
+
       <div style="display:flex; gap:10px; justify-content:flex-end;">
         <button id="digitadorV2-cancelar" style="
           padding:10px 16px; background:#ef4444; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px;">
@@ -197,9 +204,10 @@
     modal.querySelector('#digitadorV2-confirmar').addEventListener('click', () => {
       const velocidade = modal.querySelector('#digitadorV2-velocidade').value;
       const mostrarPorcentagem = modal.querySelector('#digitadorV2-mostrar-porcentagem').checked;
+      const mostrarBotoes = modal.querySelector('#digitadorV2-mostrar-botoes').checked; // Nova opção
       const textoAtual = txt.value;
       modal.remove();
-      iniciarDigitacao(el, textoAtual, velocidade, mostrarPorcentagem);
+      iniciarDigitacao(el, textoAtual, velocidade, mostrarPorcentagem, mostrarBotoes);
     });
 
     // Fechar com ESC
@@ -356,6 +364,7 @@
           window[NS].currentText,
           window[NS].currentSpeed,
           window[NS].currentShowProgress,
+          window[NS].currentShowControls,
           window[NS].currentIndex
         );
       }
@@ -423,7 +432,7 @@
   // ===============================
   // Digitação tecla-por-tecla (sem abrir teclado)
   // ===============================
-  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem, startIndex = 0) {
+  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem, mostrarBotoes, startIndex = 0) {
     // Se estiver pausado, não faz nada (aguarda usuário clicar em continuar)
     if (window[NS].paused && startIndex === 0) {
       return;
@@ -437,6 +446,7 @@
     
     // Remove elementos de UI existentes
     document.getElementById('digitadorV2-progresso')?.remove();
+    document.getElementById('digitadorV2-controls')?.remove();
     
     // Salva estado atual para possível retomada
     window[NS].currentElement = el;
@@ -444,9 +454,13 @@
     window[NS].currentIndex = startIndex;
     window[NS].currentSpeed = velocidade;
     window[NS].currentShowProgress = mostrarPorcentagem;
+    window[NS].currentShowControls = mostrarBotoes; // Novo estado
     
-    // Cria controles (sempre visíveis)
-    const controls = criarControles(mostrarPorcentagem);
+    // Cria controles apenas se a opção estiver ativada
+    let controls = null;
+    if (mostrarBotoes) {
+      controls = criarControles(mostrarPorcentagem);
+    }
     
     // Detecta tipo do elemento
     const isInputEl = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
@@ -472,7 +486,7 @@
     
     // Criar elemento de progresso apenas se for mostrar porcentagem
     let progresso = null;
-    if (mostrarPorcentagem) {
+    if (mostrarPorcentagem && mostrarBotoes) {
       progresso = document.createElement('div');
       progresso.id = 'digitadorV2-progresso';
       Object.assign(progresso.style, {
@@ -522,7 +536,7 @@
         }
 
         // Atualizar progresso se estiver sendo mostrado
-        if (mostrarPorcentagem && progresso) {
+        if (mostrarPorcentagem && mostrarBotoes && progresso) {
           progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
         }
 
