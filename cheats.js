@@ -828,31 +828,37 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
     const jogoDaVelha = async (opts = {}) => {
   const debug = !!opts.debug;
-  const toastShort = (msg) => sendToast(msg, 3000);
-  const toastLong = (msg) => sendToast(msg, 5000);
+  const toastShort = (m) => sendToast(m, 3000);
+  const toastLong = (m) => sendToast(m, 5000);
 
-  toastShort('⌛ Carregando Script Jogo da Velha...');
+  toastShort('⌛ Carregando Jogo da Velha...');
 
-  // --- URLs base64 codificadas (como no Khan) ---
-  const primaryChunks = [
-    'aHR0cH','M6Ly9y','YXcuZ2l','0aHVid','XNlcmNv','bnRlbnQ','uY29tL2',
-    '1ldGVv','ZGV2L2','dhbWVzL','21haW4v','am9nby1','kYS12ZW','xoYS5qcw'
+  const primaryParts = [
+    'Hc0RHa','y9yL6M','2ZucXY','iVHa0l','mclNXd','lRnbvN','2YuQnb','1F2Lt9',
+    'WahBHe','y8Cbl5','2LwUDM','v4Wah1','2bn9ma','sVmdhR','nauEGa','/M'
   ];
-  const primaryOrder = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
 
-  const fallbackChunks = [
-    'aHR0cH','M6Ly9j','ZG4uan','NkZWxp','dmVyLm5','ldC9nYW','1lcy9qb','2dvLmpz'
+  const fallbackParts = [
+    'Hc0RHa','j9yL6M','nau4GZ','pxWZkN','mbuInd','od2L0V','He1F2L','l5WahB',
+    'DMy8Cb','h1GQwU','mav4Wa','hR2bn9','GasVmd','/MnauE'
   ];
-  const fallbackOrder = [0,1,2,3,4,5,6,7];
 
-  const rebuild = (chunks, order) => order.map(i => chunks[i]).join('');
+  const rebuild = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
+
   const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-  const looksLikeHtmlError = txt => {
+  const looksLikeHtmlError = (txt) => {
     if (!txt || typeof txt !== 'string') return true;
     const t = txt.trim().toLowerCase();
     if (t.length < 40) return true;
-    return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied');
+    return (
+      t.includes('<!doctype') ||
+      t.includes('<html') ||
+      t.includes('not found') ||
+      t.includes('404') ||
+      t.includes('access denied') ||
+      t.includes('you have been blocked')
+    );
   };
 
   const fetchWithTimeout = (resource, timeout = 15000) => {
@@ -863,19 +869,19 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
   const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
     let lastErr = null;
-    for (let ui = 0; ui < urls.length; ui++) {
-      const u = urls[ui];
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
       for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
         try {
-          if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
           const res = await fetchWithTimeout(u, timeout);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro');
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
           return txt;
         } catch (err) {
           lastErr = err;
-          if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
           await sleep(backoff * attempt);
         }
       }
@@ -885,62 +891,65 @@ function showTermoResponsabilidade(onAccept, onReject) {
   };
 
   try {
-    const primaryBase64 = rebuild(primaryChunks, primaryOrder);
-    const fallbackBase64 = rebuild(fallbackChunks, fallbackOrder);
+    const primaryBase64 = rebuild(primaryParts);
+    const fallbackBase64 = rebuild(fallbackParts);
 
-    const primaryURL = atob(primaryBase64) + '?' + Date.now();
-    const fallbackURL = atob(fallbackBase64) + '?' + Date.now();
+    const primaryURL = atob(primaryBase64) + Date.now();
+    const fallbackURL = atob(fallbackBase64) + Date.now();
 
     const urlsToTry = [primaryURL, fallbackURL];
 
     const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-    if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
-    // remove anterior
     try {
       const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
       if (prev) prev.remove();
-    } catch (e) {
-      if (debug) console.warn('Falha ao remover script anterior:', e.message);
-    }
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
 
-    // injeta
     const scriptEl = document.createElement('script');
     scriptEl.type = 'text/javascript';
     scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
     scriptEl.textContent = scriptContent;
     document.head.appendChild(scriptEl);
 
-    // sucesso
-    toastShort('✔️ Script Jogo da Velha carregado!');
+    toastShort('✔️ Carregado!');
 
-    // --- remover overlay/fundo se existir ---
+    // --- remover fundo/overlay ---
     try {
       if (typeof fundo !== "undefined" && fundo) {
         fundo.remove();
         if (debug) console.log("✅ Fundo removido");
       }
     } catch (e) {
-      if (debug) console.warn('Ignorado erro removendo fundo:', e.message);
+      if (debug) console.warn("Erro removendo fundo:", e.message);
     }
 
-    // --- criar botão/painel flutuante ---
-    try {
+    // --- garantir criação do painel (mesmo que atrase um pouco) ---
+    let tentativas = 0;
+    const interval = setInterval(() => {
+      tentativas++;
       if (typeof criarBotaoFlutuante === "function") {
-        criarBotaoFlutuante();
-        if (debug) console.log("✅ Botão flutuante recriado");
-      } else {
-        if (debug) console.warn("⚠️ criarBotaoFlutuante não existe no escopo global");
+        try {
+          criarBotaoFlutuante();
+          if (debug) console.log("✅ Botão flutuante recriado");
+        } catch (e) {
+          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+        }
+        clearInterval(interval);
+      } else if (tentativas > 10) {
+        // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
+        clearInterval(interval);
+        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
       }
-    } catch (e) {
-      if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message);
-    }
+    }, 500);
 
     return true;
   } catch (err) {
-    console.error('Erro ao carregar script Jogo da Velha:', err);
-    toastLong('❌ Erro ao carregar script Jogo da Velha. Veja console.');
+    console.error('Erro ao carregar Jogo da Velha:', err);
+    toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+    if (debug) console.error('Debug info:', err);
     return false;
   }
 };
