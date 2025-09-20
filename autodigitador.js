@@ -14,6 +14,7 @@
     document.getElementById('digitadorV2-modal')?.remove();
     document.getElementById('digitadorV2-progresso')?.remove();
     document.getElementById('digitadorV2-toast')?.remove();
+    document.getElementById('digitadorV2-controls')?.remove();
   }
 
   // ---- Estado global renovado a cada injeção ----
@@ -21,7 +22,13 @@
     aguardandoCampo: false,
     listenerInstalado: false,
     onDocClick: null,
-    typingIntervalId: null
+    typingIntervalId: null,
+    paused: false,
+    currentElement: null,
+    currentText: '',
+    currentIndex: 0,
+    currentSpeed: 40,
+    currentShowProgress: true
   };
 
   // ---- Toast/aviso rápido ----
@@ -266,15 +273,181 @@
   }
 
   // ===============================
+  // Cria controles de UI
+  // ===============================
+  function criarControles(mostrarPorcentagem) {
+    // Remove controles existentes
+    document.getElementById('digitadorV2-controls')?.remove();
+    
+    const controls = document.createElement('div');
+    controls.id = 'digitadorV2-controls';
+    
+    // Estilo base
+    Object.assign(controls.style, {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 10000002,
+      display: 'flex',
+      gap: '10px',
+      padding: '10px',
+      borderRadius: '8px',
+      background: 'rgba(0,0,0,0.85)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+    });
+    
+    // Se mostrarPorcentagem for true, adicionamos estilos adicionais
+    if (mostrarPorcentagem) {
+      Object.assign(controls.style, {
+        padding: '15px 20px',
+        alignItems: 'center'
+      });
+    }
+    
+    // Botão Pausar
+    const pauseBtn = document.createElement('button');
+    pauseBtn.innerHTML = '⏸️';
+    pauseBtn.title = 'Pausar';
+    pauseBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+    `;
+    pauseBtn.addEventListener('mouseover', () => {
+      pauseBtn.style.background = 'rgba(255,255,255,0.2)';
+    });
+    pauseBtn.addEventListener('mouseout', () => {
+      pauseBtn.style.background = 'none';
+    });
+    pauseBtn.addEventListener('click', () => {
+      window[NS].paused = true;
+      toast('⏸️ Digitação pausada');
+    });
+    
+    // Botão Continuar
+    const resumeBtn = document.createElement('button');
+    resumeBtn.innerHTML = '▶️';
+    resumeBtn.title = 'Continuar';
+    resumeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+    `;
+    resumeBtn.addEventListener('mouseover', () => {
+      resumeBtn.style.background = 'rgba(255,255,255,0.2)';
+    });
+    resumeBtn.addEventListener('mouseout', () => {
+      resumeBtn.style.background = 'none';
+    });
+    resumeBtn.addEventListener('click', () => {
+      if (window[NS].paused) {
+        window[NS].paused = false;
+        toast('▶️ Digitação continuando');
+        // Reinicia a digitação de onde parou
+        iniciarDigitacao(
+          window[NS].currentElement,
+          window[NS].currentText,
+          window[NS].currentSpeed,
+          window[NS].currentShowProgress,
+          window[NS].currentIndex
+        );
+      }
+    });
+    
+    // Botão Cancelar
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerHTML = '❌';
+    cancelBtn.title = 'Cancelar';
+    cancelBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+    `;
+    cancelBtn.addEventListener('mouseover', () => {
+      cancelBtn.style.background = 'rgba(255,255,255,0.2)';
+    });
+    cancelBtn.addEventListener('mouseout', () => {
+      cancelBtn.style.background = 'none';
+    });
+    cancelBtn.addEventListener('click', () => {
+      // Limpa o intervalo de digitação
+      if (window[NS].typingIntervalId) {
+        clearTimeout(window[NS].typingIntervalId);
+        window[NS].typingIntervalId = null;
+      }
+      
+      // Remove a UI
+      document.getElementById('digitadorV2-progresso')?.remove();
+      document.getElementById('digitadorV2-controls')?.remove();
+      
+      // Restaura estado do elemento
+      try {
+        if (window[NS].currentElement && 
+            (window[NS].currentElement.tagName === 'INPUT' || 
+             window[NS].currentElement.tagName === 'TEXTAREA')) {
+          window[NS].currentElement.readOnly = false;
+          window[NS].currentElement.blur();
+        }
+      } catch (_) {}
+      
+      // Reseta estado
+      window[NS].paused = false;
+      window[NS].currentElement = null;
+      window[NS].currentText = '';
+      window[NS].currentIndex = 0;
+      
+      toast('❌ Digitação cancelada', '#ef4444');
+    });
+    
+    // Adiciona botões aos controles
+    controls.appendChild(pauseBtn);
+    controls.appendChild(resumeBtn);
+    controls.appendChild(cancelBtn);
+    
+    // Adiciona controles ao documento
+    document.body.appendChild(controls);
+    
+    return controls;
+  }
+
+  // ===============================
   // Digitação tecla-por-tecla (sem abrir teclado)
   // ===============================
-  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem) {
+  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem, startIndex = 0) {
+    // Se estiver pausado, não faz nada (aguarda usuário clicar em continuar)
+    if (window[NS].paused && startIndex === 0) {
+      return;
+    }
+    
+    // Se já existe um intervalo, limpa
     if (window[NS].typingIntervalId) {
       clearTimeout(window[NS].typingIntervalId);
       window[NS].typingIntervalId = null;
     }
+    
+    // Remove elementos de UI existentes
     document.getElementById('digitadorV2-progresso')?.remove();
-
+    
+    // Salva estado atual para possível retomada
+    window[NS].currentElement = el;
+    window[NS].currentText = texto;
+    window[NS].currentIndex = startIndex;
+    window[NS].currentSpeed = velocidade;
+    window[NS].currentShowProgress = mostrarPorcentagem;
+    
+    // Cria controles (sempre visíveis)
+    const controls = criarControles(mostrarPorcentagem);
+    
     // Detecta tipo do elemento
     const isInputEl = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
     const isContentEditable = !!el.isContentEditable;
@@ -295,26 +468,22 @@
       }
     } catch (_) {}
 
-    let i = 0;
+    let i = startIndex;
+    
     // Criar elemento de progresso apenas se for mostrar porcentagem
     let progresso = null;
     if (mostrarPorcentagem) {
       progresso = document.createElement('div');
       progresso.id = 'digitadorV2-progresso';
       Object.assign(progresso.style, {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: 'rgba(0,0,0,0.85)',
         color: '#fff',
-        padding: '10px 20px',
-        borderRadius: '8px',
-        zIndex: 10000002,
-        fontSize: '18px',
-        fontFamily: 'Arial, sans-serif'
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        marginRight: '10px'
       });
-      document.body.appendChild(progresso);
+      
+      // Adiciona o elemento de progresso aos controles
+      controls.insertBefore(progresso, controls.firstChild);
     }
 
     // Função para obter o próximo intervalo baseado na velocidade selecionada
@@ -332,6 +501,11 @@
     }
 
     function digitarProximoCaractere() {
+      // Se estiver pausado, não faz nada
+      if (window[NS].paused) {
+        return;
+      }
+      
       if (i < texto.length) {
         const c = texto[i++];
 
@@ -358,12 +532,14 @@
           try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
         }
 
+        // Atualiza o índice atual
+        window[NS].currentIndex = i;
+        
         // Agendar próximo caractere
         window[NS].typingIntervalId = setTimeout(digitarProximoCaractere, obterProximoIntervalo());
       } else {
         // Finalização
         window[NS].typingIntervalId = null;
-        if (progresso) progresso.remove();
 
         // remove readonly e desfoca para inputs
         try {
@@ -385,6 +561,11 @@
         try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
         try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
 
+        // Remove controles após um breve delay
+        setTimeout(() => {
+          document.getElementById('digitadorV2-controls')?.remove();
+        }, 1000);
+        
         toast('✅ Texto digitado com sucesso!');
       }
     }
