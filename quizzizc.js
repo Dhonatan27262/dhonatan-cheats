@@ -14,7 +14,7 @@
     // -----------------------------------------------------------------------------------
     // IMPORTANTE: CHAVE DE API
     // -----------------------------------------------------------------------------------
-    const GEMINI_API_KEY = "AIzaSyD_4aW-71T1Jc18Ggaz-6nUGZbR8A9eHEc";
+    const GEMINI_API_KEY = "AIzaSyAVIFAQlraJy4h9ztUbRd9GuhXu0r5fH1o";
     // -----------------------------------------------------------------------------------
 
     function waitForElement(selector, all = false, timeout = 5000) {
