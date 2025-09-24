@@ -1326,7 +1326,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         aplicarEstiloTexto(textoCima, '20px');
 
         const textoCriador = document.createElement('div');
-        textoCriador.textContent = 'Criador: Mlk Mau';
+        textoCriador.textContent = 'Criador: Mlkk Mau';
         aplicarEstiloTexto(textoCriador, '18px');
         textoCriador.style.margin = '5px 0'; // espaçamento
 
