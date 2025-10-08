@@ -1323,25 +1323,28 @@ const textoCima = document.createElement('div');
 textoCima.textContent = 'Painel Auxílio';
 aplicarEstiloTexto(textoCima, '20px');
 
-// 🔥 Texto de AVISO ESTILIZADO
+// 🔥 Texto de AVISO com cor mais suave
 const textoaviso = document.createElement('div');
-textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️p';
+textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️';
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
 textoaviso.style.padding = '8px 12px';
 textoaviso.style.margin = '6px 0';
-textoaviso.style.border = '2px solid red';
+textoaviso.style.border = '2px solid #ff4d4d';
 textoaviso.style.borderRadius = '10px';
-textoaviso.style.background = 'linear-gradient(90deg, #ff0000, #ffae00, #ff0000)';
-textoaviso.style.color = 'white';
-textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.9)';
-textoaviso.style.animation = 'brilhoAviso 2.5s linear infinite';
 
-// Cria animação CSS (brilho suave no fundo)
+// Degradê mais suave (vermelho-alaranjado com tom amarelado pastel)
+textoaviso.style.background = 'linear-gradient(90deg, #ff4040, #ff8c42, #ff4040)';
+
+textoaviso.style.color = 'white';
+textoaviso.style.textShadow = '0 0 6px rgba(255, 255, 255, 0.8)';
+textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
+
+// Animação de brilho mais leve
 const estiloAnimacao = document.createElement('style');
 estiloAnimacao.textContent = `
 @keyframes brilhoAviso {
   0% { filter: brightness(1); }
-  50% { filter: brightness(1.4); }
+  50% { filter: brightness(1.15); }
   100% { filter: brightness(1); }
 }
 `;
