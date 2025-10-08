@@ -1323,23 +1323,23 @@ const textoCima = document.createElement('div');
 textoCima.textContent = 'Painel Auxílio';
 aplicarEstiloTexto(textoCima, '20px');
 
-// 🔥 Texto de AVISO com cor mais suave
+// 🔮 Texto de AVISO com fundo roxo gradiente
 const textoaviso = document.createElement('div');
-textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso completo agora é exclusivo para usuários pagos. ⚠️';
+textoaviso.textContent = '⚠️ Teste gratuito encerrado — serviço disponível apenas para assinantes ⚠️';
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
 textoaviso.style.padding = '8px 12px';
 textoaviso.style.margin = '6px 0';
-textoaviso.style.border = '2px solid #ff4d4d';
+textoaviso.style.border = '2px solid #a85cff';
 textoaviso.style.borderRadius = '10px';
 
-// Degradê mais suave (vermelho-alaranjado com tom amarelado pastel)
-textoaviso.style.background = 'linear-gradient(90deg, #ff4040, #ff8c42, #ff4040)';
+// Fundo roxo em degradê suave e moderno
+textoaviso.style.background = 'linear-gradient(90deg, #5b00ff, #9b4dff, #5b00ff)';
 
 textoaviso.style.color = 'white';
-textoaviso.style.textShadow = '0 0 6px rgba(255, 255, 255, 0.8)';
+textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8)';
 textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
 
-// Animação de brilho mais leve
+// Animação de brilho suave
 const estiloAnimacao = document.createElement('style');
 estiloAnimacao.textContent = `
 @keyframes brilhoAviso {
@@ -1348,7 +1348,7 @@ estiloAnimacao.textContent = `
   100% { filter: brightness(1); }
 }
 `;
-document.head.appendChild(estiloAnimacao);
+document.head.appendChild(estiloAnimacao)
 
 // Texto CRIADOR (com animação roxa)
 const textoCriador = document.createElement('div');
