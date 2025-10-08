@@ -1319,56 +1319,73 @@ const carregarSenhasRemotas = async (opts = {}) => {
         });
 
         // Texto SUPERIOR
-        const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel Auxílio';
-        aplicarEstiloTexto(textoCima, '20px');
-        
-        const textoaviso = document.createElement('div');
-        textoaviso.textContent = '⚠️ O TESTE GRATIS ACABOU AGORA O PROGRAMA E PAGO ⚠️';
-        aplicarEstiloTexto(textoaviso, '20px');
-        
-        const textoCriador = document.createElement('div');
-        textoCriador.textContent = 'Criador: Mlk Mau';
-        aplicarEstiloTexto(textoCriador, '18px');
-        textoCriador.style.margin = '5px 0'; // espaçamento
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Auxílio';
+aplicarEstiloTexto(textoCima, '20px');
 
-        // Texto INFERIOR
-        const textoBaixo = document.createElement('div');
-        textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-        aplicarEstiloTexto(textoBaixo, '17px');
+// 🔥 Texto de AVISO ESTILIZADO
+const textoaviso = document.createElement('div');
+textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️';
+aplicarEstiloTexto(textoaviso, '19px', 'bold');
+textoaviso.style.padding = '8px 12px';
+textoaviso.style.margin = '6px 0';
+textoaviso.style.border = '2px solid red';
+textoaviso.style.borderRadius = '10px';
+textoaviso.style.background = 'linear-gradient(90deg, #ff0000, #ffae00, #ff0000)';
+textoaviso.style.color = 'white';
+textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.9)';
+textoaviso.style.animation = 'brilhoAviso 2.5s linear infinite';
 
-        // Adiciona os textos ao container
-        nome.appendChild(textoCima);
-        nome.appendChild(textoaviso);
-        nome.appendChild(textoCriador); // fica no meio
-        nome.appendChild(textoBaixo);
+// Cria animação CSS (brilho suave no fundo)
+const estiloAnimacao = document.createElement('style');
+estiloAnimacao.textContent = `
+@keyframes brilhoAviso {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+`;
+document.head.appendChild(estiloAnimacao);
 
-        // ===== Animação fluida só no "Criador" (mantida como original) =====
-        let hue = 260;
-        let direcao = 1; // 1 = indo pra frente, -1 = voltando
+// Texto CRIADOR (com animação roxa)
+const textoCriador = document.createElement('div');
+textoCriador.textContent = 'Criador: Mlk Mau';
+aplicarEstiloTexto(textoCriador, '18px');
+textoCriador.style.margin = '5px 0';
 
-        function animarCriador() {
-            const corRoxa = `hsl(${hue}, 100%, 65%)`;
-            textoCriador.style.color = corRoxa;
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
 
-            hue += 0.3 * direcao; // velocidade suave
+// Adiciona ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoaviso);
+nome.appendChild(textoCriador);
+nome.appendChild(textoBaixo);
 
-            // Inverte a direção ao chegar nos limites
-            if (hue >= 300 || hue <= 260) {
-                direcao *= -1;
-            }
+// ===== Animação fluida do CRIADOR =====
+let hue = 260;
+let direcao = 1;
 
-            requestAnimationFrame(animarCriador);
-        }
-        animarCriador();
+function animarCriador() {
+  const corRoxa = `hsl(${hue}, 100%, 65%)`;
+  textoCriador.style.color = corRoxa;
 
-        // Mantém animação do texto inferior como estava
-        let hueBaixo = 0;
-        setInterval(() => {
-            const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-            textoBaixo.style.color = corAtual;
-            hueBaixo++;
-        }, 30);
+  hue += 0.3 * direcao;
+  if (hue >= 300 || hue <= 260) direcao *= -1;
+
+  requestAnimationFrame(animarCriador);
+}
+animarCriador();
+
+// ===== Animação colorida do texto INFERIOR =====
+let hueBaixo = 0;
+setInterval(() => {
+  const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+  textoBaixo.style.color = corAtual;
+  hueBaixo++;
+}, 30);
 
         const input = document.createElement('input');
         Object.assign(input.style, {
