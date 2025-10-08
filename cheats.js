@@ -1325,7 +1325,7 @@ aplicarEstiloTexto(textoCima, '20px');
 
 // 🔥 Texto de AVISO ESTILIZADO
 const textoaviso = document.createElement('div');
-textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️';
+textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️p';
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
 textoaviso.style.padding = '8px 12px';
 textoaviso.style.margin = '6px 0';
