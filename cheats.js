@@ -1323,6 +1323,17 @@ const textoCima = document.createElement('div');
 textoCima.textContent = 'Painel Auxílio';
 aplicarEstiloTexto(textoCima, '20px');
 
+// Texto CRIADOR (com animação roxa)
+const textoCriador = document.createElement('div');
+textoCriador.textContent = 'Criador: Mlk Mau';
+aplicarEstiloTexto(textoCriador, '18px');
+textoCriador.style.margin = '5px 0';
+
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
+
 // 🔮 Texto de AVISO com fundo roxo gradiente
 const textoaviso = document.createElement('div');
 textoaviso.textContent = '⚠️ Teste gratuito encerrado — serviço disponível apenas para assinantes ⚠️';
@@ -1350,22 +1361,11 @@ estiloAnimacao.textContent = `
 `;
 document.head.appendChild(estiloAnimacao)
 
-// Texto CRIADOR (com animação roxa)
-const textoCriador = document.createElement('div');
-textoCriador.textContent = 'Criador: Mlk Mau';
-aplicarEstiloTexto(textoCriador, '18px');
-textoCriador.style.margin = '5px 0';
-
-// Texto INFERIOR
-const textoBaixo = document.createElement('div');
-textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-aplicarEstiloTexto(textoBaixo, '17px');
-
 // Adiciona ao container
 nome.appendChild(textoCima);
-nome.appendChild(textoaviso);
 nome.appendChild(textoCriador);
 nome.appendChild(textoBaixo);
+nome.appendChild(textoaviso);
 
 // ===== Animação fluida do CRIADOR =====
 let hue = 260;
