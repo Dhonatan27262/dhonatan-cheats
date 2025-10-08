@@ -1325,7 +1325,7 @@ aplicarEstiloTexto(textoCima, '20px');
 
 // 🔥 Texto de AVISO com cor mais suave
 const textoaviso = document.createElement('div');
-textoaviso.textContent = '⚠️ TESTE GRÁTIS ACABOU! AGORA O SERVIÇO É PAGO ⚠️';
+textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso completo agora é exclusivo para usuários pagos. ⚠️';
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
 textoaviso.style.padding = '8px 12px';
 textoaviso.style.margin = '6px 0';
