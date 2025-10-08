@@ -959,7 +959,6 @@ let senhasCarregadas = false;
 
 const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
-  sendToast('🔒 Carregando sistema de senhas...', 2000);
 
   const primaryParts = [
     '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
