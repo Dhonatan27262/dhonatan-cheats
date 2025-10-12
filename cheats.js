@@ -1,5 +1,3 @@
-Agora que eu coloquei as script que você me enviou do botão do leia quando eu puxo o diretório do cheats.js ele não aparece o painel flutuante só aparece painel carregado mas não aparece o flutuante: 
-
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
@@ -1068,89 +1066,6 @@ const carregarSenhasRemotas = async (opts = {}) => {
 };
 
         carregarSenhasRemotas();
-        
-        // ---------- carregar script "Leia PR" (robusto, substitui o anterior) ----------
-const loadLeiaPR = async (opts = {}) => {
-  const debug = !!opts.debug;
-  const baseUrl = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js';
-  sendToast('⌛ Carregando Leia PR...', 2000);
-
-  const makeTimestamped = (u) => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
-
-  const ensureBotao = () => {
-    try {
-      const existing = document.getElementById('dhonatanBotao');
-      if (!existing && typeof criarBotaoFlutuante === 'function') {
-        if (debug) console.log('dhonatanBotao ausente — recriando via criarBotaoFlutuante()');
-        try { criarBotaoFlutuante(); sendToast('✔️ Botão flutuante restaurado.', 1200); } catch(e) { console.warn('Erro recriando botão:', e); }
-      }
-    } catch (e) { if (debug) console.warn('ensureBotao erro:', e); }
-  };
-
-  // monitor curto para recriar botão se for removido logo após load
-  let monitorHandle = null;
-  const startMonitor = () => {
-    let attempts = 0;
-    monitorHandle = setInterval(() => {
-      attempts++;
-      ensureBotao();
-      // tenta por ~6 vezes (~3s)
-      if (attempts > 6) {
-        clearInterval(monitorHandle);
-        monitorHandle = null;
-      }
-    }, 500);
-  };
-
-  // tentativa principal: injetar via script.src (mais natural)
-  try {
-    const url = makeTimestamped(baseUrl);
-    // remove qualquer script antigo com mesmo data attr
-    try {
-      document.querySelectorAll('script[data-injected-by="LeiaPR"]').forEach(s => s.remove());
-    } catch(e){ if (debug) console.warn('remove antigo LeiaPR falhou:', e); }
-
-    const s = document.createElement('script');
-    s.dataset.injectedBy = 'LeiaPR';
-    s.src = url;
-    s.async = false; // executa em ordem, às vezes evita race conditions
-    s.onload = () => {
-      if (debug) console.log('LeiaPR onload OK');
-      sendToast('✔️ Leia PR carregado!', 1500);
-      // checar e recriar botão se necessário
-      setTimeout(() => { ensureBotao(); }, 120);
-      startMonitor();
-    };
-    s.onerror = async (ev) => {
-      console.error('Erro carregando LeiaPR via <script src> — tentando fallback fetch', ev);
-      sendToast('⚠️ Erro carregando diretamente — usando fallback.', 2800);
-      // fallback: buscar como texto e injetar inline (igual ao anterior)
-      try {
-        const res = await fetch(makeTimestamped(baseUrl), { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const txt = await res.text();
-        if (!txt || txt.length < 50) throw new Error('conteúdo inválido/faltando');
-        // remove antigos
-        try { document.querySelectorAll('script[data-injected-by="LeiaPR"]').forEach(x=>x.remove()); } catch(e){}
-        const inline = document.createElement('script');
-        inline.dataset.injectedBy = 'LeiaPR';
-        inline.textContent = txt;
-        document.head.appendChild(inline);
-        sendToast('✔️ Leia PR (fallback) carregado!', 2000);
-        setTimeout(() => { ensureBotao(); startMonitor(); }, 100);
-      } catch (err) {
-        console.error('Fallback fetch falhou:', err);
-        sendToast('❌ Não foi possível carregar Leia PR.', 4000);
-      }
-    };
-    document.head.appendChild(s);
-    return true;
-  } catch (err) {
-    console.error('Erro loadLeiaPR:', err);
-    sendToast('❌ Erro interno ao iniciar Leia PR.', 3000);
-    return false;
-  }
-};
 
     // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
     function criarAbasInterface(sidebarEl, mainEl) {
