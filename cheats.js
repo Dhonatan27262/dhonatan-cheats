@@ -1,4 +1,5 @@
 
+
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
@@ -604,7 +605,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
     
-    const leiapr1 = await fetch("https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js")
+    const LeiaPR = await fetch("https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js")
   .then(r => r.text())
   .then(t => { eval(t); return { nome: 'Leia Paraná', func: leiapr1 }; });
 
@@ -1078,7 +1079,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         const botoes = {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
-                { nome: 'Leia Paraná', func: leiapr1 },
+                { nome: 'Khan Academy', func: leiapr1 },
                 { nome: 'Khan Academy', func: khanAcademy }
             ],
             textos: [
@@ -1327,12 +1328,6 @@ const textoCima = document.createElement('div');
 textoCima.textContent = 'Painel Auxílio';
 aplicarEstiloTexto(textoCima, '20px');
 
-// Texto CRIADOR (com animação roxa)
-const textoCriador = document.createElement('div');
-textoCriador.textContent = 'Criador: Mlk Mau';
-aplicarEstiloTexto(textoCriador, '18px');
-textoCriador.style.margin = '5px 0';
-
 // Texto INFERIOR
 const textoBaixo = document.createElement('div');
 textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
@@ -1340,7 +1335,7 @@ aplicarEstiloTexto(textoBaixo, '17px');
 
 // 🔮 Texto de AVISO com fundo roxo gradiente
 const textoaviso = document.createElement('div');
-textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso agora é exclusivo para usuários pagos. ATENDIMENTO VIA WhatsApp/Discord ⚠️';
+textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso agora é exclusivo para usuários pagos. ATENDIMENTO VIA WhatsApp/Discord (COMPRAS DE ACESSO SOMENTE COM MLK MAU) ⚠️';
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
 textoaviso.style.padding = '8px 12px';
 textoaviso.style.margin = '6px 0';
@@ -1367,24 +1362,8 @@ document.head.appendChild(estiloAnimacao)
 
 // Adiciona ao container
 nome.appendChild(textoCima);
-nome.appendChild(textoCriador);
 nome.appendChild(textoBaixo);
 nome.appendChild(textoaviso);
-
-// ===== Animação fluida do CRIADOR =====
-let hue = 260;
-let direcao = 1;
-
-function animarCriador() {
-  const corRoxa = `hsl(${hue}, 100%, 65%)`;
-  textoCriador.style.color = corRoxa;
-
-  hue += 0.3 * direcao;
-  if (hue >= 300 || hue <= 260) direcao *= -1;
-
-  requestAnimationFrame(animarCriador);
-}
-animarCriador();
 
 // ===== Animação colorida do texto INFERIOR =====
 let hueBaixo = 0;
