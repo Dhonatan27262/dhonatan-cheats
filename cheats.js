@@ -952,6 +952,118 @@ function showTermoResponsabilidade(onAccept, onReject) {
     return false;
   }
 };
+
+    // ===== NOVA FUNÇÃO: Leia PR =====
+    const leiaPR = async (opts = {}) => {
+        const debug = !!opts.debug;
+        const toastShort = (m) => sendToast(m, 3000);
+        const toastLong = (m) => sendToast(m, 5000);
+
+        toastShort('⌛ Carregando Leia PR...');
+
+        const url = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/leiacheat.js';
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        const looksLikeHtmlError = (txt) => {
+            if (!txt || typeof txt !== 'string') return true;
+            const t = txt.trim().toLowerCase();
+            if (t.length < 40) return true;
+            return (
+                t.includes('<!doctype') ||
+                t.includes('<html') ||
+                t.includes('not found') ||
+                t.includes('404') ||
+                t.includes('access denied') ||
+                t.includes('you have been blocked')
+            );
+        };
+
+        const fetchWithTimeout = (resource, timeout = 15000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+        };
+
+        const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+            let lastErr = null;
+            for (let i = 0; i < urls.length; i++) {
+                const u = urls[i];
+                for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+                    try {
+                        if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+                        const res = await fetchWithTimeout(u, timeout);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const txt = await res.text();
+                        if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+                        return txt;
+                    } catch (err) {
+                        lastErr = err;
+                        if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+                        await sleep(backoff * attempt);
+                    }
+                }
+                await sleep(200);
+            }
+            throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+        };
+
+        try {
+            const urlsToTry = [url];
+
+            const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+            if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+            try {
+                const prev = document.querySelector('script[data-injected-by="LeiaPR"]');
+                if (prev) prev.remove();
+            } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+            const scriptEl = document.createElement('script');
+            scriptEl.type = 'text/javascript';
+            scriptEl.dataset.injectedBy = 'LeiaPR';
+            scriptEl.textContent = scriptContent;
+            document.head.appendChild(scriptEl);
+
+            toastShort('✔️ Leia PR carregado!');
+
+            // --- remover fundo/overlay ---
+            try {
+                if (typeof fundo !== "undefined" && fundo) {
+                    fundo.remove();
+                    if (debug) console.log("✅ Fundo removido");
+                }
+            } catch (e) {
+                if (debug) console.warn("Erro removendo fundo:", e.message);
+            }
+
+            // --- garantir criação do painel (mesmo que atrase um pouco) ---
+            let tentativas = 0;
+            const interval = setInterval(() => {
+                tentativas++;
+                if (typeof criarBotaoFlutuante === "function") {
+                    try {
+                        criarBotaoFlutuante();
+                        if (debug) console.log("✅ Botão flutuante recriado");
+                    } catch (e) {
+                        if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+                    }
+                    clearInterval(interval);
+                } else if (tentativas > 10) {
+                    clearInterval(interval);
+                    if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+                }
+            }, 500);
+
+            return true;
+        } catch (err) {
+            console.error('Erro ao carregar Leia PR:', err);
+            toastLong('❌ Erro ao carregar Leia PR. Verifique o console.');
+            if (debug) console.error('Debug info:', err);
+            return false;
+        }
+    };
     
 //semhasaaaa
 let senhasCarregadas = false;
@@ -1074,7 +1186,8 @@ const carregarSenhasRemotas = async (opts = {}) => {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
                 { nome: 'Khan Academy', func: khanAcademy },
-                { nome: 'Leia PR', func: loadLeiaPR }
+                // ===== NOVO BOTÃO ADICIONADO AQUI =====
+                { nome: 'Leia PR', func: leiaPR }
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
