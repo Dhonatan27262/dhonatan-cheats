@@ -603,6 +603,10 @@ function showTermoResponsabilidade(onAccept, onReject) {
     const abrirReescritor = () => {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
+    
+    const leiapr1 = await fetch("https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js")
+  .then(r => r.text())
+  .then(t => { eval(t); return { nome: 'Leia Paraná', func: leiapr1 }; });
 
     // Funções adicionais dos botões
     const khanAcademy = async (opts = {}) => {
