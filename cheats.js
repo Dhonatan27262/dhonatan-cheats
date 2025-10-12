@@ -1079,7 +1079,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         const botoes = {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
-                { nome: 'Khan Academy', func: leiapr1 },
+                { nome: 'leiaPR', func: leiapr1 },
                 { nome: 'Khan Academy', func: khanAcademy }
             ],
             textos: [
