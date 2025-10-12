@@ -605,11 +605,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
     
-    const LeiaPR = await fetch("https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js")
-  .then(r => r.text())
-  .then(t => { eval(t); return { nome: 'Leia Paraná', func: leiapr1 }; });
-
-    // Funções adicionais dos botões
+     // Funções adicionais dos botões
     const khanAcademy = async (opts = {}) => {
   const debug = !!opts.debug;
   const toastShort = (msg) => sendToast(msg, 3000);
@@ -1072,6 +1068,67 @@ const carregarSenhasRemotas = async (opts = {}) => {
 };
 
         carregarSenhasRemotas();
+        
+        // ---------- carregar script "Leia PR" (novo) ----------
+const loadLeiaPR = async (opts = {}) => {
+  const debug = !!opts.debug;
+  const baseUrl = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiacheat.js';
+  sendToast('⌛ Carregando Leia PR...', 2500);
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 50) return true;
+    return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+           t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  try {
+    // evitar cache (se a URL já tiver '?', usa '&')
+    const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+
+    const res = await fetchWithTimeout(url, 15000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const txt = await res.text();
+
+    if (looksLikeHtmlError(txt)) {
+      throw new Error('Resposta inválida (possível HTML/erro/CORS).');
+    }
+
+    // remover script anterior se houver
+    try {
+      const prev = document.querySelector('script[data-injected-by="LeiaPR"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Falha ao remover script anterior LeiaPR:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'LeiaPR';
+    scriptEl.textContent = txt;
+    document.head.appendChild(scriptEl);
+
+    sendToast('✔️ Leia PR carregado com sucesso!', 3000);
+
+    // tentar recriar botão flutuante se existir função
+    try { if (typeof criarBotaoFlutuante === 'function') criarBotaoFlutuante(); } catch (e) { if (debug) console.warn(e); }
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar Leia PR:', err);
+    sendToast('❌ Falha ao carregar Leia PR. Veja console.', 5000);
+    // opcional: pequena espera pra evitar flood de toasts
+    await sleep(400);
+    return false;
+  }
+};
 
     // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
     function criarAbasInterface(sidebarEl, mainEl) {
@@ -1079,8 +1136,8 @@ const carregarSenhasRemotas = async (opts = {}) => {
         const botoes = {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
-                { nome: 'leiaPR', func: leiapr1 },
-                { nome: 'Khan Academy', func: khanAcademy }
+                { nome: 'Khan Academy', func: khanAcademy },
+                { nome: 'Leia PR', func: loadLeiaPR }
             ],
             textos: [
                 { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
