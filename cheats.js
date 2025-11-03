@@ -1093,13 +1093,30 @@ const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
 
   const primaryParts = [
-    '6MHc0RHa','ucXYy9yL','iVHa0l2Z','vNmclNXd','uQnblRnb',
-    '1F2Lt92Y','l5WahBHe','wUDMy8Cb','v4Wah12L','zFGauV2c','==wPzpmL'
+    'yL6MHc0RHa',
+  '0l2ZucXYy9',
+  'mclNXdiVHa',
+  'uQnblRnbvN',
+  '2boR0Lt92Y',
+  'ycjMuFGdh5',
+  'mbvhGZvIjN',
+  'lh2Yt4WY0F',
+  'Wah12LzRXY',
+  'FGauV2cv4',
+  '==wPzpmLz',
   ];
 
   const fallbackParts = [
-    '6MHc0RHa','u4GZj9yL','pxWZkNna','0VmbuInd','1F2Lod2L',
-    'l5WahBHe','wUDMy8Cb','v4Wah1GQ','zFGauV2c','==wPzpmL'
+    'yL6MHc0RHa',
+  'kNnau4GZj9',
+  'mbuIndpxWZ',
+  'oR0Lod2L0V',
+  'jMuFGdh52b',
+  'vhGZvIjNyc',
+  '2Yt4WY0Fmb',
+  'h1GQzRXYlh',
+  'GauV2cv4Wa',
+  '==wPzpmLzF',
   ];
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
