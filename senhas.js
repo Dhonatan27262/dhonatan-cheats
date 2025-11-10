@@ -4,8 +4,7 @@ window.verificarSenha = function(senha) {
         "tainara",
         "rick",
         "013179",
-        "1537",//10do11de2025
-        "Mkff0000",//08do11
+        "#Neymar10",//17do11
         "lacerda22"//29d11
 ];
     // Verifica a senha exatamente como digitada (case sensitive)
