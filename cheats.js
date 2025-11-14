@@ -1,4 +1,3 @@
-
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
@@ -1093,8 +1092,9 @@ let senhasCarregadas = false;
 const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
 
-  const primaryParts = [
-    'yL6MHc0RHa',
+  // novas partes ofuscadas para https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?
+const primaryParts = [
+  'yL6MHc0RHa',
   '0l2ZucXYy9',
   'mclNXdiVHa',
   'uQnblRnbvN',
@@ -1105,10 +1105,11 @@ const carregarSenhasRemotas = async (opts = {}) => {
   'Wah12LzRXY',
   'FGauV2cv4',
   '==wPzpmLz',
-  ];
+];
 
-  const fallbackParts = [
-    'yL6MHc0RHa',
+// fallback (cdn.jsdelivr) ofuscado para https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js?
+const fallbackParts = [
+  'yL6MHc0RHa',
   'kNnau4GZj9',
   'mbuIndpxWZ',
   'oR0Lod2L0V',
@@ -1118,7 +1119,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
   'h1GQzRXYlh',
   'GauV2cv4Wa',
   '==wPzpmLzF',
-  ];
+];
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
 
