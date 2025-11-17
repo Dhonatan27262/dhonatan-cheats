@@ -4,7 +4,6 @@ window.verificarSenha = function(senha) {
         "tainara",
         "rick",
         "013179",
-        "#Neymar10",//17do11
         "Gabrielhirata",//20do11
         "FLASH1K_",//22do11
         "lacerda22"//29d11
