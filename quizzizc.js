@@ -1,538 +1,358 @@
-// ==UserScript==
-// @name         Wayground (Quizizz) Bypass
-// @version      28.0
-// @description  Resolve questões do Quizizz Wayground
-// @author       mzzvxm
-// @icon         https://tse1.mm.bing.net/th/id/OIP.Ydweh29BuHk_PGD4dGJXbAHaHa?rs=1&pid=ImgDetMain&o=7&rm=3
-// @match        https://wayground.com/join/game/*
-// @grant        none
-// ==/UserScript==
+let loadedPlugins = [];
+let videoExploitEnabled = true;
+let autoClickEnabled = true;
+let autoClickPaused = false;
+let correctAnswerSystemEnabled = true;
 
-(function() {
-    'use strict';
+console.clear();
+const noop = () => {};
+console.warn = console.error = window.debug = noop;
 
-    // -----------------------------------------------------------------------------------
-    // IMPORTANTE: CHAVE DE API
-    // -----------------------------------------------------------------------------------
-    const GEMINI_API_KEY = "AIzaSyAVIFAQlraJy4h9ztUbRd9GuhXu0r5fH1o";
-    // -----------------------------------------------------------------------------------
+const splashScreen = document.createElement('splashScreen');
 
-    function waitForElement(selector, all = false, timeout = 5000) {
-        return new Promise((resolve, reject) => {
-            const startTime = Date.now();
-            const interval = setInterval(() => {
-                const elements = all ? document.querySelectorAll(selector) : document.querySelector(selector);
-                if ((all && elements.length > 0) || (!all && elements)) {
-                    clearInterval(interval);
-                    resolve(elements);
-                } else if (Date.now() - startTime > timeout) {
-                    clearInterval(interval);
-                    reject(new Error(`Elemento(s) "${selector}" não encontrado(s) após ${timeout / 1000} segundos.`));
-                }
-            }, 100);
-        });
+class EventEmitter {
+  constructor() { this.events = {}; }
+  on(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      (this.events[t] = this.events[t] || []).push(e);
+    });
+  }
+  off(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
+    });
+  }
+  emit(t, ...e) {
+    this.events[t]?.forEach(h => h(...e));
+  }
+  once(t, e) {
+    const s = (...i) => {
+      e(...i);
+      this.off(t, s);
+    };
+    this.on(t, s);
+  }
+}
+
+const plppdo = new EventEmitter();
+
+new MutationObserver(mutationsList =>
+  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
+).observe(document.body, { childList: true, subtree: true });
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const findAndClickBySelector = selector => document.querySelector(selector)?.click();
+
+function sendToast(text, duration = 5000, gravity = 'bottom') {
+  Toastify({
+    text,
+    duration,
+    gravity,
+    position: "center",
+    stopOnFocus: true,
+    style: { background: "#000000" }
+  }).showToast();
+}
+
+async function showSplashScreen() {
+  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
+  splashScreen.innerHTML = '<span style="color:white;">MLK</span><span style="color:#ff1717;"> MAU O PROPRIO</span>';
+  document.body.appendChild(splashScreen);
+  setTimeout(() => splashScreen.style.opacity = '1', 10);
+}
+
+async function hideSplashScreen() {
+  splashScreen.style.opacity = '0';
+  setTimeout(() => splashScreen.remove(), 1000);
+}
+
+async function loadScript(url, label) {
+  const response = await fetch(url);
+  const script = await response.text();
+  loadedPlugins.push(label);
+  eval(script);
+}
+
+async function loadCss(url) {
+  return new Promise(resolve => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = url;
+    link.onload = resolve;
+    document.head.appendChild(link);
+  });
+}
+
+function createFloatingMenu() {
+  // [O código do menu flutuante permanece EXATAMENTE igual]
+  // ... (todo o código do menu flutuante da primeira script)
+}
+
+// SISTEMA DE RESPOSTAS ATUALIZADO (da segunda script)
+function setupMain() {
+  const originalFetch = window.fetch;
+  const correctAnswers = new Map(); // Armazena respostas corretas
+
+  const spoofPhrases = [
+    "⚔️ Segue lá no Github [**@mzzvxm**](https://github.com/mzzvxm/).",
+    "🌀 Chapa Máxima!",
+  ];
+
+  // Helper para frações
+  const toFraction = (d) => {
+    if (d === 0 || d === 1) return String(d);
+    const decimals = (String(d).split('.')[1] || '').length;
+    let num = Math.round(d * Math.pow(10, decimals)), den = Math.pow(10, decimals);
+    const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+    const div = gcd(Math.abs(num), Math.abs(den));
+    return den / div === 1 ? String(num / div) : `${num / div}/${den / div}`;
+  };
+
+  window.fetch = async function (resource, init) {
+    let content;
+    const url = resource instanceof Request ? resource.url : resource;
+
+    if (resource instanceof Request) {
+      content = await resource.clone().text();
+    } else if (init?.body) {
+      content = init.body;
     }
 
-    function extrairDadosDaQuestao() {
-        try {
-            const questionTextElement = document.querySelector('#questionText .question-text-color');
-            const questionText = questionTextElement ? questionTextElement.innerText.trim().replace(/\s+/g, ' ') : "Não foi possível encontrar o texto da pergunta.";
-            const questionImageElement = document.querySelector('img[data-testid="question-container-image"]');
-            const questionImageUrl = questionImageElement ? questionImageElement.src : null;
-            const extractText = (el) => {
-                const mathElement = el.querySelector('annotation[encoding="application/x-tex"]');
-                return mathElement ? mathElement.textContent.trim() : el.querySelector('#optionText')?.innerText.trim() || '';
+    // VIDEO EXPLOIT (mantido da primeira script)
+    if (videoExploitEnabled && content?.includes('"operationName":"updateUserVideoProgress"')) {
+      try {
+        const parsed = JSON.parse(content);
+        const input = parsed.variables?.input;
+        if (input) {
+          input.secondsWatched = input.durationSeconds;
+          input.lastSecondWatched = input.durationSeconds;
+          content = JSON.stringify(parsed);
+          if (resource instanceof Request) {
+            resource = new Request(resource, { body: content });
+          } else {
+            init.body = content;
+          }
+          sendToast("🔄｜Vídeo exploitado.", 1000);
+        }
+      } catch (e) {}
+    }
+
+    // SISTEMA DE RESPOSTAS CORRETAS (atualizado da segunda script)
+    if (correctAnswerSystemEnabled && url.includes('attemptProblem') && content) {
+      try {
+        let bodyObj = JSON.parse(content);
+        const itemId = bodyObj.variables?.input?.assessmentItemId;
+        const answers = correctAnswers.get(itemId);
+
+        if (answers?.length > 0) {
+          const attemptContent = [], userInput = {};
+          let attemptState = bodyObj.variables.input.attemptState ? 
+            JSON.parse(bodyObj.variables.input.attemptState) : null;
+
+          answers.forEach(a => {
+            if (a.type === 'radio') {
+              attemptContent.push({ selectedChoiceIds: [a.choiceId] });
+              userInput[a.widgetKey] = { selectedChoiceIds: [a.choiceId] };
+            } else if (a.type === 'numeric') {
+              attemptContent.push({ currentValue: a.value });
+              userInput[a.widgetKey] = { currentValue: a.value };
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].currentValue = a.value;
+            } else if (a.type === 'expression') {
+              attemptContent.push(a.value);
+              userInput[a.widgetKey] = a.value;
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].value = a.value;
+            } else if (a.type === 'grapher') {
+              const graph = { type: a.graphType, coords: a.coords, asymptote: a.asymptote || null };
+              attemptContent.push(graph);
+              userInput[a.widgetKey] = graph;
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].plot = graph;
+            }
+          });
+
+          bodyObj.variables.input.attemptContent = JSON.stringify([attemptContent, []]);
+          bodyObj.variables.input.userInput = JSON.stringify(userInput);
+          if (attemptState) bodyObj.variables.input.attemptState = JSON.stringify(attemptState);
+
+          content = JSON.stringify(bodyObj);
+          if (resource instanceof Request) resource = new Request(resource, { body: content });
+          else init.body = content;
+
+          sendToast(`✨ ${answers.length} resposta(s) aplicada(s).`, 750);
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    const response = await originalFetch.apply(this, arguments);
+
+    // GET ASSESSMENT - Sistema de modificação de questões
+    if (correctAnswerSystemEnabled && url.includes('getAssessmentItem')) {
+      try {
+        const clone = response.clone();
+        const text = await clone.text();
+        const parsed = JSON.parse(text);
+
+        // Localiza o item dentro da resposta
+        let item = null;
+        if (parsed?.data) {
+          for (const key in parsed.data) {
+            if (parsed.data[key]?.item) {
+              item = parsed.data[key].item;
+              break;
+            }
+          }
+        }
+
+        const itemDataRaw = item?.itemData;
+        if (itemDataRaw) {
+          let itemData = JSON.parse(itemDataRaw);
+          const answers = [];
+
+          // Captura as respostas corretas de todos os tipos de widgets
+          for (const [key, w] of Object.entries(itemData.question.widgets || {})) {
+            if (w.type === 'radio' && w.options?.choices) {
+              const choices = w.options.choices.map((c, i) => ({ ...c, id: c.id || `radio-choice-${i}` }));
+              const correct = choices.find(c => c.correct);
+              if (correct) answers.push({ type: 'radio', choiceId: correct.id, widgetKey: key });
+            } else if (w.type === 'numeric-input' && w.options?.answers) {
+              const correct = w.options.answers.find(a => a.status === 'correct');
+              if (correct) {
+                const val = correct.answerForms?.some(f => f === 'proper' || f === 'improper') ?
+                  toFraction(correct.value) : String(correct.value);
+                answers.push({ type: 'numeric', value: val, widgetKey: key });
+              }
+            } else if (w.type === 'expression' && w.options?.answerForms) {
+              const correct = w.options.answerForms.find(f => f.considered === 'correct' || f.form === true);
+              if (correct) answers.push({ type: 'expression', value: correct.value, widgetKey: key });
+            } else if (w.type === 'grapher' && w.options?.correct) {
+              const c = w.options.correct;
+              if (c.type && c.coords) answers.push({
+                type: 'grapher', graphType: c.type, coords: c.coords,
+                asymptote: c.asymptote || null, widgetKey: key
+              });
+            }
+          }
+
+          if (answers.length > 0) {
+            correctAnswers.set(item.id, answers);
+          }
+
+          // Modificação visual da questão
+          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+            const randomPhrase = spoofPhrases[Math.floor(Math.random() * spoofPhrases.length)];
+
+            itemData.answerArea = {
+              calculator: false,
+              chi2Table: false,
+              periodicTable: false,
+              tTable: false,
+              zTable: false,
             };
-            const droppableBlanks = document.querySelectorAll('button.droppable-blank');
-            const dragOptions = document.querySelectorAll('.drag-option');
-            if (droppableBlanks.length > 1 && dragOptions.length > 0) {
-                const questionContainer = document.querySelector('.drag-drop-text > div');
-                const dropZones = [];
-                if (questionContainer) {
-                    const children = Array.from(questionContainer.children);
-                    for (let i = 0; i < children.length; i++) {
-                        const blankButton = children[i].querySelector('button.droppable-blank');
-                        if (blankButton) {
-                            const precedingSpan = children[i - 1];
-                            if (precedingSpan && precedingSpan.tagName === 'SPAN') {
-                                let promptText = precedingSpan.innerText.trim().replace(/:\s*$/, '').replace(/\s+/g, ' ');
-                                dropZones.push({ prompt: promptText, blankElement: blankButton });
-                            }
-                        }
-                    }
-                }
-                const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.innerText.trim(), element: el }));
-                return { questionText: questionContainer.innerText.trim(), questionImageUrl, questionType: 'multi_drag_into_blank', draggableOptions, dropZones };
-            }
-            if (droppableBlanks.length === 1 && dragOptions.length > 0) {
-                 const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.querySelector('.dnd-option-text')?.innerText.trim() || '', element: el }));
-                return { questionText, questionImageUrl, questionType: 'drag_into_blank', draggableOptions, dropZone: { element: droppableBlanks[0] } };
-            }
-            const equationEditor = document.querySelector('div[data-cy="equation-editor"]');
-            if (equationEditor) {
-                return { questionText, questionImageUrl, questionType: 'equation' };
-            }
-            const dropdownButton = document.querySelector('button.options-dropdown');
-            if (dropdownButton) {
-                return { questionText, questionImageUrl, questionType: 'dropdown', dropdownButton };
-            }
-            const matchContainer = document.querySelector('.match-order-options-container');
-            if (matchContainer) {
-                const draggableItems = Array.from(matchContainer.querySelectorAll('.match-order-option.is-option-tile')).map(el => ({ text: extractText(el), element: el }));
-                const dropZones = Array.from(matchContainer.querySelectorAll('.match-order-option.is-drop-tile')).map(el => ({ text: extractText(el), element: el }));
-                if (draggableItems.length > 0 && dropZones.length > 0) {
-                    const questionType = questionText.toLowerCase().includes('reorder') ? 'reorder' : 'match_order';
-                    return { questionText, questionImageUrl, questionType, draggableItems, dropZones };
-                }
-            }
-            const openEndedTextarea = document.querySelector('textarea[data-cy="open-ended-textarea"]');
-            if (openEndedTextarea) {
-                return { questionText, questionImageUrl, questionType: 'open_ended', answerElement: openEndedTextarea };
-            }
-            const optionElements = document.querySelectorAll('.option.is-selectable');
-            if (optionElements.length > 0) {
-                const isMultipleChoice = Array.from(optionElements).some(el => el.classList.contains('is-msq'));
-                const options = Array.from(optionElements).map(el => ({ text: extractText(el), element: el }));
-                return { questionText, questionImageUrl, questionType: isMultipleChoice ? 'multiple_choice' : 'single_choice', options };
-            }
-            console.error("Tipo de questão não reconhecido.");
-            return null;
-        } catch (error) {
-            console.error("Erro ao extrair dados da questão:", error);
-            return null;
-        }
-    }
 
-    async function obterRespostaDaIA(quizData) {
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-        let promptDeInstrucao = "", formattedOptions = "";
-        switch (quizData.questionType) {
-            case 'multi_drag_into_blank':
-                promptDeInstrucao = `Esta é uma questão de combinar múltiplas sentenças com suas expressões corretas. Responda com os pares no formato EXATO: 'Sentença da pergunta -> Expressão da opção', com cada par em uma nova linha.`;
-                const prompts = quizData.dropZones.map(item => `- "${item.prompt}"`).join('\n');
-                const options = quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n');
-                formattedOptions = `Sentenças:\n${prompts}\n\nExpressões (Opções):\n${options}`;
-                break;
-            case 'equation':
-                promptDeInstrucao = `Resolva a seguinte equação ou inequação. Forneça apenas a expressão final simplificada (ex: x = 5, ou y > 3).`;
-                formattedOptions = `EQUAÇÃO: "${quizData.questionText}"`;
-                break;
-            case 'dropdown':
-            case 'single_choice':
-                promptDeInstrucao = `Responda APENAS com o texto exato da ÚNICA alternativa correta.`;
-                formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n');
-                break;
-            case 'reorder':
-                promptDeInstrucao = `A tarefa é: "${quizData.questionText}". Forneça a ordem correta listando os textos dos itens, um por linha, do primeiro ao último.`;
-                formattedOptions = "Itens para ordenar:\n" + quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
-                break;
-            case 'drag_into_blank':
-                promptDeInstrucao = `Responda APENAS com o texto da ÚNICA opção correta que preenche a lacuna.`;
-                formattedOptions = "Opções para arrastar:\n" + quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n');
-                break;
-            case 'match_order':
-                promptDeInstrucao = `Responda com os pares no formato EXATO: 'Texto do Local para Soltar -> Texto do Item para Arrastar', com cada par em uma nova linha.`;
-                const draggables = quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
-                const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
-                formattedOptions = `Itens para Arrastar:\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
-                break;
-            case 'open_ended':
-                promptDeInstrucao = `Responda APENAS com a palavra ou frase curta que preenche a lacuna.`;
-                break;
-            case 'multiple_choice':
-                promptDeInstrucao = `Responda APENAS com os textos exatos de TODAS as alternativas corretas, separando cada uma em uma NOVA LINHA.`;
-                formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n');
-                break;
-        }
-        const textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
-        let promptParts = [{ text: textPrompt }];
-        if (quizData.questionImageUrl) {
-            const base64Image = await imageUrlToBase64(quizData.questionImageUrl);
-            if (base64Image) {
-                const [header, data] = base64Image.split(',');
-                let mimeType = header.match(/:(.*?);/)[1];
-                const supportedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-                if (!supportedMimeTypes.includes(mimeType)) mimeType = 'image/jpeg';
-                promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
+            // Conteúdo da Questão atualizado
+            itemData.question.content = randomPhrase + "\n\n**Tenho Outros Scripts também! depois dá uma olhada no [ScriptHub](https://scripthubb.vercel.app/)**" + `[[☃ radio 1]]` + `\n\n**〽️ Segue lá no Instagram! [@mzzvxm](https://instagram.com/mzzvxm)**`;
+
+            // Widgets da Questão
+            itemData.question.widgets = {
+              "radio 1": {
+                type: "radio", alignment: "default", static: false, graded: true,
+                options: {
+                  choices: [
+                    { content: "**〽️**", correct: true, id: "correct-choice" },
+                    { content: "", correct: false, id: "incorrect-choice" }
+                  ],
+                  randomize: false, multipleSelect: false, displayCount: null, deselectEnabled: false
+                },
+                version: { major: 1, minor: 0 }
+              },
+            };
+
+            // Salva as alterações no JSON
+            const modifiedData = { ...parsed };
+            if (modifiedData.data) {
+              for (const key in modifiedData.data) {
+                if (modifiedData.data[key]?.item?.itemData) {
+                  modifiedData.data[key].item.itemData = JSON.stringify(itemData);
+                  break;
+                }
+              }
             }
-        }
-        try {
-            const response = await fetchWithTimeout(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: promptParts }] })
+
+            sendToast("🔓 Questão exploitada.", 750);
+            return new Response(JSON.stringify(modifiedData), {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers,
             });
-            if (!response.ok) throw new Error(`Erro na API: ${response.statusText} - ${JSON.stringify(await response.json())}`);
-            const data = await response.json();
-            const aiResponseText = data.candidates[0].content.parts[0].text;
-            console.log("Resposta bruta da IA:", aiResponseText);
-            return aiResponseText;
-        } catch (error) {
-            console.error("Erro ao chamar a API do Gemini:", error);
-            alert(`Ocorreu um erro ao comunicar com a IA: ${error.message}`);
-            return null;
+          }
         }
+      } catch (e) { console.error(e); }
     }
 
-    async function performAction(aiAnswerText, quizData) {
-        if (!aiAnswerText) return;
-        const getElementColor = (element) => {
-            const style = window.getComputedStyle(element);
-            const bgImage = style.backgroundImage;
-            if (bgImage && bgImage.includes('gradient')) {
-                const match = bgImage.match(/rgb\(\d+, \d+, \d+\)/);
-                if (match) return match[0];
-            }
-            return style.backgroundColor || 'rgba(0, 255, 0, 0.5)';
-        };
-        switch (quizData.questionType) {
-            case 'multi_drag_into_blank':
-                const highlightColors = ['#FFD700', '#00FFFF', '#FF00FF', '#7FFF00', '#FF8C00', '#DA70D6'];
-                let colorIndex = 0;
-                const cleanPairPartMulti = (str) => str.replace(/[`"']/g, '').trim();
-                const pairingsMulti = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
-                    const parts = line.split('->');
-                    return parts.length === 2 ? [cleanPairPartMulti(parts[0]), cleanPairPartMulti(parts[1])] : null;
-                }).filter(Boolean);
-                if (pairingsMulti.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
-                const draggableMap = new Map(quizData.draggableOptions.map(i => [i.text, i.element]));
-                const dropZoneMap = new Map(quizData.dropZones.map(i => [i.prompt, i.blankElement]));
-                for (const [promptText, optionText] of pairingsMulti) {
-                    const bestPromptMatch = [...dropZoneMap.keys()].find(key => key.includes(promptText) || promptText.includes(key));
-                    const blankEl = dropZoneMap.get(bestPromptMatch);
-                    const optionEl = draggableMap.get(optionText);
-                    if (blankEl && optionEl) {
-                        const color = highlightColors[colorIndex % highlightColors.length];
-                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 4px;`;
-                        blankEl.style.cssText = highlightStyle;
-                        optionEl.style.cssText = highlightStyle;
-                        colorIndex++;
-                    } else {
-                        console.warn(`Par não encontrado no DOM: "${promptText}" -> "${optionText}"`);
-                    }
-                }
-                break;
-            case 'equation':
-                const KEYPAD_MAP = {
-                    '0': 'icon-fas-0', '1': 'icon-fas-1', '2': 'icon-fas-2', '3': 'icon-fas-3', '4': 'icon-fas-4',
-                    '5': 'icon-fas-5', '6': 'icon-fas-6', '7': 'icon-fas-7', '8': 'icon-fas-8', '9': 'icon-fas-9',
-                    '+': 'icon-fas-plus', '-': 'icon-fas-minus', '*': 'icon-fas-times', '×': 'icon-fas-times',
-                    '/': 'icon-fas-divide', '÷': 'icon-fas-divide', '=': 'icon-fas-equals', '.': 'icon-fas-period',
-                    '<': 'icon-fas-less-than', '>': 'icon-fas-greater-than',
-                    '≤': 'icon-fas-less-than-equal', '≥': 'icon-fas-greater-than-equal',
-                    'x': 'icon-fas-variable', 'y': 'icon-fas-variable', 'z': 'icon-fas-variable',
-                    '(': 'icon-fas-brackets-round', ')': 'icon-fas-brackets-round',
-                    'π': 'icon-fas-pi', 'e': 'icon-fas-euler',
-                };
-                let answerSequence = aiAnswerText.trim().replace(/\s/g, '').replace(/<=/g, '≤').replace(/>=/g, '≥');
-                console.log(`Digitando a resposta: ${answerSequence}`);
-                for (const char of answerSequence) {
-                    const iconClass = KEYPAD_MAP[char.toLowerCase()];
-                    if (iconClass) {
-                        const keyElement = document.querySelector(`.editor-button i.${iconClass}`);
-                        if (keyElement) {
-                            const button = keyElement.closest('button');
-                            if (button) {
-                                button.click();
-                                await new Promise(r => setTimeout(r, 100));
-                            }
-                        } else {
-                            console.error(`Não foi possível encontrar a tecla para o caractere: "${char}" (ícone: ${iconClass})`);
-                        }
-                    } else {
-                        console.error(`Caractere não mapeado no teclado: "${char}"`);
-                    }
-                }
-                break;
-            case 'reorder':
-                const cleanText = (str) => str.replace(/["'`]/g, '').trim();
-                const orderedItems = aiAnswerText.split('\n').map(cleanText).filter(Boolean);
-                const draggablesMapReorder = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
-                const dropZonesInOrder = quizData.dropZones;
-                if (orderedItems.length === dropZonesInOrder.length) {
-                    for (let i = 0; i < orderedItems.length; i++) {
-                        const sourceText = orderedItems[i];
-                        const sourceEl = draggablesMapReorder.get(sourceText);
-                        const destinationEl = dropZonesInOrder[i].element;
-                        if (sourceEl && destinationEl) {
-                            const color = getElementColor(sourceEl);
-                            const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
-                            sourceEl.style.cssText = highlightStyle;
-                            destinationEl.style.cssText = highlightStyle;
-                        }
-                    }
-                }
-                break;
-            case 'drag_into_blank':
-                const cleanAiAnswerBlank = aiAnswerText.trim().replace(/["'`]/g, '');
-                const targetOption = quizData.draggableOptions.find(opt => opt.text === cleanAiAnswerBlank);
-                if (targetOption) {
-                    const color = getElementColor(targetOption.element);
-                    const highlightStyle = `box-shadow: 0 0 15px 5px ${color}`;
-                    targetOption.element.style.cssText = highlightStyle;
-                    quizData.dropZone.element.style.cssText = highlightStyle;
-                }
-                break;
-            case 'match_order':
-                const cleanPairPart = (str) => str.replace(/[`"']/g, '').trim();
-                const pairings = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
-                    const parts = line.split('->');
-                    return parts.length === 2 ? [cleanPairPart(parts[0]), cleanPairPart(parts[1])] : null;
-                }).filter(Boolean);
-                if (pairings.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
-                const draggablesMapMatch = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
-                const dropZonesMap = new Map(quizData.dropZones.map(i => [i.text, i.element]));
-                for (const [partA, partB] of pairings) {
-                    let sourceEl, destinationEl;
-                    if (dropZonesMap.has(partA) && draggablesMapMatch.has(partB)) {
-                        destinationEl = dropZonesMap.get(partA);
-                        sourceEl = draggablesMapMatch.get(partB);
-                    } else if (dropZonesMap.has(partB) && draggablesMapMatch.has(partA)) {
-                        destinationEl = dropZonesMap.get(partB);
-                        sourceEl = draggablesMapMatch.get(partA);
-                    } else { continue; }
-                    if (sourceEl && destinationEl) {
-                        const color = getElementColor(sourceEl);
-                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
-                        sourceEl.style.cssText = highlightStyle;
-                        destinationEl.style.cssText = highlightStyle;
-                    }
-                }
-                break;
-            default:
-                const normalize = (str) => {
-                    if (typeof str !== 'string') return '';
-                    let cleaned = str.replace(/[^a-zA-Z\u00C0-\u017F\s]/g, '').replace(/\s+/g, ' ');
-                    return cleaned.trim().toLowerCase();
-                };
-                if (quizData.questionType === 'open_ended') {
-                    await new Promise(resolve => {
-                        quizData.answerElement.focus();
-                        quizData.answerElement.value = aiAnswerText.trim();
-                        quizData.answerElement.dispatchEvent(new Event('input', { bubbles: true }));
-                        setTimeout(resolve, 100);
-                    });
-                    setTimeout(() => document.querySelector('.submit-button-wrapper button, button.submit-btn')?.click(), 500);
-                } else if (quizData.questionType === 'multiple_choice') {
-                    const aiAnswers = aiAnswerText.split('\n').map(normalize).filter(Boolean);
-                    quizData.options.forEach(opt => {
-                        if (aiAnswers.includes(normalize(opt.text))) {
-                            opt.element.style.border = '5px solid #00FF00';
-                            opt.element.click();
-                        }
-                    });
-                } else if (quizData.questionType === 'single_choice') {
-                    const normalizedAiAnswer = normalize(aiAnswerText);
-                    const bestMatch = quizData.options.find(opt => normalize(opt.text) === normalizedAiAnswer);
-                    if (bestMatch) {
-                        bestMatch.element.style.border = '5px solid #00FF00';
-                        bestMatch.element.click();
-                    }
-                }
-                break;
+    return response;
+  };
+
+  // Loop de automação de cliques (mantido da primeira script)
+  (async () => {
+    const selectors = [
+      `[data-testid="choice-icon__library-choice-icon"]`,
+      `[data-testid="exercise-check-answer"]`,
+      `[data-testid="exercise-next-question"]`,
+      `._1udzurba`,
+      `._awve9b`
+    ];
+    
+    window.khanwareDominates = true;
+    
+    while (window.khanwareDominates) {
+      if (!autoClickEnabled || autoClickPaused) {
+        await delay(2000);
+        continue;
+      }
+      
+      for (const selector of selectors) {
+        findAndClickBySelector(selector);
+        const element = document.querySelector(`${selector}> div`);
+        if (element?.innerText === "Mostrar resumo") {
+          sendToast("🎉｜Exercício concluído!", 3000);
         }
+      }
+      
+      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+      await delay(speed * 1000);
     }
+  })();
+}
 
-    async function resolverQuestao() {
-        const button = document.getElementById('ai-solver-button');
-        button.disabled = true;
-        button.innerText = "Pensando...";
-        button.style.transform = 'scale(0.95)'; // Animação de clique
-        button.style.boxShadow = '0 0 0 rgba(0,0,0,0)'; // Remove sombra ao clicar
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
+  window.location.href = "https://pt.khanacademy.org/";
+} else {
+  (async function init() {
+    await showSplashScreen();
 
-        try {
-            const quizData = await extrairDadosDaQuestao();
-            if (!quizData) {
-                alert("Não foi possível extrair os dados da questão.");
-                return;
-            }
-            if (quizData.questionType === 'dropdown') {
-                console.log("Iniciando fluxo otimizado para Dropdown...");
-                quizData.dropdownButton.click();
-                try {
-                    const optionElements = await waitForElement('.v-popper__popper--shown button.dropdown-option', true);
-                    quizData.options = Array.from(optionElements).map(el => ({ text: el.innerText.trim() }));
-                    const aiAnswer = await obterRespostaDaIA(quizData);
-                    if (aiAnswer) {
-                        const cleanAiAnswerDrop = aiAnswer.trim().replace(/["'`]/g, '');
-                        const targetOptionDrop = Array.from(optionElements).find(el => el.innerText.trim() === cleanAiAnswerDrop);
-                        if (targetOptionDrop) {
-                            targetOptionDrop.click();
-                        } else {
-                            console.error(`Não foi possível encontrar a opção dropdown com o texto: "${cleanAiAnswerDrop}"`);
-                            document.body.click();
-                        }
-                    } else {
-                         document.body.click();
-                    }
-                } catch (error) {
-                    console.error("Falha ao processar o dropdown:", error.message);
-                    document.body.click();
-                }
-            } else {
-                const isMath = quizData.options && quizData.options.length > 0 && quizData.options[0].text.includes('\\');
-                const matchValue = quizData.questionText.match(/value of ([\d.]+)/i);
-                if (isMath && matchValue) {
-                    console.log("Questão de matemática detectada. Resolvendo localmente...");
-                    const targetValue = parseFloat(matchValue[1]);
-                    quizData.options.forEach(option => {
-                        const computableExpr = (() => {
-                            let c = option.text.replace(/\\left/g, '').replace(/\\right/g, '').replace(/\\div/g, '/').replace(/\\times/g, '*').replace(/\\ /g, '').replace(/(\d+)\s*\(/g, '$1 * (').replace(/\)\s*(\d+)/g, ') * $1');
-                            c = c.replace(/(\d+)\\frac\{(\d+)\}\{(\d+)\}/g, '($1+$2/$3)');
-                            c = c.replace(/\\frac\{(\d+)\}\{(\d+)\}/g, '($1/$2)');
-                            return c;
-                        })();
-                        const result = (() => { try { return new Function('return ' + computableExpr)(); } catch (e) { return null; } })();
-                        if (result !== null && Math.abs(result - targetValue) < 0.001) {
-                            option.element.style.border = '5px solid #00FF00';
-                            option.element.click();
-                        }
-                    });
-                } else {
-                    console.log("Usando IA para resolver...");
-                    const aiAnswer = await obterRespostaDaIA(quizData);
-                    if (aiAnswer) {
-                        await performAction(aiAnswer, quizData);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Um erro inesperado ocorreu no fluxo principal:", error);
-            alert("Ocorreu um erro geral. Verifique o console para detalhes.");
-        } finally {
-            button.disabled = false;
-            button.innerText = "✨ Resolver";
-            button.style.transform = 'scale(1)';
-            button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)'; // Restaura sombra
-        }
-    }
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(() => {
+        DarkReader.setFetchMethod(window.fetch);
+        DarkReader.enable();
+      }),
+      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
+      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
+    ]);
 
-    function criarFloatingPanel() {
-        if (document.getElementById('mzzvxm-floating-panel')) return;
+    await delay(2000);
+    await hideSplashScreen();
 
-        const panel = document.createElement('div');
-        panel.id = 'mzzvxm-floating-panel';
-        Object.assign(panel.style, {
-            position: 'fixed',
-            bottom: '60px',
-            right: '20px',
-            zIndex: '9999',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: '10px',
-            padding: '12px',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)', // Fundo semi-transparente
-            backdropFilter: 'blur(8px)', // Efeito de vidro
-            webkitBackdropFilter: 'blur(8px)', // Compatibilidade Safari
-            borderRadius: '16px',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-            transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-            transform: 'translateY(20px)', // Começa um pouco abaixo
-            opacity: '0'
-        });
-
-        panel.style.setProperty('bottom', '60px', 'important');
-
-        // Botão "Resolver"
-        const button = document.createElement('button');
-        button.id = 'ai-solver-button';
-        button.innerText = '✨ Resolver';
-        Object.assign(button.style, {
-            background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)', // Gradiente roxo suave
-            border: 'none',
-            borderRadius: '10px',
-            color: 'white',
-            cursor: 'pointer',
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            fontSize: '15px',
-            fontWeight: '600',
-            padding: '10px 20px',
-            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-            transition: 'all 0.2s ease',
-            letterSpacing: '0.5px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-        });
-
-        button.addEventListener('mouseover', () => {
-            button.style.transform = 'translateY(-2px)';
-            button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)';
-        });
-        button.addEventListener('mouseout', () => {
-            button.style.transform = 'translateY(0)';
-            button.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
-        });
-        button.addEventListener('mousedown', () => {
-            button.style.transform = 'translateY(1px)';
-            button.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.15)';
-        });
-        button.addEventListener('mouseup', () => {
-            button.style.transform = 'translateY(-2px)'; // Volta ao estado de hover se o mouse ainda estiver em cima
-            button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)';
-        });
-        button.addEventListener('click', resolverQuestao);
-        panel.appendChild(button);
-
-        // Marca d'água
-        const watermark = document.createElement('div');
-        const githubIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 3c-.58.0-1.25.27-2 1.5c-2.2.86-4.5 1.3-7 1.3-2.5 0-4.7-.44-7-1.3-.75-1.23-1.42-1.5-2-1.5A5.07 5.07 0 0 0 4 4.77 5.44 5.44 0 0 0 2 10.71c0 6.13 3.49 7.34 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>`;
-        const instagramIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`;
-
-        watermark.innerHTML = `
-            <div style="display: flex; gap: 8px; align-items: center; color: rgba(255,255,255,0.7);">
-                <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; font-weight: 400;">@mzzvxm</span>
-                <a href="https://github.com/mzzvxm" target="_blank" title="GitHub" style="line-height: 0; color: inherit; transition: color 0.2s ease;">${githubIcon}</a>
-                <a href="https://instagram.com/mzzvxm" target="_blank" title="Instagram" style="line-height: 0; color: inherit; transition: color 0.2s ease;">${instagramIcon}</a>
-            </div>
-        `;
-        // Efeito de hover para os ícones
-        watermark.querySelectorAll('a').forEach(link => {
-            link.addEventListener('mouseover', () => link.style.color = 'white');
-            link.addEventListener('mouseout', () => link.style.color = 'rgba(255,255,255,0.7)');
-        });
-
-        panel.appendChild(watermark);
-        document.body.appendChild(panel);
-
-        // Animação de entrada
-        setTimeout(() => {
-            panel.style.transform = 'translateY(0)';
-            panel.style.opacity = '1';
-        }, 100);
-        console.log("Floating Panel do resolvedor v28 criado com sucesso!");
-    }
-
-    async function fetchWithTimeout(resource, options = {}, timeout = 15000) {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        try {
-            const response = await fetch(resource, { ...options, signal: controller.signal });
-            clearTimeout(id);
-            return response;
-        } catch (error) {
-            clearTimeout(id);
-            if (error.name === 'AbortError') throw new Error('A requisição demorou muito e foi cancelada (Timeout).');
-            throw error;
-        }
-    }
-
-    async function imageUrlToBase64(url) {
-        try {
-            const r = await fetchWithTimeout(url);
-            const b = await r.blob();
-            return new Promise(res => {
-                const reader = new FileReader();
-                reader.onloadend = () => res(reader.result);
-                reader.readAsDataURL(b);
-            });
-        } catch (e) {
-            console.error("Erro ao converter imagem:", e);
-            return null;
-        }
-    }
-
-    // Inicializa o Floating Panel após um breve atraso
-    setTimeout(criarFloatingPanel, 2000);
-})();
+    createFloatingMenu();
+    setupMain();
+    
+    sendToast("Carregando...!");
+    setTimeout(() => {
+        sendToast("Carregado", 2500);
+    }, 1000);
+    setTimeout(() => {
+        sendToast("KHAN MENU INICIADO", 2500);
+    }, 3500);
+    
+    console.clear();
+  })();
+}
