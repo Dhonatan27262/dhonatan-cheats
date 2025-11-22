@@ -43,6 +43,25 @@ new MutationObserver(mutationsList =>
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const findAndClickBySelector = selector => document.querySelector(selector)?.click();
 
+// Função melhorada para clicar em botões por texto
+const clickButtonWithText = (text) => {
+  const allButtons = document.querySelectorAll("button");
+  for (const button of allButtons) {
+    if (button.textContent && button.textContent.trim() === text) {
+      button.click();
+      return true;
+    }
+    const spans = button.querySelectorAll("span");
+    for (const span of spans) {
+      if (span.textContent && span.textContent.trim() === text) {
+        button.click();
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 function sendToast(text, duration = 5000, gravity = 'bottom') {
   Toastify({
     text,
@@ -441,6 +460,7 @@ function createFloatingMenu() {
     optionsMenu.style.display = 'none';
     mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
     
+    // CORREÇÃO: Sempre retomar a automação ao fechar o menu
     autoClickPaused = false;
     sendToast("▶️｜Automação retomada", 1000);
   }
@@ -829,33 +849,64 @@ function setupMain() {
     return response;
   };
 
+  // AUTOMAÇÃO DE CLIQUES MELHORADA
   (async () => {
     const selectors = [
       `[data-testid="choice-icon__library-choice-icon"]`,
       `[data-testid="exercise-check-answer"]`,
       `[data-testid="exercise-next-question"]`,
       `._1udzurba`,
-      `._awve9b`
+      `._awve9b`,
+      `button[data-test-id="exercise-check-answer"]`,
+      `button[data-test-id="exercise-next-question"]`
     ];
 
     window.khanwareDominates = true;
 
     while (window.khanwareDominates) {
-      if (!autoClickEnabled || autoClickPaused) {
-        await delay(2000);
-        continue;
-      }
+      try {
+        // Verificar se a automação está ativa e não pausada
+        if (!autoClickEnabled || autoClickPaused) {
+          await delay(1000);
+          continue;
+        }
 
-      for (const selector of selectors) {
-        findAndClickBySelector(selector);
-        const element = document.querySelector(`${selector}> div`);
-        if (element?.innerText === "Mostrar resumo") {
+        // Tentar clicar em botões por texto primeiro (mais confiável)
+        const buttonTexts = ["Vamos lá", "Mostrar resumo", "Check", "Next", "Continuar"];
+        let clicked = false;
+        
+        for (const text of buttonTexts) {
+          if (clickButtonWithText(text)) {
+            clicked = true;
+            break;
+          }
+        }
+
+        // Se não clicou por texto, tentar por seletores
+        if (!clicked) {
+          for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element && element.offsetParent !== null) { // Elemento visível
+              element.click();
+              await delay(100);
+              break;
+            }
+          }
+        }
+
+        // Verificar se exercício foi concluído
+        const summaryElement = document.querySelector('button span');
+        if (summaryElement?.innerText === "Mostrar resumo") {
           sendToast("🎉｜Exercício concluído!", 3000);
         }
-      }
 
-      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
-      await delay(speed * 1000);
+        const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+        await delay(speed * 1000);
+        
+      } catch (error) {
+        console.error('Erro na automação:', error);
+        await delay(1000);
+      }
     }
   })();
 }
