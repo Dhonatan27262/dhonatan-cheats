@@ -1,594 +1,894 @@
-(function () {
-  'use strict';
+let loadedPlugins = [];
+let videoExploitEnabled = true;
+let autoClickEnabled = true;
+let autoClickPaused = false;
+let correctAnswerSystemEnabled = true;
 
-  const NS = '__digitadorV2__';
+console.clear();
+const noop = () => {};
+console.warn = console.error = window.debug = noop;
 
-  // ---- Limpeza de execuções anteriores ----
-  if (window[NS]) {
-    try {
-      if (window[NS].listenerInstalado && window[NS].onDocClick) {
-        document.removeEventListener('click', window[NS].onDocClick, true);
-      }
-      if (window[NS].typingIntervalId) clearInterval(window[NS].typingIntervalId);
-    } catch (_) {}
-    document.getElementById('digitadorV2-modal')?.remove();
-    document.getElementById('digitadorV2-progresso')?.remove();
-    document.getElementById('digitadorV2-toast')?.remove();
-    document.getElementById('digitadorV2-controls')?.remove();
-  }
+const splashScreen = document.createElement('splashScreen');
 
-  // ---- Estado global renovado a cada injeção ----
-  window[NS] = {
-    aguardandoCampo: false,
-    listenerInstalado: false,
-    onDocClick: null,
-    typingIntervalId: null,
-    paused: false,
-    currentElement: null,
-    currentText: '',
-    currentIndex: 0,
-    currentSpeed: 40,
-    currentShowProgress: true,
-    currentShowControls: true // Novo estado para controlar a exibição dos botões
-  };
-
-  // ---- Toast/aviso rápido ----
-  function toast(msg, corBorda = '#22c55e') {
-    const id = 'digitadorV2-toast';
-    document.getElementById(id)?.remove();
-    const el = document.createElement('div');
-    el.id = id;
-    el.textContent = msg;
-    Object.assign(el.style, {
-      position: 'fixed',
-      top: '20%',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      padding: '12px 20px',
-      borderRadius: '10px',
-      zIndex: 10000002,
-      border: `1px solid ${corBorda}`,
-      background: 'rgba(0,0,0,0.9)',
-      color: '#fff',
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '16px'
+class EventEmitter {
+  constructor() { this.events = {}; }
+  on(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      (this.events[t] = this.events[t] || []).push(e);
     });
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2200);
   }
-
-  // ---- Listener único de clique (reinstalado a cada injeção) ----
-  function ensureListenerInstalled() {
-    if (window[NS].listenerInstalado && window[NS].onDocClick) {
-      document.removeEventListener('click', window[NS].onDocClick, true);
-      window[NS].listenerInstalado = false;
-    }
-
-    const onDocClick = (e) => {
-      if (!window[NS].aguardandoCampo) return;
-
-      // Ignora cliques na nossa própria UI
-      const path = e.composedPath ? e.composedPath() : [];
-      if (path.some(n => n && n.id && String(n.id).startsWith('digitadorV2-'))) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-
-      window[NS].aguardandoCampo = false;
-
-      const el = e.target;
-      if (!(el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'))) {
-        alert('❌ Esse não é um campo válido.');
-        return;
-      }
-
-      const texto = prompt('📋 Cole ou digite o texto:');
-      if (texto == null) return; // cancelado
-
-      criarModalConfiguracao(el, texto);
+  off(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
+    });
+  }
+  emit(t, ...e) {
+    this.events[t]?.forEach(h => h(...e));
+  }
+  once(t, e) {
+    const s = (...i) => {
+      e(...i);
+      this.off(t, s);
     };
-
-    window[NS].onDocClick = onDocClick;
-    document.addEventListener('click', onDocClick, true);
-    window[NS].listenerInstalado = true;
+    this.on(t, s);
   }
+}
 
-  // ---- API pública: chame sempre que quiser iniciar pelo painel ----
-  window.iniciarModV2 = function () {
-    ensureListenerInstalled();
-    window[NS].aguardandoCampo = true;
-    alert('✍️ Toque no campo onde deseja digitar o texto.');
+const plppdo = new EventEmitter();
+
+new MutationObserver(mutationsList =>
+  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
+).observe(document.body, { childList: true, subtree: true });
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const findAndClickBySelector = selector => document.querySelector(selector)?.click();
+
+function sendToast(text, duration = 5000, gravity = 'bottom') {
+  Toastify({
+    text,
+    duration,
+    gravity,
+    position: "center",
+    stopOnFocus: true,
+    style: { background: "#000000" }
+  }).showToast();
+}
+
+async function showSplashScreen() {
+  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
+  splashScreen.innerHTML = '<span style="color:white;">MLK</span><span style="color:#ff1717;"> MAU O PROPRIO</span>';
+  document.body.appendChild(splashScreen);
+  setTimeout(() => splashScreen.style.opacity = '1', 10);
+}
+
+async function hideSplashScreen() {
+  splashScreen.style.opacity = '0';
+  setTimeout(() => splashScreen.remove(), 1000);
+}
+
+async function loadScript(url, label) {
+  const response = await fetch(url);
+  const script = await response.text();
+  loadedPlugins.push(label);
+  eval(script);
+}
+
+async function loadCss(url) {
+  return new Promise(resolve => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = url;
+    link.onload = resolve;
+    document.head.appendChild(link);
+  });
+}
+
+function createFloatingMenu() {
+  const container = document.createElement('div');
+  container.id = 'santos-floating-menu';
+  container.style.cssText = `
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    z-index: 10000;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    user-select: none;
+  `;
+
+  const mainButton = document.createElement('button');
+  mainButton.id = 'santos-main-btn';
+  mainButton.innerHTML = 'PainelV2';
+  
+  mainButton.style.cssText = `
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    min-width: 130px;
+    outline: none;
+    user-select: none;
+  `;
+  
+  const optionsMenu = document.createElement('div');
+  optionsMenu.id = 'santos-options-menu';
+  optionsMenu.style.cssText = `
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    margin-top: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    width: 180px;
+    border: 1px solid rgba(255,255,255,0.1);
+    user-select: none;
+  `;
+  
+  const themeOption = document.createElement('div');
+  themeOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  themeOption.innerHTML = `
+    <span>Tema</span>
+    <div id="theme-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: #4CAF50;
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: 22px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  
+  optionsMenu.appendChild(themeOption);
+  
+  const exploitOption = document.createElement('div');
+  exploitOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  exploitOption.innerHTML = `
+    <span>Exploit Vídeo</span>
+    <div id="exploit-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${videoExploitEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${videoExploitEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(exploitOption);
+  
+  const correctAnswerOption = document.createElement('div');
+  correctAnswerOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  correctAnswerOption.innerHTML = `
+    <span>Sistema de Respostas</span>
+    <div id="correct-answer-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${correctAnswerSystemEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${correctAnswerSystemEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(correctAnswerOption);
+  
+  const autoClickOption = document.createElement('div');
+  autoClickOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  autoClickOption.innerHTML = `
+    <span>Automação Cliques</span>
+    <div id="auto-click-toggle-switch" style="
+      width: 40px;
+      height: 20px;
+      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+    ">
+      <div style="
+        position: absolute;
+        top: 2px;
+        left: ${autoClickEnabled ? '22px' : '2px'};
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      "></div>
+    </div>
+  `;
+  optionsMenu.appendChild(autoClickOption);
+  
+  const speedControl = document.createElement('div');
+  speedControl.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    user-select: none;
+  `;
+  
+  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
+  
+  speedControl.innerHTML = `
+    <div style="display: flex; justify-content: space-between;">
+      <span>Velocidade</span>
+      <span id="speed-value">${savedSpeed}s</span>
+    </div>
+    <input type="range" min="1" max="60" step="0.5" value="${savedSpeed}" 
+           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
+  `;
+  
+  optionsMenu.appendChild(speedControl);
+  
+  const hideMenuOption = document.createElement('div');
+  hideMenuOption.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(255, 100, 100, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #ff6b6b;
+    font-size: 14px;
+    user-select: none;
+    margin-top: 5px;
+  `;
+  hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
+  optionsMenu.appendChild(hideMenuOption);
+  
+  const futureOptions = document.createElement('div');
+  futureOptions.id = 'santos-future-options';
+  futureOptions.style.cssText = `
+    color: #aaa;
+    font-size: 12px;
+    text-align: center;
+    padding: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 10px;
+    user-select: none;
+  `;
+  futureOptions.textContent = 'Mais opções em breve...';
+  optionsMenu.appendChild(futureOptions);
+  
+  container.appendChild(mainButton);
+  container.appendChild(optionsMenu);
+  document.body.appendChild(container);
+  
+  let isDarkMode = true;
+  
+  function updateThemeSwitch() {
+    const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
+    if (isDarkMode) {
+      switchInner.style.left = '22px';
+      themeOption.querySelector('#theme-toggle-switch').style.background = '#4CAF50';
+    } else {
+      switchInner.style.left = '2px';
+      themeOption.querySelector('#theme-toggle-switch').style.background = '#ccc';
+    }
+  }
+  
+  themeOption.addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    
+    if (isDarkMode) {
+      DarkReader.enable();
+      sendToast("🌙｜Tema escuro ativado", 1500);
+    } else {
+      DarkReader.disable();
+      sendToast("☀️｜Tema claro ativado", 1500);
+    }
+    
+    updateThemeSwitch();
+  });
+  
+  exploitOption.addEventListener('click', () => {
+    videoExploitEnabled = !videoExploitEnabled;
+    
+    const exploitSwitch = exploitOption.querySelector('#exploit-toggle-switch');
+    const exploitSwitchInner = exploitSwitch.querySelector('div');
+    
+    if (videoExploitEnabled) {
+      exploitSwitch.style.background = '#4CAF50';
+      exploitSwitchInner.style.left = '22px';
+      sendToast("✅｜Exploit de vídeo ATIVADO", 1500);
+    } else {
+      exploitSwitch.style.background = '#ccc';
+      exploitSwitchInner.style.left = '2px';
+      sendToast("❌｜Exploit de vídeo DESATIVADO", 1500);
+    }
+  });
+  
+  autoClickOption.addEventListener('click', () => {
+    autoClickEnabled = !autoClickEnabled;
+    
+    const autoClickSwitch = autoClickOption.querySelector('#auto-click-toggle-switch');
+    const autoClickSwitchInner = autoClickSwitch.querySelector('div');
+    const speedSlider = document.getElementById('speed-slider');
+    
+    if (autoClickEnabled) {
+      autoClickSwitch.style.background = '#4CAF50';
+      autoClickSwitchInner.style.left = '22px';
+      if (speedSlider) speedSlider.disabled = false;
+      sendToast("🤖｜Automação de cliques ATIVADA", 1500);
+    } else {
+      autoClickSwitch.style.background = '#ccc';
+      autoClickSwitchInner.style.left = '2px';
+      if (speedSlider) speedSlider.disabled = true;
+      sendToast("🖱️｜Automação de cliques DESATIVADA", 1500);
+    }
+  });
+  
+  correctAnswerOption.addEventListener('click', () => {
+    correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
+    
+    const correctAnswerSwitch = correctAnswerOption.querySelector('#correct-answer-toggle-switch');
+    const correctAnswerSwitchInner = correctAnswerSwitch.querySelector('div');
+    
+    if (correctAnswerSystemEnabled) {
+      correctAnswerSwitch.style.background = '#4CAF50';
+      correctAnswerSwitchInner.style.left = '22px';
+      sendToast("✅｜Sistema de respostas ATIVADO", 1500);
+    } else {
+      correctAnswerSwitch.style.background = '#ccc';
+      correctAnswerSwitchInner.style.left = '2px';
+      sendToast("❌｜Sistema de respostas DESATIVADO", 1500);
+    }
+  });
+  
+  let isMenuOpen = false;
+  
+  function closeMenu() {
+    if (!isMenuOpen) return;
+    
+    isMenuOpen = false;
+    optionsMenu.style.display = 'none';
+    mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    
+    autoClickPaused = false;
+    sendToast("▶️｜Automação retomada", 1000);
+  }
+  
+  function openMenu() {
+    if (isMenuOpen) return;
+    
+    isMenuOpen = true;
+    optionsMenu.style.display = 'flex';
+    mainButton.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.5)';
+    
+    autoClickPaused = true;
+    sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
+  }
+  
+  function toggleMenu() {
+    if (isMenuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
+  
+  mainButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target) && isMenuOpen) {
+      closeMenu();
+    }
+  });
+  
+  hideMenuOption.addEventListener('click', () => {
+    closeMenu();
+    
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+    
+    const reactivateBtn = document.createElement('div');
+    reactivateBtn.id = 'santos-reactivate-btn';
+    reactivateBtn.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: rgba(102, 126, 234, 0.2);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10000;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: rgba(255,255,255,0.5);
+    `;
+    reactivateBtn.innerHTML = '☰';
+    document.body.appendChild(reactivateBtn);
+    
+    reactivateBtn.addEventListener('mouseenter', () => {
+      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.5)';
+      reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
+    });
+    
+    reactivateBtn.addEventListener('mouseleave', () => {
+      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.2)';
+      reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
+    });
+    
+    reactivateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.style.opacity = '1';
+      container.style.pointerEvents = 'auto';
+      reactivateBtn.remove();
+    });
+  });
+  
+  let isDragging = false;
+  let startX, startY;
+  let initialX, initialY;
+  let xOffset = 0, yOffset = 0;
+  const DRAG_THRESHOLD = 5;
+  
+  mainButton.addEventListener('mousedown', startDrag);
+  mainButton.addEventListener('touchstart', startDrag, { passive: false });
+  
+  function startDrag(e) {
+    e.stopPropagation();
+    
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    
+    startX = clientX;
+    startY = clientY;
+    initialX = clientX - xOffset;
+    initialY = clientY - yOffset;
+    
+    isDragging = false;
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('mouseleave', endDrag);
+  }
+  
+  function handleDragMove(e) {
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (!isDragging && distance > DRAG_THRESHOLD) {
+      isDragging = true;
+      if (isMenuOpen) closeMenu();
+    }
+    
+    if (isDragging) {
+      const currentX = clientX - initialX;
+      const currentY = clientY - initialY;
+      
+      xOffset = currentX;
+      yOffset = currentY;
+      
+      setTranslate(currentX, currentY, container);
+    }
+  }
+  
+  function endDrag(e) {
+    if (isDragging) {
+      localStorage.setItem('santosMenuPosition', JSON.stringify({
+        x: xOffset,
+        y: yOffset
+      }));
+    }
+    
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('touchmove', handleDragMove);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchend', endDrag);
+    document.removeEventListener('mouseleave', endDrag);
+    
+    isDragging = false;
+  }
+  
+  function setTranslate(xPos, yPos, el) {
+    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+  }
+  
+  const savedPosition = localStorage.getItem('santosMenuPosition');
+  if (savedPosition) {
+    const { x, y } = JSON.parse(savedPosition);
+    xOffset = x;
+    yOffset = y;
+    setTranslate(x, y, container);
+  }
+  
+  mainButton.addEventListener('mouseenter', () => {
+    mainButton.style.transform = 'scale(1.05)';
+    mainButton.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+  });
+  
+  mainButton.addEventListener('mouseleave', () => {
+    mainButton.style.transform = 'scale(1)';
+    if (!isMenuOpen) {
+      mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    }
+  });
+  
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  
+  if (speedSlider && speedValue) {
+    speedSlider.disabled = !autoClickEnabled;
+    
+    speedSlider.addEventListener('input', () => {
+      const value = speedSlider.value;
+      speedValue.textContent = value + 's';
+      localStorage.setItem('santosSpeed', value);
+      sendToast(`⚡｜Velocidade: ${value}s`, 1500);
+    });
+  }
+  
+  updateThemeSwitch();
+}
+
+function setupMain() {
+  const originalFetch = window.fetch;
+  const correctAnswers = new Map();
+
+  const spoofPhrases = [
+    "⚔️ Segue lá no Github [**@mzzvxm**](https://github.com/mzzvxm/).",
+    "🌀 Chapa Máxima!",
+  ];
+
+  const toFraction = (d) => {
+    if (d === 0 || d === 1) return String(d);
+    const decimals = (String(d).split('.')[1] || '').length;
+    let num = Math.round(d * Math.pow(10, decimals)), den = Math.pow(10, decimals);
+    const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
+    const div = gcd(Math.abs(num), Math.abs(den));
+    return den / div === 1 ? String(num / div) : `${num / div}/${den / div}`;
   };
 
-  // ===============================
-  // Modal de configuração (texto editável)
-  // ===============================
-  function criarModalConfiguracao(el, textoOriginal) {
-    document.getElementById('digitadorV2-modal')?.remove();
+  window.fetch = async function(resource, init) {
+    let content;
+    const url = resource instanceof Request ? resource.url : resource;
 
-    const modal = document.createElement('div');
-    modal.id = 'digitadorV2-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #ffffff;
-      padding: 22px;
-      border-radius: 12px;
-      z-index: 10000001;
-      box-shadow: 0 0 40px rgba(0,0,0,0.6);
-      min-width: 360px;
-      max-width: 92%;
-      font-family: Arial, sans-serif;
-      color: #1f2937;
-    `;
-
-    modal.innerHTML = `
-      <h2 style="margin:0 0 10px 0; color:#111827; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
-        📋 Configurações de Digitação
-      </h2>
-
-      <label for="digitadorV2-texto" style="display:block; margin-top:8px; font-weight:600; color:#1f2937;">
-        Texto que será digitado (edite aqui):
-      </label>
-      <textarea id="digitadorV2-texto" style="
-        width:100%;
-        height:140px;
-        margin:8px 0 16px 0;
-        padding:12px;
-        border:2px solid #3b82f6;
-        border-radius:8px;
-        background:#f8fafc;
-        color:#111827;
-        font-size:16px;
-        line-height:1.4;
-        resize:vertical;
-        box-sizing:border-box;
-      "></textarea>
-
-      <label for="digitadorV2-velocidade" style="display:block; font-weight:600; color:#1f2937;">
-        Velocidade de digitação:
-      </label>
-      <select id="digitadorV2-velocidade" style="
-        width:100%;
-        padding:10px;
-        margin:8px 0 16px 0;
-        border:2px solid #3b82f6;
-        border-radius:8px;
-        background:white;
-        font-size:16px;
-        box-sizing:border-box;
-      ">
-        <option value="100">Muito Devagar (100ms)</option>
-        <option value="60" selected>Devagar (60ms)</option>
-        <option value="40">Normal (40ms)</option>
-        <option value="20">Rápido (20ms)</option>
-        <option value="10">Muito Rápido (10ms)</option>
-        <option value="humana">Velocidade Humana indetect</option>
-      </select>
-
-      <label style="display:flex; align-items:center; gap:8px; margin:16px 0; cursor:pointer;">
-        <input type="checkbox" id="digitadorV2-mostrar-porcentagem" checked style="width:18px; height:18px;">
-        <span style="font-weight:600; color:#1f2937;">Mostrar porcentagem durante a digitação</span>
-      </label>
-
-      <!-- Nova opção para mostrar/ocultar botões de controle -->
-      <label style="display:flex; align-items:center; gap:8px; margin:16px 0; cursor:pointer;">
-        <input type="checkbox" id="digitadorV2-mostrar-botoes" checked style="width:18px; height:18px;">
-        <span style="font-weight:600; color:#1f2937;">Mostrar botões de controle (pausar/continuar/cancelar)</span>
-      </label>
-
-      <div style="display:flex; gap:10px; justify-content:flex-end;">
-        <button id="digitadorV2-cancelar" style="
-          padding:10px 16px; background:#ef4444; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px;">
-          Cancelar
-        </button>
-        <button id="digitadorV2-confirmar" style="
-          padding:10px 16px; background:#10b981; color:white; border:none; border-radius:8px; cursor:pointer; font-size:15px; font-weight:700;">
-          Iniciar Digitação
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Preenche o textarea com o texto inicial (pode editar livremente)
-    const txt = modal.querySelector('#digitadorV2-texto');
-    txt.value = textoOriginal;
-
-    // Ações
-    modal.querySelector('#digitadorV2-cancelar').addEventListener('click', () => modal.remove());
-    modal.querySelector('#digitadorV2-confirmar').addEventListener('click', () => {
-      const velocidade = modal.querySelector('#digitadorV2-velocidade').value;
-      const mostrarPorcentagem = modal.querySelector('#digitadorV2-mostrar-porcentagem').checked;
-      const mostrarBotoes = modal.querySelector('#digitadorV2-mostrar-botoes').checked; // Nova opção
-      const textoAtual = txt.value;
-      modal.remove();
-      iniciarDigitacao(el, textoAtual, velocidade, mostrarPorcentagem, mostrarBotoes);
-    });
-
-    // Fechar com ESC
-    modal.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') modal.remove();
-    });
-
-    // Força foco no modal textarea para edição (opcional)
-    txt.focus();
-  }
-
-  // ===============================
-  // Inserção segura por tipo (não abre teclado)
-  // ===============================
-  function inserirCharEmInput(el, ch) {
-    try {
-      // posição atual (fallback no final)
-      let pos = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length;
-
-      if (typeof el.setRangeText === 'function') {
-        el.setRangeText(ch, pos, pos, 'end');
-        // após setRangeText, a seleção fica após o texto inserido
-      } else {
-        // fallback
-        const v = el.value || '';
-        const before = v.slice(0, pos);
-        const after = v.slice(pos);
-        el.value = before + ch + after;
-        const newPos = pos + ch.length;
-        try { el.setSelectionRange(newPos, newPos); } catch (_) {}
-      }
-    } catch (err) {
-      // último recurso: concatena
-      el.value = (el.value || '') + ch;
+    if (resource instanceof Request) {
+      content = await resource.clone().text();
+    } else if (init?.body) {
+      content = init.body;
     }
-  }
 
-  function inserirCharEmContentEditable(el, ch) {
-    try {
-      // cria um textNode com o caractere e insere ao final do elemento (sem focar)
-      const doc = el.ownerDocument || document;
-      const sel = doc.getSelection ? doc.getSelection() : null;
-      let range;
-      if (sel && sel.rangeCount) {
-        // tenta usar seleção atual se estiver dentro do elemento
-        range = sel.getRangeAt(0).cloneRange();
-        // se seleção não estiver dentro do el, substitui pela posição final
-        if (!el.contains(range.commonAncestorContainer)) {
-          range = null;
-        }
-      }
-      if (!range) {
-        range = doc.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false); // ao final
-      }
-      // insere nó de texto
-      const txtNode = doc.createTextNode(ch);
-      range.insertNode(txtNode);
-      // move range após o nó inserido
-      range.setStartAfter(txtNode);
-      range.collapse(true);
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-    } catch (err) {
-      // fallback: concatena diretamente no innerText (pior caso)
-      el.innerText = (el.innerText || '') + ch;
-    }
-  }
-
-  // ===============================
-  // Cria controles de UI
-  // ===============================
-  function criarControles(mostrarPorcentagem) {
-    // Remove controles existentes
-    document.getElementById('digitadorV2-controls')?.remove();
-    
-    const controls = document.createElement('div');
-    controls.id = 'digitadorV2-controls';
-    
-    // Estilo base
-    Object.assign(controls.style, {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      zIndex: 10000002,
-      display: 'flex',
-      gap: '10px',
-      padding: '10px',
-      borderRadius: '8px',
-      background: 'rgba(0,0,0,0.85)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-    });
-    
-    // Se mostrarPorcentagem for true, adicionamos estilos adicionais
-    if (mostrarPorcentagem) {
-      Object.assign(controls.style, {
-        padding: '15px 20px',
-        alignItems: 'center'
-      });
-    }
-    
-    // Botão Pausar
-    const pauseBtn = document.createElement('button');
-    pauseBtn.innerHTML = '⏸️';
-    pauseBtn.title = 'Pausar';
-    pauseBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 4px;
-    `;
-    pauseBtn.addEventListener('mouseover', () => {
-      pauseBtn.style.background = 'rgba(255,255,255,0.2)';
-    });
-    pauseBtn.addEventListener('mouseout', () => {
-      pauseBtn.style.background = 'none';
-    });
-    pauseBtn.addEventListener('click', () => {
-      window[NS].paused = true;
-      toast('⏸️ Digitação pausada');
-    });
-    
-    // Botão Continuar
-    const resumeBtn = document.createElement('button');
-    resumeBtn.innerHTML = '▶️';
-    resumeBtn.title = 'Continuar';
-    resumeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 4px;
-    `;
-    resumeBtn.addEventListener('mouseover', () => {
-      resumeBtn.style.background = 'rgba(255,255,255,0.2)';
-    });
-    resumeBtn.addEventListener('mouseout', () => {
-      resumeBtn.style.background = 'none';
-    });
-    resumeBtn.addEventListener('click', () => {
-      if (window[NS].paused) {
-        window[NS].paused = false;
-        toast('▶️ Digitação continuando');
-        // Reinicia a digitação de onde parou
-        iniciarDigitacao(
-          window[NS].currentElement,
-          window[NS].currentText,
-          window[NS].currentSpeed,
-          window[NS].currentShowProgress,
-          window[NS].currentShowControls,
-          window[NS].currentIndex
-        );
-      }
-    });
-    
-    // Botão Cancelar
-    const cancelBtn = document.createElement('button');
-    cancelBtn.innerHTML = '❌';
-    cancelBtn.title = 'Cancelar';
-    cancelBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 4px;
-    `;
-    cancelBtn.addEventListener('mouseover', () => {
-      cancelBtn.style.background = 'rgba(255,255,255,0.2)';
-    });
-    cancelBtn.addEventListener('mouseout', () => {
-      cancelBtn.style.background = 'none';
-    });
-    cancelBtn.addEventListener('click', () => {
-      // Limpa o intervalo de digitação
-      if (window[NS].typingIntervalId) {
-        clearTimeout(window[NS].typingIntervalId);
-        window[NS].typingIntervalId = null;
-      }
-      
-      // Remove a UI
-      document.getElementById('digitadorV2-progresso')?.remove();
-      document.getElementById('digitadorV2-controls')?.remove();
-      
-      // Restaura estado do elemento
+    if (videoExploitEnabled && content?.includes('"operationName":"updateUserVideoProgress"')) {
       try {
-        if (window[NS].currentElement && 
-            (window[NS].currentElement.tagName === 'INPUT' || 
-             window[NS].currentElement.tagName === 'TEXTAREA')) {
-          window[NS].currentElement.readOnly = false;
-          window[NS].currentElement.blur();
-        }
-      } catch (_) {}
-      
-      // Reseta estado
-      window[NS].paused = false;
-      window[NS].currentElement = null;
-      window[NS].currentText = '';
-      window[NS].currentIndex = 0;
-      
-      toast('❌ Digitação cancelada', '#ef4444');
-    });
-    
-    // Adiciona botões aos controles
-    controls.appendChild(pauseBtn);
-    controls.appendChild(resumeBtn);
-    controls.appendChild(cancelBtn);
-    
-    // Adiciona controles ao documento
-    document.body.appendChild(controls);
-    
-    return controls;
-  }
-
-  // ===============================
-  // Digitação tecla-por-tecla (sem abrir teclado)
-  // ===============================
-  function iniciarDigitacao(el, texto, velocidade, mostrarPorcentagem, mostrarBotoes, startIndex = 0) {
-    // Se estiver pausado, não faz nada (aguarda usuário clicar em continuar)
-    if (window[NS].paused && startIndex === 0) {
-      return;
-    }
-    
-    // Se já existe um intervalo, limpa
-    if (window[NS].typingIntervalId) {
-      clearTimeout(window[NS].typingIntervalId);
-      window[NS].typingIntervalId = null;
-    }
-    
-    // Remove elementos de UI existentes
-    document.getElementById('digitadorV2-progresso')?.remove();
-    document.getElementById('digitadorV2-controls')?.remove();
-    
-    // Salva estado atual para possível retomada
-    window[NS].currentElement = el;
-    window[NS].currentText = texto;
-    window[NS].currentIndex = startIndex;
-    window[NS].currentSpeed = velocidade;
-    window[NS].currentShowProgress = mostrarPorcentagem;
-    window[NS].currentShowControls = mostrarBotoes; // Novo estado
-    
-    // Cria controles apenas se a opção estiver ativada
-    let controls = null;
-    if (mostrarBotoes) {
-      controls = criarControles(mostrarPorcentagem);
-    }
-    
-    // Detecta tipo do elemento
-    const isInputEl = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
-    const isContentEditable = !!el.isContentEditable;
-
-    // Preparações para inputs/textarea: evitar teclado usando readOnly
-    let prevReadOnly = null;
-    try {
-      if (isInputEl) {
-        prevReadOnly = el.readOnly;
-        el.readOnly = true; // crucial: evita que o teclado virtual apareça ao focar
-        // foco é necessário em alguns browsers para setRangeText; com readOnly true o teclado normalmente não aparece
-        try { el.focus({ preventScroll: true }); } catch (_) { try { el.focus(); } catch (_) {} }
-        // posiciona caret no final se possível
-        try {
-          const len = el.value ? el.value.length : 0;
-          el.setSelectionRange(len, len);
-        } catch (_) {}
-      }
-    } catch (_) {}
-
-    let i = startIndex;
-    
-    // Criar elemento de progresso apenas se for mostrar porcentagem
-    let progresso = null;
-    if (mostrarPorcentagem && mostrarBotoes) {
-      progresso = document.createElement('div');
-      progresso.id = 'digitadorV2-progresso';
-      Object.assign(progresso.style, {
-        color: '#fff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        marginRight: '10px'
-      });
-      
-      // Adiciona o elemento de progresso aos controles
-      controls.insertBefore(progresso, controls.firstChild);
-    }
-
-    // Função para obter o próximo intervalo baseado na velocidade selecionada
-    function obterProximoIntervalo() {
-      if (velocidade === 'humana') {
-        // Velocidade humana: intervalo variável entre 100ms e 300ms com pausas ocasionais
-        if (i > 0 && Math.random() < 0.05) {
-          // Pausa ocasional (5% de chance após cada caractere)
-          return 500 + Math.random() * 1000; // 500ms a 1500ms de pausa
-        }
-        return 100 + Math.random() * 200; // 100ms a 300ms
-      } else {
-        return parseInt(velocidade, 10); // Velocidade fixa
-      }
-    }
-
-    function digitarProximoCaractere() {
-      // Se estiver pausado, não faz nada
-      if (window[NS].paused) {
-        return;
-      }
-      
-      if (i < texto.length) {
-        const c = texto[i++];
-
-        // Inserção de acordo com o tipo do elemento
-        if (isInputEl) {
-          inserirCharEmInput(el, c);
-        } else if (isContentEditable) {
-          inserirCharEmContentEditable(el, c);
-        } else {
-          // caso genérico (p.ex. elementos que aceitam innerText)
-          try {
-            el.innerText = (el.innerText || '') + c;
-          } catch (_) {}
-        }
-
-        // Atualizar progresso se estiver sendo mostrado
-        if (mostrarPorcentagem && mostrarBotoes && progresso) {
-          progresso.textContent = `${Math.round((i / texto.length) * 100)}%`;
-        }
-
-        // Disparar eventos de input periodicamente e para cada caractere
-        try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-        if (i % 25 === 0) {
-          try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-        }
-
-        // Atualiza o índice atual
-        window[NS].currentIndex = i;
-        
-        // Agendar próximo caractere
-        window[NS].typingIntervalId = setTimeout(digitarProximoCaractere, obterProximoIntervalo());
-      } else {
-        // Finalização
-        window[NS].typingIntervalId = null;
-
-        // remove readonly e desfoca para inputs
-        try {
-          if (isInputEl) {
-            // desfoca primeiro
-            try { el.blur(); } catch (_) {}
-            // restaura readOnly original
-            if (prevReadOnly !== null && typeof prevReadOnly !== 'undefined') {
-              try { el.readOnly = prevReadOnly; } catch (_) {}
-            } else {
-              try { el.readOnly = false; } catch (_) {}
-            }
-          } else if (isContentEditable) {
-            // não forçamos foco; apenas disparamos eventos
+        const parsed = JSON.parse(content);
+        const input = parsed.variables?.input;
+        if (input) {
+          input.secondsWatched = input.durationSeconds;
+          input.lastSecondWatched = input.durationSeconds;
+          content = JSON.stringify(parsed);
+          if (resource instanceof Request) {
+            resource = new Request(resource, { body: content });
+          } else {
+            init.body = content;
           }
-        } catch (_) {}
-
-        // Garante que frameworks reajam
-        try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-        try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
-
-        // Remove controles após um breve delay
-        setTimeout(() => {
-          document.getElementById('digitadorV2-controls')?.remove();
-        }, 1000);
-        
-        toast('✅ Texto digitado com sucesso!');
-      }
+          sendToast("🔄｜Vídeo exploitado.", 1000);
+        }
+      } catch (e) {}
     }
 
-    // Iniciar digitação
-    window[NS].typingIntervalId = setTimeout(digitarProximoCaractere, obterProximoIntervalo());
-  }
+    if (correctAnswerSystemEnabled && url.includes('attemptProblem') && content) {
+      try {
+        let bodyObj = JSON.parse(content);
+        const itemId = bodyObj.variables?.input?.assessmentItemId;
+        const answers = correctAnswers.get(itemId);
 
-  // ---- Início imediato a cada injeção ----
-  window.iniciarModV2();
+        if (answers?.length > 0) {
+          const attemptContent = [], userInput = {};
+          let attemptState = bodyObj.variables.input.attemptState ? JSON.parse(bodyObj.variables.input.attemptState) : null;
 
-})();
+          answers.forEach(a => {
+            if (a.type === 'radio') {
+              attemptContent.push({ selectedChoiceIds: [a.choiceId] });
+              userInput[a.widgetKey] = { selectedChoiceIds: [a.choiceId] };
+            }
+            else if (a.type === 'numeric') {
+              attemptContent.push({ currentValue: a.value });
+              userInput[a.widgetKey] = { currentValue: a.value };
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].currentValue = a.value;
+            }
+            else if (a.type === 'expression') {
+              attemptContent.push(a.value);
+              userInput[a.widgetKey] = a.value;
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].value = a.value;
+            }
+            else if (a.type === 'grapher') {
+              const graph = { type: a.graphType, coords: a.coords, asymptote: a.asymptote || null };
+              attemptContent.push(graph);
+              userInput[a.widgetKey] = graph;
+              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].plot = graph;
+            }
+          });
+
+          bodyObj.variables.input.attemptContent = JSON.stringify([attemptContent, []]);
+          bodyObj.variables.input.userInput = JSON.stringify(userInput);
+          if (attemptState) bodyObj.variables.input.attemptState = JSON.stringify(attemptState);
+
+          content = JSON.stringify(bodyObj);
+          if (resource instanceof Request) resource = new Request(resource, { body: content });
+          else init.body = content;
+
+          sendToast(`✨ ${answers.length} resposta(s) aplicada(s).`, 750);
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    const response = await originalFetch.apply(this, arguments);
+
+    if (correctAnswerSystemEnabled && url.includes('getAssessmentItem')) {
+      try {
+        const clone = response.clone();
+        const text = await clone.text();
+        const parsed = JSON.parse(text);
+
+        let item = null;
+        if (parsed?.data) {
+          for (const key in parsed.data) {
+            if (parsed.data[key]?.item) {
+              item = parsed.data[key].item;
+              break;
+            }
+          }
+        }
+
+        const itemDataRaw = item?.itemData;
+        if (itemDataRaw) {
+          let itemData = JSON.parse(itemDataRaw);
+          const answers = [];
+
+          for (const [key, w] of Object.entries(itemData.question.widgets || {})) {
+            if (w.type === 'radio' && w.options?.choices) {
+              const choices = w.options.choices.map((c, i) => ({ ...c, id: c.id || `radio-choice-${i}` }));
+              const correct = choices.find(c => c.correct);
+              if (correct) answers.push({ type: 'radio', choiceId: correct.id, widgetKey: key });
+            }
+            else if (w.type === 'numeric-input' && w.options?.answers) {
+              const correct = w.options.answers.find(a => a.status === 'correct');
+              if (correct) {
+                const val = correct.answerForms?.some(f => f === 'proper' || f === 'improper')
+                  ? toFraction(correct.value) : String(correct.value);
+                answers.push({ type: 'numeric', value: val, widgetKey: key });
+              }
+            }
+            else if (w.type === 'expression' && w.options?.answerForms) {
+              const correct = w.options.answerForms.find(f => f.considered === 'correct' || f.form === true);
+              if (correct) answers.push({ type: 'expression', value: correct.value, widgetKey: key });
+            }
+            else if (w.type === 'grapher' && w.options?.correct) {
+              const c = w.options.correct;
+              if (c.type && c.coords) answers.push({
+                type: 'grapher', graphType: c.type, coords: c.coords,
+                asymptote: c.asymptote || null, widgetKey: key
+              });
+            }
+          }
+
+          if (answers.length > 0) {
+            correctAnswers.set(item.id, answers);
+          }
+
+          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+            const randomPhrase = spoofPhrases[Math.floor(Math.random() * spoofPhrases.length)];
+
+            itemData.answerArea = {
+              calculator: false,
+              chi2Table: false,
+              periodicTable: false,
+              tTable: false,
+              zTable: false,
+            };
+
+            itemData.question.content = randomPhrase + "\n\n**Tenho Outros Scripts também! depois dá uma olhada no [ScriptHub](https://scripthubb.vercel.app/)**" + `[[☃ radio 1]]` + `\n\n**〽️ Segue lá no Instagram! [@mzzvxm](https://instagram.com/mzzvxm)**` ;
+
+            itemData.question.widgets = {
+              "radio 1": {
+                type: "radio", alignment: "default", static: false, graded: true,
+                options: {
+                  choices: [
+                    { content: "**〽️**", correct: true, id: "correct-choice" },
+                    { content: "", correct: false, id: "incorrect-choice" }
+                  ],
+                  randomize: false, multipleSelect: false, displayCount: null, deselectEnabled: false
+                },
+                version: { major: 1, minor: 0 }
+              },
+            };
+
+            const modifiedData = { ...parsed };
+            if (modifiedData.data) {
+              for (const key in modifiedData.data) {
+                if (modifiedData.data[key]?.item?.itemData) {
+                  modifiedData.data[key].item.itemData = JSON.stringify(itemData);
+                  break;
+                }
+              }
+            }
+
+            sendToast("🔓 Questão exploitada.", 750);
+            return new Response(JSON.stringify(modifiedData), {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers,
+            });
+          }
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    return response;
+  };
+
+  (async () => {
+    const selectors = [
+      `[data-testid="choice-icon__library-choice-icon"]`,
+      `[data-testid="exercise-check-answer"]`,
+      `[data-testid="exercise-next-question"]`,
+      `._1udzurba`,
+      `._awve9b`
+    ];
+
+    window.khanwareDominates = true;
+
+    while (window.khanwareDominates) {
+      if (!autoClickEnabled || autoClickPaused) {
+        await delay(2000);
+        continue;
+      }
+
+      for (const selector of selectors) {
+        findAndClickBySelector(selector);
+        const element = document.querySelector(`${selector}> div`);
+        if (element?.innerText === "Mostrar resumo") {
+          sendToast("🎉｜Exercício concluído!", 3000);
+        }
+      }
+
+      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
+      await delay(speed * 1000);
+    }
+  })();
+}
+
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
+  window.location.href = "https://pt.khanacademy.org/";
+} else {
+  (async function init() {
+    await showSplashScreen();
+
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(() => {
+        DarkReader.setFetchMethod(window.fetch);
+        DarkReader.enable();
+      }),
+      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
+      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
+    ]);
+
+    await delay(2000);
+    await hideSplashScreen();
+
+    createFloatingMenu();
+    setupMain();
+    
+    sendToast("Carregando...!");
+    setTimeout(() => {
+        sendToast("Carregado", 2500);
+    }, 1000);
+    setTimeout(() => {
+        sendToast("KHAN MENU INICIADO", 2500);
+    }, 3500);
+    
+    console.clear();
+  })();
+}
