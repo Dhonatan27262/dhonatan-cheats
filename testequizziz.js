@@ -1823,19 +1823,14 @@
             panel.appendChild(watermark);
             document.body.appendChild(panel);
 
-            // --- LÓGICA DE MINIMIZAR ---
+            // --- CORREÇÃO: LISTA CORRETA DE ELEMENTOS PARA MINIMIZAR ---
             const contentToToggle = [
-                'view-raw-response-btn',
-                'ai-toggle-btn',
-                'ai-solver-button',
-                'mlk-mau-watermark'
-            ];
-
-            // Adicionar todos os elementos de IA na lista
-            const aiElements = panel.querySelectorAll('[id*="ai-"], .ai-indicator');
-            aiElements.forEach(el => {
-                if (el.id) contentToToggle.push(el.id);
-            });
+                viewResponseBtn,
+                aiInstruction || aiIndicator,
+                aiToggleBtn || null,
+                button,
+                watermark
+            ].filter(Boolean); // Remove elementos nulos
 
             let isMinimized = false;
 
@@ -1847,11 +1842,8 @@
                 if (isMinimized) {
                     // Estado minimizado - oculta o conteúdo
                     minimizeBtn.innerHTML = '+'; // Muda para sinal de mais
-                    contentToToggle.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.display = 'none';
-                        }
+                    contentToToggle.forEach(element => {
+                        if (element) element.style.display = 'none';
                     });
                     // Reduz o tamanho do painel
                     panel.style.padding = '8px';
@@ -1862,11 +1854,8 @@
                 } else {
                     // Estado normal - mostra o conteúdo
                     minimizeBtn.innerHTML = '−'; // Volta para sinal de menos
-                    contentToToggle.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.display = '';
-                        }
+                    contentToToggle.forEach(element => {
+                        if (element) element.style.display = '';
                     });
                     // Restaura o tamanho original do painel
                     panel.style.padding = '12px';
@@ -1874,7 +1863,12 @@
                     
                     // Re-aplica 'display: none' ao viewResponseBtn se não há resposta
                     if (!lastAiResponse) {
-                        document.getElementById('view-raw-response-btn').style.display = 'none';
+                        viewResponseBtn.style.display = 'none';
+                    }
+                    
+                    // Garante que os indicadores de IA apareçam corretamente
+                    if (aiIndicator) {
+                        aiIndicator.style.display = '';
                     }
                 }
             });
