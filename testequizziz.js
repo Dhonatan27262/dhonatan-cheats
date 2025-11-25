@@ -1403,8 +1403,21 @@
         function makeDraggable(panel, handle) {
             let offsetX = 0, offsetY = 0, isDragging = false;
 
-            handle.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+            // Criar um handle específico para arrastar
+            const dragHandle = document.createElement('div');
+            dragHandle.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 30px;
+                cursor: grab;
+                z-index: 1;
+            `;
+            panel.appendChild(dragHandle);
+
+            dragHandle.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
@@ -1420,7 +1433,7 @@
                 offsetY = e.clientY - panel.getBoundingClientRect().top;
 
                 panel.style.transition = 'none';
-                handle.style.cursor = 'grabbing';
+                dragHandle.style.cursor = 'grabbing';
             });
 
             document.addEventListener('mousemove', (e) => {
@@ -1440,11 +1453,11 @@
                 if (!isDragging) return;
                 isDragging = false;
                 panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-                handle.style.cursor = 'grab';
+                dragHandle.style.cursor = 'grab';
             });
 
-            handle.addEventListener('touchstart', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+            dragHandle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
@@ -1507,9 +1520,8 @@
                 borderRadius: '16px',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-                transform: 'translateY(0)', // CORREÇÃO: Removido translateY inicial
-                opacity: '1', // CORREÇÃO: Definido como visível desde o início
-                cursor: 'grab',
+                transform: 'translateY(0)',
+                opacity: '1',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             });
 
@@ -1569,7 +1581,9 @@
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '8px'
+                marginBottom: '8px',
+                position: 'relative',
+                zIndex: '2'
             });
 
             // Botão Minimizar
@@ -1590,7 +1604,8 @@
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                zIndex: '2'
             });
 
             minimizeBtn.addEventListener('mouseover', () => {
@@ -1619,7 +1634,8 @@
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                zIndex: '2'
             });
 
             closeBtn.addEventListener('mouseover', () => {
@@ -1644,13 +1660,15 @@
             if (availableProviders.length > 1) {
                 // Frame acima do botão de IA
                 const aiInstruction = document.createElement('div');
+                aiInstruction.id = 'ai-instruction';
                 aiInstruction.innerHTML = 'Escolha abaixo a IA que você configurou.';
                 Object.assign(aiInstruction.style, {
                     color: 'rgba(255, 255, 255, 0.7)',
                     fontSize: '11px',
                     textAlign: 'center',
                     marginBottom: '4px',
-                    fontStyle: 'italic'
+                    fontStyle: 'italic',
+                    zIndex: '2'
                 });
                 panel.appendChild(aiInstruction);
 
@@ -1667,7 +1685,8 @@
                     padding: '4px 8px', 
                     borderRadius: '6px',
                     transition: 'all 0.2s ease',
-                    marginBottom: '4px'
+                    marginBottom: '4px',
+                    zIndex: '2'
                 });
                 
                 aiToggleBtn.addEventListener('click', () => {
@@ -1691,13 +1710,15 @@
             } else if (availableProviders.length === 1) {
                 // Apenas um provedor disponível - mostrar indicador fixo
                 const aiIndicator = document.createElement('div');
+                aiIndicator.id = 'ai-indicator';
                 aiIndicator.innerHTML = `IA: ${availableProviders[0] === 'gemini' ? 'Gemini' : 'DeepSeek'}`;
                 Object.assign(aiIndicator.style, {
                     color: 'rgba(255, 255, 255, 0.5)',
                     fontSize: '11px',
                     textAlign: 'center',
                     marginBottom: '4px',
-                    fontStyle: 'italic'
+                    fontStyle: 'italic',
+                    zIndex: '2'
                 });
                 panel.appendChild(aiIndicator);
             }
@@ -1724,7 +1745,8 @@
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 gap: '8px',
-                animation: 'rgbFlow 3s linear infinite'
+                animation: 'rgbFlow 3s linear infinite',
+                zIndex: '2'
             });
 
             // Adicionar animação RGB
@@ -1767,16 +1789,17 @@
             document.body.appendChild(panel);
 
             // --- LÓGICA DE MINIMIZAR ---
-            const contentToToggle = [
+            const elementsToToggle = [
                 'view-raw-response-btn',
-                'ai-toggle-btn',
                 'ai-solver-button',
                 'mlk-mau-watermark'
             ];
 
             // Adicionar elementos específicos baseados nos provedores disponíveis
             if (availableProviders.length > 1) {
-                contentToToggle.push(aiInstruction);
+                elementsToToggle.push('ai-instruction', 'ai-toggle-btn');
+            } else if (availableProviders.length === 1) {
+                elementsToToggle.push('ai-indicator');
             }
 
             let isMinimized = false;
@@ -1788,7 +1811,7 @@
                 
                 if (isMinimized) {
                     minimizeBtn.innerHTML = '+';
-                    contentToToggle.forEach(id => {
+                    elementsToToggle.forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = 'none';
                     });
@@ -1797,7 +1820,7 @@
                     responseViewer.style.display = 'none';
                 } else {
                     minimizeBtn.innerHTML = '−';
-                    contentToToggle.forEach(id => {
+                    elementsToToggle.forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = '';
                     });
@@ -1812,7 +1835,6 @@
             // --- LÓGICA DE ARRASTAR ---
             makeDraggable(panel, panel);
 
-            // CORREÇÃO: Removido o setTimeout que causava atraso na exibição
             console.log("Floating Panel MLK MAU criado com sucesso!");
         }
 
@@ -1924,7 +1946,6 @@
         }
 
         // --- Start ---
-        // CORREÇÃO: Criar o painel imediatamente após a inicialização
         criarFloatingPanel();
         initQuizIdDetector();
     }
