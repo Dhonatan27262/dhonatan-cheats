@@ -157,7 +157,53 @@
 
             // Container para os campos Gemini
             const geminiSection = document.createElement('div');
-            geminiSection.innerHTML = '<h3 style="color: #a78bfa; margin-bottom: 15px;">Gemini API Keys</h3>';
+            
+            // Título Gemini com link
+            const geminiHeader = document.createElement('div');
+            Object.assign(geminiHeader.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '15px'
+            });
+            
+            const geminiTitle = document.createElement('h3');
+            geminiTitle.innerText = 'Gemini API Keys';
+            Object.assign(geminiTitle.style, {
+                color: '#a78bfa',
+                margin: '0',
+                fontSize: '16px'
+            });
+
+            const geminiLink = document.createElement('a');
+            geminiLink.innerText = '🔗 gere sua api aqui';
+            geminiLink.href = 'https://aistudio.google.com/app/apikey';
+            geminiLink.target = '_blank';
+            Object.assign(geminiLink.style, {
+                color: '#8b5cf6',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: '500',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+            });
+
+            geminiLink.addEventListener('mouseover', () => {
+                geminiLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                geminiLink.style.transform = 'translateY(-1px)';
+            });
+
+            geminiLink.addEventListener('mouseout', () => {
+                geminiLink.style.backgroundColor = 'transparent';
+                geminiLink.style.transform = 'translateY(0)';
+            });
+
+            geminiHeader.appendChild(geminiTitle);
+            geminiHeader.appendChild(geminiLink);
+            geminiSection.appendChild(geminiHeader);
             
             const geminiContainer = document.createElement('div');
             Object.assign(geminiContainer.style, {
@@ -194,7 +240,53 @@
 
             // Container para os campos OpenRouter
             const openRouterSection = document.createElement('div');
-            openRouterSection.innerHTML = '<h3 style="color: #a78bfa; margin-bottom: 15px;">OpenRouter API Keys</h3>';
+            
+            // Título OpenRouter com link
+            const openRouterHeader = document.createElement('div');
+            Object.assign(openRouterHeader.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '15px'
+            });
+            
+            const openRouterTitle = document.createElement('h3');
+            openRouterTitle.innerText = 'OpenRouter API Keys';
+            Object.assign(openRouterTitle.style, {
+                color: '#a78bfa',
+                margin: '0',
+                fontSize: '16px'
+            });
+
+            const openRouterLink = document.createElement('a');
+            openRouterLink.innerText = '🔗 gere sua api aqui';
+            openRouterLink.href = 'https://openrouter.ai/settings/keys';
+            openRouterLink.target = '_blank';
+            Object.assign(openRouterLink.style, {
+                color: '#8b5cf6',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: '500',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+            });
+
+            openRouterLink.addEventListener('mouseover', () => {
+                openRouterLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                openRouterLink.style.transform = 'translateY(-1px)';
+            });
+
+            openRouterLink.addEventListener('mouseout', () => {
+                openRouterLink.style.backgroundColor = 'transparent';
+                openRouterLink.style.transform = 'translateY(0)';
+            });
+
+            openRouterHeader.appendChild(openRouterTitle);
+            openRouterHeader.appendChild(openRouterLink);
+            openRouterSection.appendChild(openRouterHeader);
             
             const openRouterContainer = document.createElement('div');
             Object.assign(openRouterContainer.style, {
@@ -815,7 +907,7 @@
                 const match = bgImage.match(/rgb\(\d+, \d+, \d+\)/);
                 if (match) return match[0];
             }
-            return style.backgroundColor || 'rgba(0, 255, 0, 0.5)';
+            return style.backgroundColor || 'rgba(255, 255, 255, 0.8)'; // Alterado para branco
         };
 
         switch (quizData.questionType) {
@@ -1090,7 +1182,7 @@
                     const aiAnswers = aiAnswerText.split('\n').map(normalize).filter(Boolean);
                     quizData.options.forEach(opt => {
                         if (aiAnswers.includes(normalize(opt.text))) {
-                            opt.element.style.border = '5px solid #00FF00';
+                            opt.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
                             opt.element.click();
                         }
                     });
@@ -1103,7 +1195,7 @@
 
                     if (bestMatch) {
                         console.log("Correspondência encontrada!", bestMatch.element);
-                        bestMatch.element.style.border = '5px solid #00FF00';
+                        bestMatch.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
                         bestMatch.element.click();
                     } else {
                         console.warn("Nenhuma correspondência exata encontrada após normalização.");
@@ -1170,7 +1262,7 @@
                         })();
                         const result = (() => { try { return new Function('return ' + computableExpr)(); } catch (e) { return null; } })();
                         if (result !== null && Math.abs(result - targetValue) < 0.001) {
-                            option.element.style.border = '5px solid #00FF00';
+                            option.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
                             option.element.click();
                         }
                     });
@@ -1545,6 +1637,18 @@
             panel.appendChild(controlsContainer);
             // --- FIM DOS NOVOS BOTÕES ---
 
+            // --- FRAME ACIMA DO BOTÃO DE IA ---
+            const aiInstruction = document.createElement('div');
+            aiInstruction.innerHTML = 'Escolha abaixo a ia que você escolheu a api.';
+            Object.assign(aiInstruction.style, {
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '11px',
+                textAlign: 'center',
+                marginBottom: '4px',
+                fontStyle: 'italic'
+            });
+            panel.appendChild(aiInstruction);
+
             const aiToggleBtn = document.createElement('button');
             aiToggleBtn.id = 'ai-toggle-btn';
             aiToggleBtn.innerText = 'IA: Gemini';
@@ -1577,7 +1681,7 @@
             button.id = 'ai-solver-button';
             button.innerHTML = '✨ Resolver';
             Object.assign(button.style, {
-                background: 'linear-gradient(90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000)',
+                background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)', // Cores mais escuras
                 backgroundSize: '400% 400%',
                 border: 'none', 
                 borderRadius: '10px', 
@@ -1643,6 +1747,9 @@
                 'ai-solver-button',
                 'mlk-mau-watermark'
             ];
+
+            // Adicionar a instrução da IA na lista de elementos para ocultar
+            contentToToggle.push(aiInstruction);
 
             let isMinimized = false;
 
