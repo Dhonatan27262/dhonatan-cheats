@@ -1028,16 +1028,34 @@ let senhasCarregadas = false;
 const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
 
-  // OBS: removi a ofuscação e deixei as URLs claras abaixo.
-  /*
-  original primaryParts (ofuscado):
-  ['yL6MHc0RHa','0l2ZucXYy9','mclNXdiVHa','uQnblRnbvN','2boR0Lt92Y','ycjMuFGdh5','mbvhGZvIjN','lh2Yt4WY0F','Wah12LzRXY','FGauV2cv4','==wPzpmLz']
-  original fallbackParts (ofuscado):
-  ['yL6MHc0RHa','kNnau4GZj9','mbuIndpxWZ','oR0Lod2L0V','jMuFGdh52b','vhGZvIjNyc','2Yt4WY0Fmb','h1GQzRXYlh','GauV2cv4Wa','==wPzpmLzF']
-  */
+  // novas partes ofuscadas para https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?
+const primaryParts = [
+  'yL6MHc0RHa',
+  '0l2ZucXYy9',
+  'mclNXdiVHa',
+  'uQnblRnbvN',
+  '2boR0Lt92Y',
+  'ycjMuFGdh5',
+  'mbvhGZvIjN',
+  'lh2Yt4WY0F',
+  'Wah12LzRXY',
+  'FGauV2cv4',
+  '==wPzpmLz',
+];
 
-  const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js' + Date.now();
+// fallback (cdn.jsdelivr) ofuscado para https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js?
+const fallbackParts = [
+  'yL6MHc0RHa',
+  'kNnau4GZj9',
+  'mbuIndpxWZ',
+  'oR0Lod2L0V',
+  'jMuFGdh52b',
+  'vhGZvIjNyc',
+  '2Yt4WY0Fmb',
+  'h1GQzRXYlh',
+  'GauV2cv4Wa',
+  '==wPzpmLzF',
+];
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
 
@@ -1082,6 +1100,12 @@ const carregarSenhasRemotas = async (opts = {}) => {
   };
 
   try {
+    const primaryBase64 = rebuildFromParts(primaryParts);
+    const fallbackBase64 = rebuildFromParts(fallbackParts);
+
+    const primaryURL = atob(primaryBase64) + Date.now();
+    const fallbackURL = atob(fallbackBase64) + Date.now();
+
     const urlsToTry = [primaryURL, fallbackURL];
 
     const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
