@@ -51,13 +51,109 @@
             });
 
             const description = document.createElement('p');
-            description.innerText = 'Cole suas chaves de API abaixo. Você pode configurar até 3 chaves para cada serviço (mínimo 1). As chaves serão salvas localmente no seu navegador.';
+            description.innerText = 'Cole suas chaves de API abaixo. Você pode configurar até 3 chaves para cada serviço (mínimo 1).';
             Object.assign(description.style, {
                 margin: '0 0 25px 0',
                 lineHeight: '1.5',
                 color: 'rgba(255, 255, 255, 0.8)',
                 textAlign: 'center'
             });
+
+            // --- TOGGLE SWITCH PARA SALVAR NO STORAGE ---
+            const storageToggleContainer = document.createElement('div');
+            Object.assign(storageToggleContainer.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '25px',
+                padding: '12px 16px',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+            });
+
+            const storageToggleLabel = document.createElement('span');
+            storageToggleLabel.innerText = '💾 Salvar chaves no navegador';
+            Object.assign(storageToggleLabel.style, {
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'rgba(255, 255, 255, 0.9)'
+            });
+
+            const storageToggle = document.createElement('label');
+            Object.assign(storageToggle.style, {
+                position: 'relative',
+                display: 'inline-block',
+                width: '50px',
+                height: '24px'
+            });
+
+            const storageToggleInput = document.createElement('input');
+            storageToggleInput.type = 'checkbox';
+            storageToggleInput.checked = true; // Por padrão, salvar no storage
+            Object.assign(storageToggleInput.style, {
+                opacity: '0',
+                width: '0',
+                height: '0'
+            });
+
+            const storageToggleSlider = document.createElement('span');
+            Object.assign(storageToggleSlider.style, {
+                position: 'absolute',
+                cursor: 'pointer',
+                top: '0',
+                left: '0',
+                right: '0',
+                bottom: '0',
+                backgroundColor: '#ccc',
+                transition: '0.4s',
+                borderRadius: '24px'
+            });
+
+            const storageToggleSliderBefore = document.createElement('span');
+            Object.assign(storageToggleSliderBefore.style, {
+                position: 'absolute',
+                content: '""',
+                height: '16px',
+                width: '16px',
+                left: '4px',
+                bottom: '4px',
+                backgroundColor: 'white',
+                transition: '0.4s',
+                borderRadius: '50%'
+            });
+
+            // Estilo quando o toggle está ativo
+            const updateToggleStyle = () => {
+                if (storageToggleInput.checked) {
+                    storageToggleSlider.style.backgroundColor = '#8b5cf6';
+                    storageToggleSliderBefore.style.transform = 'translateX(26px)';
+                } else {
+                    storageToggleSlider.style.backgroundColor = '#ccc';
+                    storageToggleSliderBefore.style.transform = 'translateX(0)';
+                }
+            };
+
+            storageToggleInput.addEventListener('change', updateToggleStyle);
+            updateToggleStyle(); // Aplicar estilo inicial
+
+            storageToggle.appendChild(storageToggleInput);
+            storageToggle.appendChild(storageToggleSlider);
+            storageToggleSlider.appendChild(storageToggleSliderBefore);
+            storageToggleContainer.appendChild(storageToggleLabel);
+            storageToggleContainer.appendChild(storageToggle);
+
+            // Carregar preferência salva do storage
+            try {
+                const savePreference = localStorage.getItem('mlk_mau_save_keys');
+                if (savePreference !== null) {
+                    storageToggleInput.checked = savePreference === 'true';
+                    updateToggleStyle();
+                }
+            } catch (e) {
+                console.warn('Não foi possível carregar preferência de salvamento:', e);
+            }
+            // --- FIM DO TOGGLE SWITCH ---
 
             // Container para os campos Gemini
             const geminiSection = document.createElement('div');
@@ -178,17 +274,43 @@
                     return;
                 }
 
+                const shouldSaveToStorage = storageToggleInput.checked;
+
+                // Salvar preferência de storage
+                try {
+                    localStorage.setItem('mlk_mau_save_keys', shouldSaveToStorage.toString());
+                } catch (e) {
+                    console.warn('Não foi possível salvar preferência de storage:', e);
+                }
+
                 // Atualizar arrays globais
                 GEMINI_API_KEYS = geminiKeys.length > 0 ? geminiKeys : [];
                 OPENROUTER_API_KEYS = openRouterKeys.length > 0 ? openRouterKeys : [];
 
-                // Salvar no localStorage
-                localStorage.setItem('mlk_mau_gemini_keys', JSON.stringify(GEMINI_API_KEYS));
-                localStorage.setItem('mlk_mau_openrouter_keys', JSON.stringify(OPENROUTER_API_KEYS));
+                // Salvar no localStorage apenas se o toggle estiver ativo
+                if (shouldSaveToStorage) {
+                    try {
+                        localStorage.setItem('mlk_mau_gemini_keys', JSON.stringify(GEMINI_API_KEYS));
+                        localStorage.setItem('mlk_mau_openrouter_keys', JSON.stringify(OPENROUTER_API_KEYS));
+                        console.log('Chaves API salvas no localStorage');
+                    } catch (e) {
+                        console.warn('Não foi possível salvar chaves no localStorage:', e);
+                    }
+                } else {
+                    // Remover chaves salvas anteriormente se o usuário desativou o salvamento
+                    try {
+                        localStorage.removeItem('mlk_mau_gemini_keys');
+                        localStorage.removeItem('mlk_mau_openrouter_keys');
+                        console.log('Chaves API removidas do localStorage (salvamento desativado)');
+                    } catch (e) {
+                        console.warn('Não foi possível remover chaves do localStorage:', e);
+                    }
+                }
 
                 console.log('Chaves API configuradas:', {
                     gemini: GEMINI_API_KEYS,
-                    openrouter: OPENROUTER_API_KEYS
+                    openrouter: OPENROUTER_API_KEYS,
+                    savedToStorage: shouldSaveToStorage
                 });
 
                 modal.remove();
@@ -198,27 +320,33 @@
             // Montar modal
             modalContent.appendChild(title);
             modalContent.appendChild(description);
+            modalContent.appendChild(storageToggleContainer); // Adicionar o toggle antes dos campos
             modalContent.appendChild(geminiSection);
             modalContent.appendChild(openRouterSection);
             modalContent.appendChild(saveButton);
             modal.appendChild(modalContent);
             document.body.appendChild(modal);
 
-            // Tentar carregar chaves salvas
+            // Tentar carregar chaves salvas apenas se a preferência de salvamento estiver ativa
             try {
-                const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
-                const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
+                const savePreference = localStorage.getItem('mlk_mau_save_keys');
+                const shouldLoadKeys = savePreference === null || savePreference === 'true';
                 
-                if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
-                    savedGeminiKeys.forEach((key, index) => {
-                        const input = modalContent.querySelector(`input[data-type="gemini"][data-index="${index}"]`);
-                        if (input && key) input.value = key;
-                    });
+                if (shouldLoadKeys) {
+                    const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
+                    const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
                     
-                    savedOpenRouterKeys.forEach((key, index) => {
-                        const input = modalContent.querySelector(`input[data-type="openrouter"][data-index="${index}"]`);
-                        if (input && key) input.value = key;
-                    });
+                    if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
+                        savedGeminiKeys.forEach((key, index) => {
+                            const input = modalContent.querySelector(`input[data-type="gemini"][data-index="${index}"]`);
+                            if (input && key) input.value = key;
+                        });
+                        
+                        savedOpenRouterKeys.forEach((key, index) => {
+                            const input = modalContent.querySelector(`input[data-type="openrouter"][data-index="${index}"]`);
+                            if (input && key) input.value = key;
+                        });
+                    }
                 }
             } catch (e) {
                 console.warn('Não foi possível carregar chaves salvas:', e);
@@ -230,19 +358,28 @@
     // INICIALIZAÇÃO DA SCRIPT
     // -----------------------------------------------------------------------------------
     async function initializeScript() {
-        // Verificar se já existem chaves salvas
+        // Verificar se já existem chaves salvas (apenas se a preferência de salvamento estiver ativa)
         try {
-            const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
-            const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
+            const savePreference = localStorage.getItem('mlk_mau_save_keys');
+            const shouldLoadKeys = savePreference === null || savePreference === 'true';
             
-            if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
-                GEMINI_API_KEYS = savedGeminiKeys;
-                OPENROUTER_API_KEYS = savedOpenRouterKeys;
-                console.log('Chaves carregadas do localStorage');
+            if (shouldLoadKeys) {
+                const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
+                const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
+                
+                if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
+                    GEMINI_API_KEYS = savedGeminiKeys;
+                    OPENROUTER_API_KEYS = savedOpenRouterKeys;
+                    console.log('Chaves carregadas do localStorage (preferência de salvamento: ativa)');
+                } else {
+                    await showApiKeyModal();
+                }
             } else {
+                console.log('Preferência de salvamento: desativada - solicitando chaves...');
                 await showApiKeyModal();
             }
         } catch (e) {
+            console.warn('Erro ao verificar preferência de salvamento:', e);
             await showApiKeyModal();
         }
 
