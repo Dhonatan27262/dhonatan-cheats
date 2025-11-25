@@ -1160,68 +1160,56 @@
             });
         }
 
+        /**
+         * Torna o painel flutuante arrastável.
+         * @param {HTMLElement} panel - O elemento principal do painel.
+         * @param {HTMLElement} handle - O elemento que aciona o arraste (neste caso, o próprio painel).
+         */
         function makeDraggable(panel, handle) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            
-            // Função para iniciar o arraste
-            function dragMouseDown(e) {
-                e = e || window.event;
-                e.preventDefault();
-                
-                // Só permite arrastar pelo próprio painel, não pelos botões
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                    return;
+            let offsetX = 0, offsetY = 0, isDragging = false;
+
+            handle.addEventListener('mousedown', (e) => {
+                // Previne o arraste se o clique foi em um botão ou link
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+
+                // Converte a posição 'bottom'/'right' para 'top'/'left' na primeira vez
+                if (panel.style.bottom || panel.style.right) {
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.top = rect.top + 'px';
+                    panel.style.left = rect.left + 'px';
                 }
-                
-                // Obter a posição inicial do cursor
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                // Definir os event listeners
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-                
-                // Mudar o cursor
-                panel.style.cursor = 'grabbing';
-            }
 
-            function elementDrag(e) {
-                e = e || window.event;
-                e.preventDefault();
-                
-                // Calcular a nova posição
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                // Definir a nova posição do elemento
-                let newTop = (panel.offsetTop - pos2);
-                let newLeft = (panel.offsetLeft - pos1);
-                
-                // Limitar os limites da tela
-                const maxTop = window.innerHeight - panel.offsetHeight;
-                const maxLeft = window.innerWidth - panel.offsetWidth;
-                
-                newTop = Math.max(0, Math.min(newTop, maxTop));
-                newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-                
-                // Aplicar a nova posição
-                panel.style.top = newTop + "px";
-                panel.style.left = newLeft + "px";
-                panel.style.bottom = "auto";
-                panel.style.right = "auto";
-            }
+                offsetX = e.clientX - panel.getBoundingClientRect().left;
+                offsetY = e.clientY - panel.getBoundingClientRect().top;
 
-            function closeDragElement() {
-                // Parar o arraste
-                document.onmouseup = null;
-                document.onmousemove = null;
-                panel.style.cursor = 'grab';
-            }
+                panel.style.transition = 'none'; // Desabilita transição suave durante o arraste
+                handle.style.cursor = 'grabbing';
+            });
 
-            // Adicionar o event listener para iniciar o arraste
-            handle.addEventListener('mousedown', dragMouseDown);
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                let newX = e.clientX - offsetX;
+                let newY = e.clientY - offsetY;
+
+                // Mantém o painel dentro da tela
+                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
+
+                panel.style.top = newY + 'px';
+                panel.style.left = newX + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
+                handle.style.cursor = 'grab';
+            });
         }
 
         function criarFloatingPanel() {
@@ -1231,15 +1219,15 @@
             panel.id = 'mlk-mau-floating-panel';
             Object.assign(panel.style, {
                 position: 'fixed', 
-                top: '50px', // Mudado de bottom para top para facilitar o arraste
-                left: '50px', // Mudado de right para left para facilitar o arraste
+                bottom: '60px', 
+                right: '20px', 
                 zIndex: '2147483647',
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'stretch',
                 gap: '10px', 
                 padding: '12px', 
-                backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                backgroundColor: 'rgba(0, 0, 0, 0.95)', // FUNDO PRETO
                 backdropFilter: 'blur(8px)', 
                 webkitBackdropFilter: 'blur(8px)', 
                 borderRadius: '16px',
@@ -1247,29 +1235,9 @@
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
                 transform: 'translateY(20px)', 
                 opacity: '0',
-                cursor: 'grab',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                userSelect: 'none' // Previne seleção de texto durante o arraste
+                cursor: 'grab', // CURSOR DE ARRASTAR
+                border: '1px solid rgba(255, 255, 255, 0.1)'
             });
-
-            // Adicionar estilos CSS para a animação RGB
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes rgbFlow {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                
-                #ai-solver-button {
-                    animation: rgbFlow 3s linear infinite;
-                    background: linear-gradient(90deg, 
-                        #ff0000, #ff8000, #ffff00, #00ff00, 
-                        #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000);
-                    background-size: 400% 400%;
-                }
-            `;
-            document.head.appendChild(style);
 
             const responseViewer = document.createElement('div');
             responseViewer.id = 'ai-response-viewer';
@@ -1324,7 +1292,7 @@
             // --- Botão Ocultar ---
             const toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-ui-btn';
-            toggleBtn.innerText = 'OCULT';
+            toggleBtn.innerText = 'Ocultar';
             Object.assign(toggleBtn.style, {
                 background: 'none', 
                 border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1371,6 +1339,8 @@
             button.id = 'ai-solver-button';
             button.innerHTML = '✨ Resolver';
             Object.assign(button.style, {
+                background: 'linear-gradient(90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000)',
+                backgroundSize: '400% 400%',
                 border: 'none', 
                 borderRadius: '10px', 
                 color: 'white', 
@@ -1386,9 +1356,18 @@
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 gap: '8px',
-                position: 'relative',
-                overflow: 'hidden'
+                animation: 'rgbFlow 3s linear infinite' // ANIMAÇÃO RGB
             });
+
+            // Adicionar a animação RGB ao documento
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes rgbFlow {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 400% 50%; }
+                }
+            `;
+            document.head.appendChild(style);
 
             button.addEventListener('mouseover', () => { 
                 button.style.transform = 'translateY(-2px)'; 
@@ -1428,9 +1407,9 @@
             ];
 
             toggleBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // Previne que o clique no botão inicie o arraste
                 const isHidden = toggleBtn.innerText === 'Mostrar';
-                toggleBtn.innerText = isHidden ? 'OCULT' : 'Mostrar';
+                toggleBtn.innerText = isHidden ? 'Ocultar' : 'Mostrar';
 
                 contentToToggle.forEach(id => {
                     const el = document.getElementById(id);
@@ -1439,12 +1418,14 @@
                     }
                 });
 
+                // Re-aplica 'display: none' ao viewResponseBtn se ele já estava oculto
                 if (isHidden && !lastAiResponse) {
                      document.getElementById('view-raw-response-btn').style.display = 'none';
                 }
             });
 
             // --- LÓGICA DE ARRASTAR ---
+            // A alça é o painel inteiro
             makeDraggable(panel, panel);
 
             setTimeout(() => {
