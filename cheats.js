@@ -1,1929 +1,1753 @@
-(function() {
-    'use strict';
+// ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
+async function loadToastify() {
+    if (typeof Toastify !== 'undefined') return Promise.resolve();
 
-    // -----------------------------------------------------------------------------------
-    // CONFIGURAÇÃO DE CHAVES DE API (MODAL INTERATIVO)
-    // -----------------------------------------------------------------------------------
-    let GEMINI_API_KEYS = [];
-    let OPENROUTER_API_KEYS = [];
-    let currentAiProvider = 'gemini';
-    const DEEPSEEK_MODEL_NAME = "deepseek/deepseek-chat";
+    return new Promise((resolve, reject) => {
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+        document.head.appendChild(cssLink);
 
-    // Função para mostrar o modal de configuração
-    function showApiKeyModal() {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.id = 'api-key-modal';
-            Object.assign(modal.style, {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '100vw',
-                height: '100vh',
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                zIndex: '2147483647',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'system-ui, sans-serif'
-            });
+        const jsScript = document.createElement('script');
+        jsScript.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+        jsScript.onload = resolve;
+        jsScript.onerror = reject;
+        document.head.appendChild(jsScript);
+    });
+}
 
-            const modalContent = document.createElement('div');
-            Object.assign(modalContent.style, {
-                background: 'rgba(26, 27, 30, 0.95)',
-                padding: '30px',
-                borderRadius: '16px',
-                color: 'white',
-                maxWidth: '600px',
-                width: '90%',
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-            });
+async function sendToast(text, duration = 5000, gravity = 'bottom') {
+    try {
+        await loadToastify();
+        Toastify({
+            text,
+            duration,
+            gravity,
+            position: "center",
+            stopOnFocus: true,
+            style: { background: "#000000" }
+        }).showToast();
+    } catch (error) {
+        console.error('Erro ao carregar Toastify:', error);
+    }
+}
 
-            const title = document.createElement('h2');
-            title.innerText = '🔑 Configuração de Chaves API - MLK MAU';
-            Object.assign(title.style, {
-                margin: '0 0 20px 0',
-                textAlign: 'center',
-                color: '#8b5cf6'
-            });
+function showWelcomeToasts() {
+    sendToast("Painel carregado");
+}
 
-            const description = document.createElement('p');
-            description.innerText = 'Cole suas chaves de API abaixo. Você pode configurar até 3 chaves para cada serviço (mínimo 1).';
-            Object.assign(description.style, {
-                margin: '0 0 25px 0',
-                lineHeight: '1.5',
-                color: 'rgba(255, 255, 255, 0.8)',
-                textAlign: 'center'
-            });
+// ===== [CÓDIGO PRINCIPAL] ===== //
+(async function(){
+    await loadToastify();
+    setTimeout(showWelcomeToasts, 500);
 
-            // --- TOGGLE SWITCH PARA SALVAR NO STORAGE ---
-            const storageToggleContainer = document.createElement('div');
-            Object.assign(storageToggleContainer.style, {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '25px',
-                padding: '12px 16px',
-                backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-            });
+    let fundo, janela, nome, relogio;
+    let senhaLiberada = false;
+    let abaAtiva = 'textos';
+    let posX = localStorage.getItem("dhonatanX") || "20px";
+    let posY = localStorage.getItem("dhonatanY") || "20px";
+    let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-            const storageToggleLabel = document.createElement('span');
-            storageToggleLabel.innerText = '💾 Salvar chaves no navegador';
-            Object.assign(storageToggleLabel.style, {
-                fontSize: '14px',
-                fontWeight: '500',
-                color: 'rgba(255, 255, 255, 0.9)'
-            });
+    // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estável) ----------
+    const injectStyles = () => {
+        if (document.getElementById('dh-global-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'dh-global-styles';
+        style.textContent = `
+        /* base */
+        .dh-btn {
+            padding: 8px 12px;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: 700;
+            transition: all .18s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            outline: none;
+            user-select: none;
+        }
 
-            const storageToggle = document.createElement('label');
-            Object.assign(storageToggle.style, {
-                position: 'relative',
-                display: 'inline-block',
-                width: '50px',
-                height: '24px'
-            });
+        /* header control buttons */
+        .dh-header-controls { display:flex; align-items:center; gap:8px; }
+        .dh-header-btn { background: transparent; border: 1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer; color:#fff; font-weight:700; }
+        .dh-header-btn:hover { background: rgba(255,255,255,0.03); transform: translateY(-2px); }
 
-            const storageToggleInput = document.createElement('input');
-            storageToggleInput.type = 'checkbox';
-            storageToggleInput.checked = true; // Por padrão, salvar no storage
-            Object.assign(storageToggleInput.style, {
-                opacity: '0',
-                width: '0',
-                height: '0'
-            });
+        /* sidebar nav */
+        .sidebar-nav-btn {
+            width: 100%;
+            text-align: left;
+            background: #0f0f0f;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #e6e6e6;
+            opacity: .95;
+            margin-bottom: 8px;
+            transition: background .22s ease, transform .12s ease;
+            display:block;
+            font-size: 14px;
+        }
+        .sidebar-nav-btn:hover { transform: translateX(6px); background: #151515; }
+        .sidebar-nav-btn.active { background: linear-gradient(135deg, #8A2BE2, #4B0082); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
 
-            const storageToggleSlider = document.createElement('span');
-            Object.assign(storageToggleSlider.style, {
-                position: 'absolute',
-                cursor: 'pointer',
-                top: '0',
-                left: '0',
-                right: '0',
-                bottom: '0',
-                backgroundColor: '#ccc',
-                transition: '0.4s',
-                borderRadius: '24px'
-            });
+        /* main button (Efeito CodePen 24 refeito para não vazar) */
+        .main-btn {
+    background: linear-gradient(180deg,#36143b,#4b0f5f); /* roxo */
+            color:#f0dede;
+            padding: 8px 14px;
+            border-radius: 10px;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.45);
+            position: relative;
+            overflow: hidden; /* importante: animação ficará dentro do botão */
+            display: inline-block;
+            font-weight: 800;
+            min-width: 130px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.03);
+            transition: transform .12s ease;
+            font-size: 13px;
+        }
+        .main-btn:hover{ transform: translateY(-2px); }
 
-            const storageToggleSliderBefore = document.createElement('span');
-            Object.assign(storageToggleSliderBefore.style, {
-                position: 'absolute',
-                content: '""',
-                height: '16px',
-                width: '16px',
-                left: '4px',
-                bottom: '4px',
-                backgroundColor: 'white',
-                transition: '0.4s',
-                borderRadius: '50%'
-            });
+        /* quatro spans que animam ao redor do botão (dentro) */
+        .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
+        .main-btn .edge.top {
+    left: 0; right: 0; top: 0; height: 2px;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeTop 2.2s linear infinite;
+}
+.main-btn .edge.right {
+    top: 0; bottom: 0; right: 0; width: 2px;
+    transform: translateY(-100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeRight 2.2s linear .55s infinite;
+}
+.main-btn .edge.bottom {
+    left: 0; right: 0; bottom: 0; height: 2px;
+    transform: translateX(100%);
+    background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent);
+    animation: edgeBottom 2.2s linear .95s infinite;
+}
+.main-btn .edge.left {
+    top: 0; bottom: 0; left: 0; width: 2px;
+    transform: translateY(100%);
+    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+    animation: edgeLeft 2.2s linear 1.5s infinite;
+}
 
-            // Estilo quando o toggle está ativo
-            const updateToggleStyle = () => {
-                if (storageToggleInput.checked) {
-                    storageToggleSlider.style.backgroundColor = '#8b5cf6';
-                    storageToggleSliderBefore.style.transform = 'translateX(26px)';
-                } else {
-                    storageToggleSlider.style.backgroundColor = '#ccc';
-                    storageToggleSliderBefore.style.transform = 'translateX(0)';
-                }
-            };
+        @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
+        @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
+        @keyframes edgeBottom { 0% { transform: translateX(100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(-100%);} }
+        @keyframes edgeLeft { 0% { transform: translateY(100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(-100%);} }
 
-            storageToggleInput.addEventListener('change', updateToggleStyle);
-            updateToggleStyle(); // Aplicar estilo inicial
+        .main-btn::before{ content:''; position:absolute; inset:0; background: rgba(255,255,255,0.02); opacity:0; transition: .18s; pointer-events:none; }
+        .main-btn:hover::before{ opacity: .05; }
 
-            storageToggle.appendChild(storageToggleInput);
-            storageToggle.appendChild(storageToggleSlider);
-            storageToggleSlider.appendChild(storageToggleSliderBefore);
-            storageToggleContainer.appendChild(storageToggleLabel);
-            storageToggleContainer.appendChild(storageToggle);
+        /* helper small text */
+        .dh-small-muted { color: #bdbdbd; font-size: 12px; }
 
-            // Carregar preferência salva do storage
-            try {
-                const savePreference = localStorage.getItem('mlk_mau_save_keys');
-                if (savePreference !== null) {
-                    storageToggleInput.checked = savePreference === 'true';
-                    updateToggleStyle();
-                }
-            } catch (e) {
-                console.warn('Não foi possível carregar preferência de salvamento:', e);
-            }
-            // --- FIM DO TOGGLE SWITCH ---
+        /* container */
+        .dh-container { max-width: 820px; width: 94%; }
 
-            // Container para os campos Gemini
-            const geminiSection = document.createElement('div');
-            
-            // Título Gemini com link
-            const geminiHeader = document.createElement('div');
-            Object.assign(geminiHeader.style, {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '15px'
-            });
-            
-            const geminiTitle = document.createElement('h3');
-            geminiTitle.innerText = 'Gemini API Keys';
-            Object.assign(geminiTitle.style, {
-                color: '#a78bfa',
-                margin: '0',
-                fontSize: '16px'
-            });
+        /* botões pequenos e bonitos */
+        .small-btn {
+            padding: 6px 10px;
+            border-radius:14px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: white;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
 
-            const geminiLink = document.createElement('a');
-            geminiLink.innerText = '🔗 gere sua api aqui';
-            geminiLink.href = 'https://aistudio.google.com/app/apikey';
-            geminiLink.target = '_blank';
-            Object.assign(geminiLink.style, {
-                color: '#8b5cf6',
-                fontSize: '12px',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer'
-            });
+        .small-btn:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-2px);
+        }
 
-            geminiLink.addEventListener('mouseover', () => {
-                geminiLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
-                geminiLink.style.transform = 'translateY(-1px)';
-            });
+        .small-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
 
-            geminiLink.addEventListener('mouseout', () => {
-                geminiLink.style.backgroundColor = 'transparent';
-                geminiLink.style.transform = 'translateY(0)';
-            });
+        /* responsive */
+        @media (max-width:760px){
+            .main-btn { width:100%; box-sizing:border-box; min-width: unset; font-size:14px; }
+            .sidebar-nav-btn{ font-size:13px; padding:10px; }
+            .dh-btn{ font-size:13px; padding:8px 10px; }
+        }
+        `;
+        document.head.appendChild(style);
+    };
+    injectStyles();
 
-            geminiHeader.appendChild(geminiTitle);
-            geminiHeader.appendChild(geminiLink);
-            geminiSection.appendChild(geminiHeader);
-            
-            const geminiContainer = document.createElement('div');
-            Object.assign(geminiContainer.style, {
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                marginBottom: '25px'
-            });
+    // ---------- helpers ----------
+    const aplicarEstiloBotao = (elemento, gradiente = false) => {
+        elemento.classList.add('dh-btn');
+        if (gradiente) elemento.style.background = 'linear-gradient(135deg, #8A2BE2, #4B0082)';
+        Object.assign(elemento.style, { outline: 'none' });
+    };
 
-            // Criar 3 campos para Gemini
-            for (let i = 1; i <= 3; i++) {
-                const inputGroup = document.createElement('div');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = `Chave Gemini ${i} (Opcional)`;
-                input.dataset.index = i - 1;
-                input.dataset.type = 'gemini';
-                
-                Object.assign(input.style, {
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    color: 'white',
-                    fontSize: '14px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                });
+    const aplicarEstiloTexto = (elemento, tamanho = '18px') => {
+        Object.assign(elemento.style, { color: '#fff', fontSize: tamanho, fontWeight: '700', textAlign: 'center', margin: '8px 0', userSelect: 'none' });
+    };
 
-                inputGroup.appendChild(input);
-                geminiContainer.appendChild(inputGroup);
-            }
-            geminiSection.appendChild(geminiContainer);
-
-            // Container para os campos OpenRouter
-            const openRouterSection = document.createElement('div');
-            
-            // Título OpenRouter com link
-            const openRouterHeader = document.createElement('div');
-            Object.assign(openRouterHeader.style, {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '15px'
-            });
-            
-            const openRouterTitle = document.createElement('h3');
-            openRouterTitle.innerText = 'OpenRouter API Keys';
-            Object.assign(openRouterTitle.style, {
-                color: '#a78bfa',
-                margin: '0',
-                fontSize: '16px'
-            });
-
-            const openRouterLink = document.createElement('a');
-            openRouterLink.innerText = '🔗 gere sua api aqui';
-            openRouterLink.href = 'https://openrouter.ai/settings/keys';
-            openRouterLink.target = '_blank';
-            Object.assign(openRouterLink.style, {
-                color: '#8b5cf6',
-                fontSize: '12px',
-                textDecoration: 'none',
-                fontWeight: '500',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer'
-            });
-
-            openRouterLink.addEventListener('mouseover', () => {
-                openRouterLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
-                openRouterLink.style.transform = 'translateY(-1px)';
-            });
-
-            openRouterLink.addEventListener('mouseout', () => {
-                openRouterLink.style.backgroundColor = 'transparent';
-                openRouterLink.style.transform = 'translateY(0)';
-            });
-
-            openRouterHeader.appendChild(openRouterTitle);
-            openRouterHeader.appendChild(openRouterLink);
-            openRouterSection.appendChild(openRouterHeader);
-            
-            const openRouterContainer = document.createElement('div');
-            Object.assign(openRouterContainer.style, {
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                marginBottom: '30px'
-            });
-
-            // Criar 3 campos para OpenRouter
-            for (let i = 1; i <= 3; i++) {
-                const inputGroup = document.createElement('div');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = `Chave OpenRouter ${i} (Opcional)`;
-                input.dataset.index = i - 1;
-                input.dataset.type = 'openrouter';
-                
-                Object.assign(input.style, {
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    color: 'white',
-                    fontSize: '14px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                });
-
-                inputGroup.appendChild(input);
-                openRouterContainer.appendChild(inputGroup);
-            }
-            openRouterSection.appendChild(openRouterContainer);
-
-            // Botão de salvar
-            const saveButton = document.createElement('button');
-            saveButton.innerText = '💾 Salvar e Iniciar Script';
-            Object.assign(saveButton.style, {
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-                border: 'none',
-                borderRadius: '10px',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '600',
-                padding: '15px 30px',
-                width: '100%',
-                transition: 'all 0.2s ease'
-            });
-
-            saveButton.addEventListener('mouseover', () => {
-                saveButton.style.transform = 'translateY(-2px)';
-                saveButton.style.boxShadow = '0 8px 20px rgba(139, 92, 246, 0.4)';
-            });
-
-            saveButton.addEventListener('mouseout', () => {
-                saveButton.style.transform = 'translateY(0)';
-                saveButton.style.boxShadow = 'none';
-            });
-
-            saveButton.addEventListener('click', () => {
-                // Coletar chaves Gemini
-                const geminiInputs = modalContent.querySelectorAll('input[data-type="gemini"]');
-                const geminiKeys = Array.from(geminiInputs)
-                    .map(input => input.value.trim())
-                    .filter(key => key && key.length > 30 && !key.includes("SUA_CHAVE"));
-
-                // Coletar chaves OpenRouter
-                const openRouterInputs = modalContent.querySelectorAll('input[data-type="openrouter"]');
-                const openRouterKeys = Array.from(openRouterInputs)
-                    .map(input => input.value.trim())
-                    .filter(key => key && key.length > 30 && !key.includes("SUA_CHAVE"));
-
-                // Validar pelo menos uma chave
-                if (geminiKeys.length === 0 && openRouterKeys.length === 0) {
-                    alert('❌ Por favor, insira pelo menos uma chave API válida para Gemini ou OpenRouter.');
-                    return;
-                }
-
-                const shouldSaveToStorage = storageToggleInput.checked;
-
-                // Salvar preferência de storage
-                try {
-                    localStorage.setItem('mlk_mau_save_keys', shouldSaveToStorage.toString());
-                } catch (e) {
-                    console.warn('Não foi possível salvar preferência de storage:', e);
-                }
-
-                // Atualizar arrays globais
-                GEMINI_API_KEYS = geminiKeys.length > 0 ? geminiKeys : [];
-                OPENROUTER_API_KEYS = openRouterKeys.length > 0 ? openRouterKeys : [];
-
-                // Salvar no localStorage apenas se o toggle estiver ativo
-                if (shouldSaveToStorage) {
-                    try {
-                        localStorage.setItem('mlk_mau_gemini_keys', JSON.stringify(GEMINI_API_KEYS));
-                        localStorage.setItem('mlk_mau_openrouter_keys', JSON.stringify(OPENROUTER_API_KEYS));
-                        console.log('Chaves API salvas no localStorage');
-                    } catch (e) {
-                        console.warn('Não foi possível salvar chaves no localStorage:', e);
-                    }
-                } else {
-                    // Remover chaves salvas anteriormente se o usuário desativou o salvamento
-                    try {
-                        localStorage.removeItem('mlk_mau_gemini_keys');
-                        localStorage.removeItem('mlk_mau_openrouter_keys');
-                        console.log('Chaves API removidas do localStorage (salvamento desativado)');
-                    } catch (e) {
-                        console.warn('Não foi possível remover chaves do localStorage:', e);
-                    }
-                }
-
-                console.log('Chaves API configuradas:', {
-                    gemini: GEMINI_API_KEYS,
-                    openrouter: OPENROUTER_API_KEYS,
-                    savedToStorage: shouldSaveToStorage
-                });
-
-                modal.remove();
-                resolve();
-            });
-
-            // Montar modal
-            modalContent.appendChild(title);
-            modalContent.appendChild(description);
-            modalContent.appendChild(storageToggleContainer); // Adicionar o toggle antes dos campos
-            modalContent.appendChild(geminiSection);
-            modalContent.appendChild(openRouterSection);
-            modalContent.appendChild(saveButton);
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
-
-            // Tentar carregar chaves salvas apenas se a preferência de salvamento estiver ativa
-            try {
-                const savePreference = localStorage.getItem('mlk_mau_save_keys');
-                const shouldLoadKeys = savePreference === null || savePreference === 'true';
-                
-                if (shouldLoadKeys) {
-                    const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
-                    const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
-                    
-                    if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
-                        savedGeminiKeys.forEach((key, index) => {
-                            const input = modalContent.querySelector(`input[data-type="gemini"][data-index="${index}"]`);
-                            if (input && key) input.value = key;
-                        });
-                        
-                        savedOpenRouterKeys.forEach((key, index) => {
-                            const input = modalContent.querySelector(`input[data-type="openrouter"][data-index="${index}"]`);
-                            if (input && key) input.value = key;
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn('Não foi possível carregar chaves salvas:', e);
-            }
+    const aplicarEstiloContainer = (elemento) => {
+        Object.assign(elemento.style, {
+            background: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '12px',
+            padding: '14px',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.04)',
+            maxWidth: '900px',
+            width: '94%',
+            textAlign: 'center'
         });
-    }
+    };
 
-    // -----------------------------------------------------------------------------------
-    // INICIALIZAÇÃO DA SCRIPT
-    // -----------------------------------------------------------------------------------
-    async function initializeScript() {
-        // Verificar se já existem chaves salvas (apenas se a preferência de salvamento estiver ativa)
-        try {
-            const savePreference = localStorage.getItem('mlk_mau_save_keys');
-            const shouldLoadKeys = savePreference === null || savePreference === 'true';
-            
-            if (shouldLoadKeys) {
-                const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
-                const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
-                
-                if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
-                    GEMINI_API_KEYS = savedGeminiKeys;
-                    OPENROUTER_API_KEYS = savedOpenRouterKeys;
-                    console.log('Chaves carregadas do localStorage (preferência de salvamento: ativa)');
-                } else {
-                    await showApiKeyModal();
-                }
-            } else {
-                console.log('Preferência de salvamento: desativada - solicitando chaves...');
-                await showApiKeyModal();
-            }
-        } catch (e) {
-            console.warn('Erro ao verificar preferência de salvamento:', e);
-            await showApiKeyModal();
-        }
+    // ---------- funções originais (mantidas INTEIRAS do script que você enviou) ----------
+    const mostrarInfoDono = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        const container = document.createElement('div');
+        aplicarEstiloContainer(container);
+        container.style.zIndex = '1000001';
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.maxWidth = '420px';
 
-        // Continuar com o restante da script...
-        console.log('Script MLK MAU inicializado com sucesso!');
-        console.log('Chaves Gemini configuradas:', GEMINI_API_KEYS.length);
-        console.log('Chaves OpenRouter configuradas:', OPENROUTER_API_KEYS.length);
+        const titulo = document.createElement('div');
+        titulo.textContent = 'Painel Auxilio';
+        aplicarEstiloTexto(titulo, '20px');
 
-        // Resto das variáveis e funções...
-        let currentApiKeyIndex = 0;
-        let currentOpenRouterKeyIndex = 0;
-        let lastAiResponse = '';
+        const insta = document.createElement('div');
+        insta.textContent = 'VERSÃO 3.0';
+        aplicarEstiloTexto(insta);
 
-        // --- DETECÇÃO DE QUIZ ID ---
-        const regexQuizId = /\/(?:quiz|quizzes|admin\/quiz|games|attempts|join)\/([a-f0-9]{24})/i;
-        let quizIdDetected = null;
-        let interceptorsStarted = false;
-        // -----------------------------------
+        const info = document.createElement('div');
+        info.textContent = 'Mod exclusivo e protegido, feito para poupar seu tempo';
+        aplicarEstiloTexto(info);
 
-        // --- FUNÇÕES UTILITÁRIAS ---
-
-        function waitForElement(selector, all = false, timeout = 5000) {
-            return new Promise((resolve, reject) => {
-                const startTime = Date.now();
-                const interval = setInterval(() => {
-                    const elements = all ? document.querySelectorAll(selector) : document.querySelector(selector);
-                    if ((all && elements.length > 0) || (!all && elements)) {
-                        clearInterval(interval);
-                        resolve(elements);
-                    } else if (Date.now() - startTime > timeout) {
-                        clearInterval(interval);
-                        reject(new Error(`Elemento(s) "${selector}" não encontrado(s) após ${timeout / 1000} segundos.`));
-                    }
-                }, 100);
-            });
-        }
-
-        function waitForElementToDisappear(selector, timeout = 5000) {
-            return new Promise((resolve, reject) => {
-                const startTime = Date.now();
-                const interval = setInterval(() => {
-                    const element = document.querySelector(selector);
-                    if (!element) {
-                        clearInterval(interval);
-                        resolve();
-                    } else if (Date.now() - startTime > timeout) {
-                        clearInterval(interval);
-                        reject(new Error(`Elemento "${selector}" não desapareceu após ${timeout / 1000} segundos.`));
-                    }
-                }, 100);
-            });
-        }
-
-        // --- LÓGICA DO RESOLVEDOR ---
-
-        async function extrairDadosDaQuestao() {
-        try {
-            const questionTextElement = document.querySelector('#questionText');
-            const questionText = questionTextElement ? questionTextElement.innerText.trim().replace(/\s+/g, ' ') : "Não foi possível encontrar o texto da pergunta.";
-            const questionImageElement = document.querySelector('img[data-testid="question-container-image"]');
-            const questionImageUrl = questionImageElement ? questionImageElement.src : null;
-
-            const extractText = (el) => {
-                const mathElement = el.querySelector('annotation[encoding="application/x-tex"]');
-                return mathElement ? mathElement.textContent.trim() : el.querySelector('#optionText')?.innerText.trim() || '';
-            };
-
-            const dropdownButtons = document.querySelectorAll('button.options-dropdown');
-            if (dropdownButtons.length > 1) {
-                console.log("Tipo Múltiplos Dropdowns detectado.");
-                const dropdowns = [];
-                let questionTextWithPlaceholders = questionTextElement.innerHTML;
-                const popperSelector = '.v-popper__popper--shown';
-
-                dropdownButtons.forEach((btn, i) => {
-                    const placeholder = ` [RESPOSTA ${i + 1}] `;
-                    const wrapper = btn.closest('.dropdown-wrapper');
-                    if (wrapper) {
-                         questionTextWithPlaceholders = questionTextWithPlaceholders.replace(wrapper.outerHTML, placeholder);
-                    }
-                });
-
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = questionTextWithPlaceholders;
-                const cleanQuestionText = tempDiv.innerText.replace(/\s+/g, ' ');
-
-                let allAvailableOptions = [];
-                const firstBtn = dropdownButtons[0];
-                firstBtn.click();
-                try {
-                    const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
-                    allAvailableOptions = Array.from(optionElements).map(el => el.innerText.trim());
-                    console.log("Pool de opções detectado:", allAvailableOptions);
-                } catch (e) {
-                    console.error("Falha ao ler o pool de opções do primeiro dropdown.", e);
-                    if (document.querySelector(popperSelector)) document.body.click();
-                }
-
-                if (document.querySelector(popperSelector)) document.body.click();
-                try {
-                    await waitForElementToDisappear(popperSelector, 2000);
-                } catch (e) {
-                    console.warn("Popper não fechou, mas continuando...");
-                }
-
-                dropdownButtons.forEach((btn, i) => {
-                     dropdowns.push({
-                        button: btn,
-                        placeholder: `[RESPOSTA ${i + 1}]`
-                    });
-                });
-
-                console.log("Texto Limpo Enviado para IA:", cleanQuestionText);
-                return { questionText: cleanQuestionText, questionImageUrl, questionType: 'multi_dropdown', dropdowns, allAvailableOptions };
-            }
-
-            if (dropdownButtons.length === 1) {
-                return { questionText, questionImageUrl, questionType: 'dropdown', dropdownButton: dropdownButtons[0] };
-            }
-
-            const equationEditor = document.querySelector('div[data-cy="equation-editor"]');
-            if (equationEditor) {
-                return { questionText, questionImageUrl, questionType: 'equation' };
-            }
-            const droppableBlanks = document.querySelectorAll('button.droppable-blank');
-            const dragOptions = document.querySelectorAll('.drag-option');
-            if (droppableBlanks.length > 1 && dragOptions.length > 0) {
-                const questionContainer = document.querySelector('.drag-drop-text > div');
-                const dropZones = [];
-                if (questionContainer) {
-                    const children = Array.from(questionContainer.children);
-                    for (let i = 0; i < children.length; i++) {
-                        const blankButton = children[i].querySelector('button.droppable-blank');
-                        if (blankButton) {
-                            const precedingSpan = children[i - 1];
-                            if (precedingSpan && precedingSpan.tagName === 'SPAN') {
-                                let promptText = precedingSpan.innerText.trim().replace(/:\s*$/, '').replace(/\s+/g, ' ');
-                                dropZones.push({ prompt: promptText, blankElement: blankButton });
-                            }
-                        }
-                    }
-                }
-                const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.innerText.trim(), element: el }));
-                return { questionText: questionContainer.innerText.trim(), questionImageUrl, questionType: 'multi_drag_into_blank', draggableOptions, dropZones };
-            }
-            if (droppableBlanks.length === 1 && dragOptions.length > 0) {
-                 const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.querySelector('.dnd-option-text')?.innerText.trim() || '', element: el }));
-                return { questionText, questionImageUrl, questionType: 'drag_into_blank', draggableOptions, dropZone: { element: droppableBlanks[0] } };
-            }
-
-            const matchContainer = document.querySelector('.match-order-options-container, .question-options-layout');
-            if (matchContainer) {
-                const draggableItemElements = Array.from(matchContainer.querySelectorAll('.match-order-option.is-option-tile'));
-                const dropZoneElements = Array.from(matchContainer.querySelectorAll('.match-order-option.is-drop-tile'));
-
-                const isImageMatch = draggableItemElements.length > 0 && (draggableItemElements[0].querySelector('.option-image') || draggableItemElements[0].dataset.type === 'image');
-
-                if (isImageMatch) {
-                    console.log("Tipo Match-Order (Imagem p/ Texto) detectado.");
-                    const draggableItems = [];
-                    for (let i = 0; i < draggableItemElements.length; i++) {
-                        const el = draggableItemElements[i];
-                        const imgDiv = el.querySelector('.option-image');
-                        const style = imgDiv ? window.getComputedStyle(imgDiv).backgroundImage : null;
-                        const urlMatch = style ? style.match(/url\("(.+?)"\)/) : null;
-                        let imageUrl = urlMatch ? urlMatch[1] : null;
-
-                        if (!imageUrl) {
-                            const dataCy = el.dataset.cy;
-                            if (dataCy && dataCy.includes('url(')) {
-                                const urlMatchCy = dataCy.match(/url\((.+)\)/);
-                                if (urlMatchCy) imageUrl = urlMatchCy[1].replace(/\?w=\d+&h=\d+$/, '');
-                            }
-                        }
-
-                        if (imageUrl) {
-                            draggableItems.push({ id: `IMAGEM ${i + 1}`, imageUrl, element: el });
-                        }
-                    }
-
-                    const dropZones = dropZoneElements.map(el => ({ text: extractText(el), element: el }));
-
-                    return { questionText, questionImageUrl, questionType: 'match_image_to_text', draggableItems, dropZones };
-
-                } else if (draggableItemElements.length > 0 && dropZoneElements.length > 0) {
-                    const draggableItems = draggableItemElements.map(el => ({ text: extractText(el), element: el }));
-                    const dropZones = dropZoneElements.map(el => ({ text: extractText(el), element: el }));
-
-                    const questionType = questionText.toLowerCase().includes('reorder') ? 'reorder' : 'match_order';
-                    return { questionText, questionImageUrl, questionType, draggableItems, dropZones };
-                }
-            }
-
-            const openEndedTextarea = document.querySelector('textarea[data-cy="open-ended-textarea"]');
-            if (openEndedTextarea) {
-                return { questionText, questionImageUrl, questionType: 'open_ended', answerElement: openEndedTextarea };
-            }
-            const optionElements = document.querySelectorAll('.option.is-selectable');
-            if (optionElements.length > 0) {
-                const isMultipleChoice = Array.from(optionElements).some(el => el.classList.contains('is-msq'));
-                const options = Array.from(optionElements).map(el => ({ text: extractText(el), element: el }));
-                return { questionText, questionImageUrl, questionType: isMultipleChoice ? 'multiple_choice' : 'single_choice', options };
-            }
-            console.error("Tipo de questão não reconhecido.");
-            return null;
-        } catch (error) {
-            console.error("Erro ao extrair dados da questão:", error);
-            return null;
-        }
-    }
-
-        async function obterRespostaDaIA(quizData) {
-            lastAiResponse = '';
-            const viewResponseBtn = document.getElementById('view-raw-response-btn');
-            if (viewResponseBtn) viewResponseBtn.style.display = 'none';
-
-            // --- 1. Lógica de Prompt ---
-            let promptDeInstrucao = "", formattedOptions = "";
-            switch (quizData.questionType) {
-                case 'multi_dropdown':
-                    promptDeInstrucao = `Esta é uma questão com múltiplas lacunas ([RESPOSTA X]). As opções disponíveis são um pool compartilhado e cada opção só pode ser usada uma vez. Determine a resposta correta para CADA placeholder. Responda com cada resposta em uma nova linha, no formato '[RESPOSTA X]: Resposta Correta'. Se algum placeholder não tiver uma resposta lógica no pool (ex: está fora da sequência), omita-o da resposta.`;
-                    formattedOptions = "Pool de Opções Disponíveis: " + quizData.allAvailableOptions.join(', ');
-                    break;
-                case 'match_image_to_text':
-                    promptDeInstrucao = `Esta é uma questão de combinar imagens com seus textos correspondentes. Para cada imagem, forneça o par correto no formato EXATO: 'Texto da Opção -> ID da Imagem' (ex: 90° -> IMAGEM 3), com cada par em uma nova linha.`;
-                    const dropZoneTexts = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
-                    formattedOptions = `Opções de Texto (Locais para Soltar):\n${dropZoneTexts}`;
-                    break;
-                case 'match_order':
-                    promptDeInstrucao = `Responda com os pares no formato EXATO: 'Texto do Local para Soltar -> Texto do Item para Arrastar', com cada par em uma nova linha.`;
-                    const draggables = quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
-                    const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
-                    formattedOptions = `Itens para Arrastar:\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
-                    break;
-                case 'multi_drag_into_blank': promptDeInstrucao = `Esta é uma questão de combinar múltiplas sentenças com suas expressões corretas. Responda com os pares no formato EXATO: 'Sentença da pergunta -> Expressão da opção', com cada par em uma nova linha.`; const prompts = quizData.dropZones.map(item => `- "${item.prompt}"`).join('\n'); const options = quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); formattedOptions = `Sentenças:\n${prompts}\n\nExpressões (Opções):\n${options}`; break;
-                case 'equation': promptDeInstrucao = `Resolva a seguinte equação ou inequação. Forneça apenas a expressão final simplificada (ex: x = 5, ou y > 3).`; formattedOptions = `EQUAÇÃO: "${quizData.questionText}"`; break;
-                case 'dropdown': case 'single_choice': promptDeInstrucao = `Responda APENAS com o texto exato da ÚNICA alternativa correta.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
-                case 'reorder': promptDeInstrucao = `A tarefa é: "${quizData.questionText}". Forneça a ordem correta listando os textos dos itens, um por linha, do primeiro ao último.`; formattedOptions = "Itens para ordenar:\n" + quizData.draggableItems.map(item => `- "${item.text}"`).join('\n'); break;
-                case 'drag_into_blank': promptDeInstrucao = `Responda APENAS com o texto da ÚNICA opção correta que preenche a lacuna.`; formattedOptions = "Opções para arrastar:\n" + quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); break;
-                case 'open_ended': promptDeInstrucao = `Responda APENAS com a palavra ou frase curta que preenche a lacuna.`; break;
-                case 'multiple_choice': promptDeInstrucao = `Responda APENAS com os textos exatos de TODAS as alternativas corretas, separando cada uma em uma NOVA LINHA.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
-            }
-            let textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
-
-            // --- 2. Processamento de Imagem ---
-            let base64Image = null;
-            if (quizData.questionImageUrl) {
-                base64Image = await imageUrlToBase64(quizData.questionImageUrl);
-            }
-            const hasDraggableImages = quizData.questionType === 'match_image_to_text';
-
-            // Verificação de Imagem do DeepSeek
-            if (currentAiProvider === 'deepseek' && (base64Image || hasDraggableImages)) {
-                console.warn("DeepSeek não suporta imagens. Mostrando aviso...");
-                try {
-                    const acaoUsuario = await mostrarAvisoDeepSeekImagem();
-                    if (acaoUsuario === 'gemini') {
-                        console.log("Usuário escolheu usar Gemini.");
-                        currentAiProvider = 'gemini';
-                        const aiToggleBtn = document.getElementById('ai-toggle-btn');
-                        if (aiToggleBtn) {
-                            aiToggleBtn.innerText = 'IA: Gemini';
-                            aiToggleBtn.style.color = 'rgba(255, 255, 255, 0.6)';
-                        }
-                    } else if (acaoUsuario === 'sem_imagem') {
-                        console.log("Usuário escolheu enviar para o DeepSeek sem a imagem.");
-                        base64Image = null;
-                        if (quizData.questionType === 'match_image_to_text') {
-                            quizData.questionType = 'match_order'; // Downgrade
-                            quizData.draggableItems = quizData.draggableItems.map(item => ({
-                                text: item.id, // Usa "IMAGEM 1" como texto
-                                element: item.element
-                            }));
-                            promptDeInstrucao = `Responda com os pares no formato EXATO: 'Texto do Local para Soltar -> ID da Imagem' (ex: 90° -> IMAGEM 3), com cada par em uma nova linha.`;
-                            const draggables = quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
-                            const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
-                            formattedOptions = `Itens para Arrastar (IDs):\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
-                            textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
-                        }
-                    }
-                } catch (error) {
-                    console.error(error.message);
-                    throw error;
-                }
-            }
-
-            // --- 3. Lógica de Fetch ---
-            try {
-                let aiResponseText = null;
-                if (currentAiProvider === 'gemini') {
-                    console.log("Usando Provedor: Gemini");
-                    let geminiKeyFailed = false;
-                    for (let i = 0; i < GEMINI_API_KEYS.length; i++) {
-                        const currentKey = GEMINI_API_KEYS[currentApiKeyIndex];
-                        if (!currentKey || currentKey.includes("SUA_") || currentKey.length < 30) {
-                            console.warn(`Chave de API Gemini #${currentApiKeyIndex + 1} parece ser um placeholder. Pulando...`);
-                            currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
-                            continue;
-                        }
-                        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`;
-
-                        let promptParts = [{ text: textPrompt }];
-
-                        if (base64Image) {
-                            const [header, data] = base64Image.split(',');
-                            let mimeType = header.match(/:(.*?);/)[1];
-                            if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
-                            promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
-                        }
-
-                        if (quizData.questionType === 'match_image_to_text') {
-                            promptParts.push({ text: "\n\nIMAGENS (Itens para Arrastar):\n" });
-                            for (const item of quizData.draggableItems) {
-                                 const base64 = await imageUrlToBase64(item.imageUrl);
-                                 if (base64) {
-                                    const [header, data] = base64.split(',');
-                                    let mimeType = header.match(/:(.*?);/)[1];
-                                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
-                                    promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
-                                    promptParts.push({ text: `- ${item.id}` }); // Envia " - IMAGEM 1"
-                                 }
-                            }
-                        }
-
-                        try {
-                            const response = await fetchWithTimeout(API_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ contents: [{ parts: promptParts }] })
-                            });
-                            if (response.ok) {
-                                const data = await response.json();
-                                aiResponseText = data.candidates[0].content.parts[0].text;
-                                console.log(`Sucesso com a Chave API Gemini #${currentApiKeyIndex + 1}.`);
-                                break;
-                            }
-                            const errorData = await response.json();
-                            const errorMessage = errorData.error?.message || `Erro ${response.status}`;
-                            console.warn(`Chave API Gemini #${currentApiKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
-                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${errorMessage}`;
-                        } catch (error) {
-                            console.warn(`Erro na requisição com a Chave API Gemini #${currentApiKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
-                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${error.message}`;
-                        }
-                        currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
-                        if (i === GEMINI_API_KEYS.length - 1) {
-                             geminiKeyFailed = true;
-                        }
-                    }
-                    if (!aiResponseText && geminiKeyFailed) {
-                        throw new Error("Todas as chaves de API do Gemini falharam.");
-                    }
-
-                } else if (currentAiProvider === 'deepseek') {
-                    console.log("Usando Provedor: DeepSeek (via OpenRouter)");
-                    let deepseekKeyFailed = false;
-
-                    for (let i = 0; i < OPENROUTER_API_KEYS.length; i++) {
-                        const currentKey = OPENROUTER_API_KEYS[currentOpenRouterKeyIndex];
-                        if (!currentKey || currentKey.includes("SUA_") || currentKey.length < 30) {
-                            console.warn(`Chave OpenRouter #${currentOpenRouterKeyIndex + 1} parece ser um placeholder. Pulando...`);
-                            currentOpenRouterKeyIndex = (currentOpenRouterKeyIndex + 1) % OPENROUTER_API_KEYS.length;
-                            continue;
-                        }
-
-                        const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-                        const body = JSON.stringify({
-                            model: DEEPSEEK_MODEL_NAME,
-                            messages: [ { role: 'user', content: textPrompt } ],
-                            max_tokens: 1024
-                        });
-
-                        try {
-                            const response = await fetchWithTimeout(API_URL, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${currentKey}`,
-                                    'HTTP-Referer': 'https://github.com/mzzvxm',
-                                    'X-Title': 'Quizizz Bypass Script'
-                                },
-                                body: body
-                            });
-
-                            if (response.ok) {
-                                const data = await response.json();
-                                aiResponseText = data.choices[0].message.content;
-                                console.log(`Sucesso com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}.`);
-                                break;
-                            }
-
-                            const errorData = await response.json();
-                            const errorMessage = errorData.error?.message || `Erro ${response.status}`;
-                            console.warn(`Chave OpenRouter #${currentOpenRouterKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
-                            lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${errorMessage}`;
-
-                        } catch (error) {
-                             console.warn(`Erro na requisição com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
-                             lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}`;
-                        }
-
-                        currentOpenRouterKeyIndex = (currentOpenRouterKeyIndex + 1) % OPENROUTER_API_KEYS.length;
-                        if (i === OPENROUTER_API_KEYS.length - 1) {
-                            deepseekKeyFailed = true;
-                        }
-                    }
-
-                    if (!aiResponseText && deepseekKeyFailed) {
-                        throw new Error("Todas as chaves de API do OpenRouter falharam.");
-                    }
-                }
-
-                // --- 4. Retorno ---
-                console.log("Resposta bruta da IA:", aiResponseText);
-                lastAiResponse = aiResponseText;
-                return aiResponseText;
-
-            } catch (error) {
-                console.error(`Falha ao obter resposta da IA (${currentAiProvider}):`, error.message);
-                lastAiResponse = `Erro: ${error.message}`;
-                throw error;
-            }
-        }
-
-
-        async function performAction(aiAnswerText, quizData) {
-        if (!aiAnswerText) return;
-
-        const getElementColor = (element) => {
-            const style = window.getComputedStyle(element);
-            const bgImage = style.backgroundImage;
-            if (bgImage && bgImage.includes('gradient')) {
-                const match = bgImage.match(/rgb\(\d+, \d+, \d+\)/);
-                if (match) return match[0];
-            }
-            return style.backgroundColor || 'rgba(255, 255, 255, 0.8)'; // Alterado para branco
+        const btnFechar = document.createElement('button');
+        btnFechar.textContent = 'Fechar';
+        aplicarEstiloBotao(btnFechar, true);
+        btnFechar.onclick = () => {
+            container.remove();
+            criarMenu();
         };
 
-        switch (quizData.questionType) {
-            case 'multi_dropdown':
-                const popperSelector = '.v-popper__popper--shown';
-                const answers = aiAnswerText.split('\n').map(line => {
-                    const match = line.match(/\[RESPOSTA (\d+)\]:\s*(.*)/i);
-                    if (!match) return null;
-                    return {
-                        index: parseInt(match[1], 10) - 1,
-                        answer: match[2].trim().replace(/["'`]/g, '')
-                    };
-                }).filter(Boolean);
+        container.append(titulo, insta, info, btnFechar);
+        document.body.appendChild(container);
+    };
 
-                const answersMap = new Map(answers.map(a => [a.index, a.answer]));
-                const placeholderText = 'Selecionar resposta';
+    const trocarCorBotao = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        let novaCorTemp = corBotao;
 
-                // Fase 1: Limpeza
-                console.log("FASE 1: Limpando dropdowns com respostas erradas ou desnecessárias...");
-                for (let i = 0; i < quizData.dropdowns.length; i++) {
-                    const dd = quizData.dropdowns[i];
-                    const currentButtonText = dd.button.innerText.trim();
-                    const targetAnswer = answersMap.get(i);
+        const container = document.createElement('div');
+        aplicarEstiloContainer(container);
+        container.style.zIndex = '1000001';
+        container.style.position = 'fixed';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.maxWidth = '420px';
 
-                    const isFilled = currentButtonText !== placeholderText;
-                    const hasTarget = !!targetAnswer;
-                    const isWrong = isFilled && hasTarget && currentButtonText !== targetAnswer;
-                    const isUnnecessary = isFilled && !hasTarget;
+        const titulo = document.createElement('div');
+        titulo.textContent = '🎨 Escolha a nova cor do botão flutuante';
+        aplicarEstiloTexto(titulo, '18px');
 
-                    if (isWrong || isUnnecessary) {
-                        console.log(`Limpando Dropdown #${i + 1} (estava com "${currentButtonText}")...`);
-                        dd.button.click();
-                        try {
-                            const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
-                            const selectedOption = Array.from(optionElements).find(el => el.innerText.trim() === currentButtonText);
-                            if (selectedOption) {
-                                selectedOption.click();
-                            } else {
-                                document.body.click();
-                            }
-                            await waitForElementToDisappear(popperSelector, 2000);
-                        } catch (e) {
-                            console.error(`Erro ao tentar limpar Dropdown #${i + 1}: ${e.message}`);
-                            if (document.querySelector(popperSelector)) {
-                                document.body.click();
-                                try { await waitForElementToDisappear(popperSelector, 2000); } catch (err) {}
-                            }
-                        }
-                    }
-                }
+        const seletor = document.createElement("input");
+        seletor.type = "color";
+        seletor.value = corBotao;
+        Object.assign(seletor.style, { width: "100px", height: "100px", border: "none", background: "transparent", cursor: "pointer", margin: '15px 0' });
 
-                // Fase 2: Preenchimento
-                console.log("FASE 2: Preenchendo respostas corretas da IA...");
-                for (const res of answers) {
-                    const dd = quizData.dropdowns[res.index];
-                    if (!dd) {
-                        console.error(`Dropdown com índice ${res.index} não encontrado.`);
-                        continue;
-                    }
-                    const currentButtonText = dd.button.innerText.trim();
-                    if (currentButtonText === res.answer) {
-                        continue;
-                    }
-                    dd.button.click();
-                    try {
-                        const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
-                        const targetOption = Array.from(optionElements).find(el => el.innerText.trim() === res.answer);
-                        if (targetOption) {
-                            if (targetOption.disabled || targetOption.classList.contains('used-option')) {
-                                console.warn(`Opção "${res.answer}" para Dropdown #${res.index + 1} ainda está desabilitada.`);
-                                document.body.click();
-                            } else {
-                                targetOption.click();
-                            }
-                        } else {
-                            console.error(`Opção "${res.answer}" não encontrada no Dropdown #${res.index + 1}. (A IA pode ter alucinado)`);
-                            document.body.click();
-                        }
-                        await waitForElementToDisappear(popperSelector, 2000);
-                    } catch (e) {
-                        console.error(`Erro ao tentar selecionar para o dropdown #${res.index + 1}: ${e.message}`);
-                        if (document.querySelector(popperSelector)) {
-                            document.body.click();
-                            try { await waitForElementToDisappear(popperSelector, 2000); } catch (err) {}
-                        }
-                    }
-                }
-                break;
+        seletor.addEventListener("input", (e) => { novaCorTemp = e.target.value; });
 
-            case 'multi_drag_into_blank':
-                const highlightColors = ['#FFD700', '#00FFFF', '#FF00FF', '#7FFF00', '#FF8C00', '#DA70D6'];
-                let colorIndex = 0;
-                const cleanPairPartMulti = (str) => str.replace(/[`"']/g, '').trim();
-                const pairingsMulti = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
-                    const parts = line.split('->');
-                    return parts.length === 2 ? [cleanPairPartMulti(parts[0]), cleanPairPartMulti(parts[1])] : null;
-                }).filter(Boolean);
-                if (pairingsMulti.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
-                const draggableMap = new Map(quizData.draggableOptions.map(i => [i.text, i.element]));
-                const dropZoneMap = new Map(quizData.dropZones.map(i => [i.prompt, i.blankElement]));
-                for (const [promptText, optionText] of pairingsMulti) {
-                    const bestPromptMatch = [...dropZoneMap.keys()].find(key => key.includes(promptText) || promptText.includes(key));
-                    const blankEl = dropZoneMap.get(bestPromptMatch);
-                    const optionEl = draggableMap.get(optionText);
-                    if (blankEl && optionEl) {
-                        const color = highlightColors[colorIndex % highlightColors.length];
-                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 4px;`;
-                        blankEl.style.cssText = highlightStyle;
-                        optionEl.style.cssText = highlightStyle;
-                        colorIndex++;
-                    } else {
-                        console.warn(`Par não encontrado no DOM: "${promptText}" -> "${optionText}"`);
-                    }
-                }
-                break;
+        const btnContainer = document.createElement('div');
+        Object.assign(btnContainer.style, { display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '15px' });
 
-            case 'equation':
-                const KEYPAD_MAP = {
-                    '0': 'icon-fas-0', '1': 'icon-fas-1', '2': 'icon-fas-2', '3': 'icon-fas-3', '4': 'icon-fas-4',
-                    '5': 'icon-fas-5', '6': 'icon-fas-6', '7': 'icon-fas-7', '8': 'icon-fas-8', '9': 'icon-fas-9',
-                    '+': 'icon-fas-plus', '-': 'icon-fas-minus', '*': 'icon-fas-times', '×': 'icon-fas-times',
-                    '/': 'icon-fas-divide', '÷': 'icon-fas-divide', '=': 'icon-fas-equals', '.': 'icon-fas-period',
-                    '<': 'icon-fas-less-than', '>': 'icon-fas-greater-than',
-                    '≤': 'icon-fas-less-than-equal', '≥': 'icon-fas-greater-than-equal',
-                    'x': 'icon-fas-variable', 'y': 'icon-fas-variable', 'z': 'icon-fas-variable',
-                    '(': 'icon-fas-brackets-round', ')': 'icon-fas-brackets-round',
-                    'π': 'icon-fas-pi', 'e': 'icon-fas-euler',
-                };
-                let answerSequence = aiAnswerText.trim().replace(/\s/g, '').replace(/<=/g, '≤').replace(/>=/g, '≥');
-                console.log(`Digitando a resposta: ${answerSequence}`);
-                const editor = document.querySelector('div[data-cy="equation-editor"]');
-                if (editor) {
-                    editor.click();
-                    await new Promise(r => setTimeout(r, 100));
-                } else {
-                    console.error("Não foi possível encontrar o editor de equação para focar.");
-                    return;
-                }
-                for (const char of answerSequence) {
-                    const iconClass = KEYPAD_MAP[char.toLowerCase()];
-                    if (iconClass) {
-                        const keyElement = document.querySelector(`.editor-button i.${iconClass}`);
-                        if (keyElement) {
-                            const button = keyElement.closest('button');
-                            if (button) {
-                                button.click();
-                                await new Promise(r => setTimeout(r, 100));
-                            }
-                        } else {
-                            console.error(`Não foi possível encontrar a tecla para o caractere: "${char}" (ícone: ${iconClass})`);
-                        }
-                    } else {
-                        console.error(`Caractere não mapeado no teclado: "${char}"`);
-                    }
-                }
-                break;
+        const btnAplicar = document.createElement('button');
+        btnAplicar.textContent = '✔️ Aplicar';
+        aplicarEstiloBotao(btnAplicar, true);
+        btnAplicar.onclick = () => {
+            if (!novaCorTemp || novaCorTemp === corBotao) return;
+            corBotao = novaCorTemp;
+            localStorage.setItem("corBotaoDhonatan", corBotao);
+            document.querySelectorAll("#dhonatanBotao").forEach(btn => { btn.style.background = corBotao; });
+            container.remove();
+            sendToast('✔️ Cor alterada com sucesso!', 2000);
+            setTimeout(() => criarMenu(), 800);
+        };
 
-            case 'reorder':
-                const cleanText = (str) => str.replace(/["'`]/g, '').trim();
-                const orderedItems = aiAnswerText.split('\n').map(cleanText).filter(Boolean);
-                const draggablesMapReorder = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
-                const dropZonesInOrder = quizData.dropZones;
-                if (orderedItems.length === dropZonesInOrder.length) {
-                    for (let i = 0; i < orderedItems.length; i++) {
-                        const sourceText = orderedItems[i];
-                        const sourceEl = draggablesMapReorder.get(sourceText);
-                        const destinationEl = dropZonesInOrder[i].element;
-                        if (sourceEl && destinationEl) {
-                            const color = getElementColor(sourceEl);
-                            const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
-                            sourceEl.style.cssText = highlightStyle;
-                            destinationEl.style.cssText = highlightStyle;
-                        }
-                    }
-                }
-                break;
+        const btnCancelar = document.createElement('button');
+        btnCancelar.textContent = '❌ Cancelar';
+        aplicarEstiloBotao(btnCancelar);
+        btnCancelar.onclick = () => { container.remove(); criarMenu(); };
 
-            case 'drag_into_blank':
-                const cleanAiAnswerBlank = aiAnswerText.trim().replace(/["'`]/g, '');
-                const targetOption = quizData.draggableOptions.find(opt => opt.text === cleanAiAnswerBlank);
-                if (targetOption) {
-                    const color = getElementColor(targetOption.element);
-                    const highlightStyle = `box-shadow: 0 0 15px 5px ${color}`;
-                    targetOption.element.style.cssText = highlightStyle;
-                    quizData.dropZone.element.style.cssText = highlightStyle;
-                }
-                break;
+        btnContainer.append(btnAplicar, btnCancelar);
+        container.append(titulo, seletor, btnContainer);
+        document.body.appendChild(container);
+    };
 
-            case 'match_image_to_text':
-                const highlightColorsImg = ['#FFD700', '#00FFFF', '#FF00FF', '#7FFF00', '#FF8C00', '#DA70D6'];
-                let colorIndexImg = 0;
+    const coletarPerguntaEAlternativas = () => {
+        const perguntaEl = document.querySelector('.question-text, .question-container, [data-qa*="question"]');
+        const pergunta = perguntaEl ? perguntaEl.innerText.trim() :
+            (document.body.innerText.split('\n').find(t => t.includes('?') && t.length < 200) || '').trim();
+        const alternativasEl = Array.from(document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p'));
+        const alternativasFiltradas = alternativasEl.map(el => el.innerText.trim()).filter(txt =>
+            txt.length > 20 && txt.length < 400 && !txt.includes('?') && !txt.toLowerCase().includes(pergunta.toLowerCase())
+        );
+        const letras = ['a', 'b', 'c', 'd', 'e', 'f'];
+        const alternativas = alternativasFiltradas.map((txt, i) => `${letras[i]}) ${txt}`).join('\n');
+        return { pergunta, alternativas };
+    };
 
-                const cleanPairPartImg = (str) => str.replace(/[`"\[\]]/g, '').trim();
+async function encontrarRespostaColar(options = {}) {
+  const debug = !!options.debug;
+  sendToast('⌛ Carregando script...', 3000);
 
-                const pairingsImg = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
-                    const parts = line.split('->');
-                    return parts.length === 2 ? [cleanPairPartImg(parts[0]), cleanPairPartImg(parts[1])] : null;
-                }).filter(Boolean);
+  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js?' + Date.now();
 
-                if (pairingsImg.length === 0) { console.error("Não foi possível extrair pares válidos (Texto -> ID Imagem) da resposta da IA."); return; }
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-                const draggablesMapImg = new Map(quizData.draggableItems.map(i => [i.id, i.element]));
-                const dropZonesMapImg = new Map(quizData.dropZones.map(i => [i.text, i.element]));
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+    return false;
+  };
 
-                for (const [partA, partB] of pairingsImg) {
-                    let sourceEl, destinationEl;
-                    if (dropZonesMapImg.has(partA) && draggablesMapImg.has(partB)) {
-                        destinationEl = dropZonesMapImg.get(partA);
-                        sourceEl = draggablesMapImg.get(partB);
-                    } else if (dropZonesMapImg.has(partB) && draggablesMapImg.has(partA)) {
-                        destinationEl = dropZonesMapImg.get(partB);
-                        sourceEl = draggablesMapImg.get(partA);
-                    } else {
-                        console.warn(`Par não mapeado: "${partA}" (existe? ${dropZonesMapImg.has(partA)}) -> "${partB}" (existe? ${draggablesMapImg.has(partB)})`);
-                        continue;
-                    }
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal })
+      .finally(() => clearTimeout(id));
+  };
 
-                    if (sourceEl && destinationEl) {
-                        const color = highlightColorsImg[colorIndexImg % highlightColorsImg.length];
-                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
-                        sourceEl.style.cssText = highlightStyle;
-                        destinationEl.style.cssText = highlightStyle;
-                        colorIndexImg++;
-                    }
-                }
-                break;
-
-            case 'match_order':
-                const cleanPairPart = (str) => str.replace(/["'`]/g, '').trim();
-                const pairings = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
-                    const parts = line.split('->');
-                    return parts.length === 2 ? [cleanPairPart(parts[0]), cleanPairPart(parts[1])] : null;
-                }).filter(Boolean);
-                if (pairings.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
-                const draggablesMapMatch = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
-                const dropZonesMap = new Map(quizData.dropZones.map(i => [i.text, i.element]));
-                for (const [partA, partB] of pairings) {
-                    let sourceEl, destinationEl;
-                    if (dropZonesMap.has(partA) && draggablesMapMatch.has(partB)) {
-                        destinationEl = dropZonesMap.get(partA);
-                        sourceEl = draggablesMapMatch.get(partB);
-                    } else if (dropZonesMap.has(partB) && draggablesMapMatch.has(partA)) {
-                        destinationEl = dropZonesMap.get(partB);
-                        sourceEl = draggablesMapMatch.get(partA);
-                    } else { continue; }
-                    if (sourceEl && destinationEl) {
-                        const color = getElementColor(sourceEl);
-                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
-                        sourceEl.style.cssText = highlightStyle;
-                        destinationEl.style.cssText = highlightStyle;
-                    }
-                }
-                break;
-
-            default:
-                const normalize = (str) => {
-                    if (typeof str !== 'string') return '';
-                    // (v48) Mantém letras, números, espaços, e símbolos ² e ³
-                    let cleaned = str.replace(/[^a-zA-Z\u00C0-\u017F0-9\s²³]/g, '').replace(/\s+/g, ' ');
-                    return cleaned.trim().toLowerCase();
-                };
-
-                if (quizData.questionType === 'open_ended') {
-                    await new Promise(resolve => {
-                        quizData.answerElement.focus();
-                        quizData.answerElement.value = aiAnswerText.trim();
-                        quizData.answerElement.dispatchEvent(new Event('input', { bubbles: true }));
-                        setTimeout(resolve, 100);
-                    });
-                    setTimeout(() => document.querySelector('.submit-button-wrapper button, button.submit-btn')?.click(), 500);
-                } else if (quizData.questionType === 'multiple_choice') {
-                    const aiAnswers = aiAnswerText.split('\n').map(normalize).filter(Boolean);
-                    quizData.options.forEach(opt => {
-                        if (aiAnswers.includes(normalize(opt.text))) {
-                            opt.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
-                            opt.element.click();
-                        }
-                    });
-                } else if (quizData.questionType === 'single_choice') {
-                    const normalizedAiAnswer = normalize(aiAnswerText);
-                    const bestMatch = quizData.options.find(opt => {
-                        const normalizedOption = normalize(opt.text);
-                        return normalizedOption === normalizedAiAnswer;
-                    });
-
-                    if (bestMatch) {
-                        console.log("Correspondência encontrada!", bestMatch.element);
-                        bestMatch.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
-                        bestMatch.element.click();
-                    } else {
-                        console.warn("Nenhuma correspondência exata encontrada após normalização.");
-                    }
-                }
-                break;
-        }
-    }
-
-        async function resolverQuestao() {
-        const button = document.getElementById('ai-solver-button');
-        button.disabled = true;
-        button.innerText = "👨‍💻";
-        button.style.transform = 'scale(0.95)';
-        button.style.boxShadow = '0 0 0 rgba(0,0,0,0)';
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
         try {
-            const quizData = await extrairDadosDaQuestao();
-            if (!quizData) {
-                alert("Não foi possível extrair os dados da questão.");
-                return;
-            }
-
-            if (quizData.questionType === 'multi_dropdown') {
-                 console.log("Usando IA para resolver múltiplos dropdowns (lógica de pool)...");
-                 const aiAnswer = await obterRespostaDaIA(quizData);
-                 if (aiAnswer) {
-                     await performAction(aiAnswer, quizData);
-                 }
-            } else if (quizData.questionType === 'dropdown') {
-                console.log("Iniciando fluxo otimizado para Dropdown...");
-                quizData.dropdownButton.click();
-                try {
-                    const optionElements = await waitForElement('.v-popper__popper--shown button.dropdown-option', true);
-                    quizData.options = Array.from(optionElements).map(el => ({ text: el.innerText.trim() }));
-                    const aiAnswer = await obterRespostaDaIA(quizData);
-                    if (aiAnswer) {
-                        const cleanAiAnswerDrop = aiAnswer.trim().replace(/["'`]/g, '');
-                        const targetOptionDrop = Array.from(optionElements).find(el => el.innerText.trim() === cleanAiAnswerDrop);
-                        if (targetOptionDrop) {
-                            targetOptionDrop.click();
-                        } else {
-                            console.error(`Não foi possível encontrar a opção dropdown com o texto: "${cleanAiAnswerDrop}"`);
-                            document.body.click();
-                        }
-                    } else {
-                         document.body.click();
-                    }
-                } catch (error) {
-                    console.error("Falha ao processar o dropdown:", error.message);
-                    document.body.click();
-                }
-            } else {
-                const isMath = quizData.options && quizData.options.length > 0 && (quizData.options[0].text.includes('\\') || quizData.questionText.toLowerCase().includes('value of'));
-                const matchValue = quizData.questionText.match(/value of ([\d.]+)/i);
-                if (isMath && matchValue) {
-                    console.log("Questão de matemática detectada. Resolvendo localmente...");
-                    const targetValue = parseFloat(matchValue[1]);
-                    quizData.options.forEach(option => {
-                        const computableExpr = (() => {
-                            let c = option.text.replace(/\\left/g, '').replace(/\\right/g, '').replace(/\\div/g, '/').replace(/\\times/g, '*').replace(/\\ /g, '').replace(/(\d+)\s*\(/g, '$1 * (').replace(/\)\s*(\d+)/g, ') * $1');
-                            c = c.replace(/(\d+)\\frac\{(\d+)\}\{(\d+)\}/g, '($1+$2/$3)');
-                            c = c.replace(/\\frac\{(\d+)\}\{(\d+)\}/g, '($1/$2)');
-                            return c;
-                        })();
-                        const result = (() => { try { return new Function('return ' + computableExpr)(); } catch (e) { return null; } })();
-                        if (result !== null && Math.abs(result - targetValue) < 0.001) {
-                            option.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
-                            option.element.click();
-                        }
-                    });
-                } else {
-                    console.log("Usando IA para resolver...");
-                    const aiAnswer = await obterRespostaDaIA(quizData);
-                    if (aiAnswer) {
-                        await performAction(aiAnswer, quizData);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Um erro inesperado ocorreu no fluxo principal:", error);
-            if (error.message && !error.message.includes("Ação cancelada")) {
-                alert("Ocorreu um erro: " + error.message);
-            }
-        } finally {
-            const viewResponseBtn = document.getElementById('view-raw-response-btn');
-            if (viewResponseBtn && lastAiResponse) {
-                viewResponseBtn.style.display = 'block';
-            }
-            button.disabled = false;
-            button.innerText = "Puxar Resposta";
-            button.style.transform = 'scale(1)';
-            button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+          if (debug) console.info(`Tentando fetch (url ${i + 1}/${urls.length}, tentativa ${attempt})...`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
         }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
+      if (prev) prev.remove();
+    } catch (e) {
+      if (debug) console.warn('Não consegui remover script anterior:', e.message);
     }
 
-        // --- LÓGICA DA UI ---
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
 
-        function mostrarAvisoDeepSeekImagem() {
-            return new Promise((resolve, reject) => {
-                const oldModal = document.getElementById('deepseek-warning-modal');
-                if (oldModal) oldModal.remove();
+    sendToast('✔️ Script carregado com sucesso!', 3000);
+    if (typeof fundo !== "undefined" && fundo) {
+      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+    }
+    if (typeof criarBotaoFlutuante === "function") {
+      try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+    }
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar script:', err);
+    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+    if (debug) {
+      console.error('Debug info (não mostra URL):', err);
+    }
+    return false;
+  }
+}
 
-                const overlay = document.createElement('div');
-                overlay.id = 'deepseek-warning-modal';
-                Object.assign(overlay.style, {
-                    position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)', zIndex: '2147483648',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.2s ease', opacity: '0'
-                });
+    const encontrarRespostaDigitar = () => {
+        const pergunta = prompt("Digite a pergunta:");
+        if (!pergunta) return;
+        const promptFinal = `Responda de forma direta e clara sem ponto final: ${pergunta}`;
+        window.open(`https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`, "_blank");
+    };
 
-                const modalContainer = document.createElement('div');
-                Object.assign(modalContainer.style, {
-                    background: 'rgba(26, 27, 30, 0.9)', backdropFilter: 'blur(10px)',
-                    padding: '24px', borderRadius: '16px', color: 'white',
-                    fontFamily: 'system-ui, sans-serif', maxWidth: '400px',
-                    textAlign: 'center', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                });
+    const marcarResposta = (resposta) => {
+        resposta = resposta.trim().replace(/\.+$/, '').toLowerCase();
+        const alternativas = document.querySelectorAll('[role="option"], .options div, .choice, .answer-text, label, span, p');
+        let marcada = false;
+        alternativas.forEach(el => {
+            const txt = el.innerText.trim().toLowerCase();
+            if (txt.includes(resposta)) {
+                el.style.backgroundColor = '#00ff00';
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                marcada = true;
+            }
+        });
 
-                const title = document.createElement('h3');
-                title.innerText = '⚠️ DeepSeek Não Vê Imagens';
-                Object.assign(title.style, {
-                    margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600'
-                });
-
-                const message = document.createElement('p');
-                message.innerText = 'Esta pergunta contém uma ou mais imagens que o DeepSeek não pode processar. O que você deseja fazer?';
-                Object.assign(message.style, {
-                    margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.5',
-                    color: 'rgba(255, 255, 255, 0.8)'
-                });
-
-                const buttonContainer = document.createElement('div');
-                Object.assign(buttonContainer.style, {
-                    display: 'flex', flexDirection: 'column', gap: '10px'
-                });
-
-                const closeModal = () => {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => overlay.remove(), 200);
-                };
-
-                const btnGemini = document.createElement('button');
-                btnGemini.innerText = 'Usar a Gemini (Recomendado)';
-                Object.assign(btnGemini.style, {
-                    background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
-                    border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer',
-                    fontSize: '14px', fontWeight: '500', padding: '12px',
-                    transition: 'all 0.2s ease'
-                });
-                btnGemini.onmouseover = () => btnGemini.style.opacity = '0.9';
-                btnGemini.onmouseout = () => btnGemini.style.opacity = '1';
-                btnGemini.onclick = () => {
-                    closeModal();
-                    resolve('gemini');
-                };
-
-                const btnNoImage = document.createElement('button');
-                btnNoImage.innerText = 'Responder sem enviar Imagem';
-                Object.assign(btnNoImage.style, {
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px', color: 'rgba(255, 255, 255, 0.8)',
-                    cursor: 'pointer', fontSize: '14px', fontWeight: '500',
-                    padding: '12px', transition: 'all 0.2s ease'
-                });
-                btnNoImage.onmouseover = () => btnNoImage.style.background = 'rgba(255, 255, 255, 0.15)';
-                btnNoImage.onmouseout = () => btnNoImage.style.background = 'rgba(255, 255, 255, 0.1)';
-                btnNoImage.onclick = () => {
-                    closeModal();
-                    resolve('sem_imagem');
-                };
-
-                overlay.onclick = (e) => {
-                    if (e.target === overlay) {
-                        closeModal();
-                        reject(new Error('Ação cancelada.'));
-                    }
-                };
-
-                buttonContainer.appendChild(btnGemini);
-                buttonContainer.appendChild(btnNoImage);
-                modalContainer.appendChild(title);
-                modalContainer.appendChild(message);
-                modalContainer.appendChild(buttonContainer);
-                overlay.appendChild(modalContainer);
-                document.body.appendChild(overlay);
-
-                setTimeout(() => overlay.style.opacity = '1', 10);
-            });
+        if (marcada) {
+            sendToast('✔️ Resposta marcada!', 2000);
+        } else {
+            sendToast('❌ Nenhuma correspondente encontrada.', 2000);
         }
+    };
+    
+    // ---------- modal do Termo de Responsabilidade (chamar antes de criarMenu) ----------
+function showTermoResponsabilidade(onAccept, onReject) {
+    // cria overlay
+    const modal = document.createElement('div');
+    Object.assign(modal.style, {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0,0,0,0.75)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: "10000002"
+    });
 
-        /**
-         * Torna o painel flutuante arrastável.
-         * @param {HTMLElement} panel - O elemento principal do painel.
-         * @param {HTMLElement} handle - O elemento que aciona o arraste (neste caso, o próprio painel).
-         */
-        function makeDraggable(panel, handle) {
-            let offsetX = 0, offsetY = 0, isDragging = false;
+    // caixa interna
+    const modalBox = document.createElement('div');
+    Object.assign(modalBox.style, {
+        background: "#0b0b0b",
+        color: "#fff",
+        padding: "20px",
+        borderRadius: "10px",
+        width: "420px",
+        maxWidth: "92%",
+        textAlign: "justify",
+        boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+        border: "1px solid rgba(255,255,255,0.04)"
+    });
 
-            handle.addEventListener('mousedown', (e) => {
-                // Previne o arraste se o clique foi em um botão ou link
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+    modalBox.innerHTML = `
+      <h2 style="text-align:center; color:#f33; margin:0 0 10px;">📜 Termo de Responsabilidade</h2>
+      <div style="max-height:260px; overflow:auto; padding-right:6px; line-height:1.4; color:#ddd;">
+        <p>
+          Este painel possui sistemas de segurança e proteções internas.
+          No entanto, <b>não nos responsabilizamos</b> por qualquer uso
+          indevido, danos, prejuízos ou consequências que possam
+          resultar da utilização deste software.
+        </p>
+        <p>
+          Ao utilizar este painel, você declara estar ciente e de acordo
+          com os termos aqui descritos e se responsabiliza pelo uso que
+          fizer das funcionalidades oferecidas.
+        </p>
+      </div>
+      <hr style="border:none; height:1px; background:rgba(255,255,255,0.04); margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+        <div style="font-size:12px; color:#aaa;">Copyright © 2025 - MLK MAU</div>
+        <div style="display:flex; gap:8px;">
+          <button id="btnRecusarTermo" style="
+            background:transparent;
+            color:#fff;
+            border:1px solid rgba(255,255,255,0.12);
+            padding:8px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            font-weight:700;
+          ">Recusar</button>
+          <button id="btnAceitarTermo" style="
+            background: linear-gradient(135deg,#8A2BE2,#4B0082);
+            color:#fff;
+            border:none;
+            padding:8px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            font-weight:800;
+          ">Eu me responsabilizo</button>
+        </div>
+      </div>
+    `;
 
-                isDragging = true;
-                const rect = panel.getBoundingClientRect();
+    modal.appendChild(modalBox);
+    document.body.appendChild(modal);
 
-                // Converte a posição 'bottom'/'right' para 'top'/'left' na primeira vez
-                if (panel.style.bottom || panel.style.right) {
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    panel.style.top = rect.top + 'px';
-                    panel.style.left = rect.left + 'px';
-                }
-
-                offsetX = e.clientX - panel.getBoundingClientRect().left;
-                offsetY = e.clientY - panel.getBoundingClientRect().top;
-
-                panel.style.transition = 'none'; // Desabilita transição suave durante o arraste
-                handle.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-
-                let newX = e.clientX - offsetX;
-                let newY = e.clientY - offsetY;
-
-                // Mantém o painel dentro da tela
-                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
-
-                panel.style.top = newY + 'px';
-                panel.style.left = newX + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
-                handle.style.cursor = 'grab';
-            });
-
-            // Suporte para touch (mobile)
-            handle.addEventListener('touchstart', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
-
-                isDragging = true;
-                const rect = panel.getBoundingClientRect();
-                const touch = e.touches[0];
-
-                if (panel.style.bottom || panel.style.right) {
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    panel.style.top = rect.top + 'px';
-                    panel.style.left = rect.left + 'px';
-                }
-
-                offsetX = touch.clientX - panel.getBoundingClientRect().left;
-                offsetY = touch.clientY - panel.getBoundingClientRect().top;
-
-                panel.style.transition = 'none';
-                e.preventDefault();
-            });
-
-            document.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-
-                const touch = e.touches[0];
-                let newX = touch.clientX - offsetX;
-                let newY = touch.clientY - offsetY;
-
-                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
-
-                panel.style.top = newY + 'px';
-                panel.style.left = newX + 'px';
-                e.preventDefault();
-            });
-
-            document.addEventListener('touchend', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-            });
+    // clique fora fecha e trata como recusa
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+            if (typeof onReject === 'function') onReject();
         }
+    });
 
-        function criarFloatingPanel() {
-            if (document.getElementById('mlk-mau-floating-panel')) return;
-            
-            const panel = document.createElement('div');
-            panel.id = 'mlk-mau-floating-panel';
-            Object.assign(panel.style, {
-                position: 'fixed', 
-                bottom: '60px', 
-                right: '20px', 
-                zIndex: '2147483647',
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'stretch',
-                gap: '10px', 
-                padding: '12px', 
-                backgroundColor: 'rgba(0, 0, 0, 0.95)', // FUNDO PRETO
-                backdropFilter: 'blur(8px)', 
-                webkitBackdropFilter: 'blur(8px)', 
-                borderRadius: '16px',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-                transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-                transform: 'translateY(20px)', 
-                opacity: '0',
-                cursor: 'grab', // CURSOR DE ARRASTAR
-                border: '1px solid rgba(255, 255, 255, 0.1)'
-            });
+    modalBox.querySelector('#btnRecusarTermo').addEventListener('click', () => {
+        modal.remove();
+        if (typeof onReject === 'function') onReject();
+    });
 
-            const responseViewer = document.createElement('div');
-            responseViewer.id = 'ai-response-viewer';
-            Object.assign(responseViewer.style, {
-                display: 'none', 
-                position: 'absolute', 
-                bottom: 'calc(100% + 10px)', 
-                right: '0',
-                width: '300px', 
-                maxHeight: '200px', 
-                overflowY: 'auto',
-                background: 'rgba(10, 10, 15, 0.95)', 
-                backdropFilter: 'blur(5px)',
-                borderRadius: '8px', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                padding: '12px', 
-                color: '#f0f0f0', 
-                fontSize: '12px',
-                fontFamily: 'monospace', 
-                whiteSpace: 'pre-wrap', 
-                wordBreak: 'break-all',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-                textAlign: 'left'
-            });
-            panel.appendChild(responseViewer);
+    modalBox.querySelector('#btnAceitarTermo').addEventListener('click', () => {
+        modal.remove();
+        if (typeof onAccept === 'function') onAccept();
+    });
+}
 
-            const viewResponseBtn = document.createElement('button');
-            viewResponseBtn.id = 'view-raw-response-btn';
-            Object.assign(viewResponseBtn.style, {
-                background: 'none', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', 
-                cursor: 'pointer',
-                fontSize: '11px', 
-                padding: '4px 8px', 
-                borderRadius: '6px',
-                display: 'none', 
-                transition: 'all 0.2s ease',
-                marginBottom: '4px'
-            });
-            viewResponseBtn.innerText = 'Ultimada Resposta Obtida';
-            viewResponseBtn.addEventListener('click', () => {
-                if (responseViewer.style.display === 'block') {
-                    responseViewer.style.display = 'none';
-                } else {
-                    responseViewer.innerText = lastAiResponse || "Nenhuma resposta da IA foi recebida ainda.";
-                    responseViewer.style.display = 'block';
-                }
-            });
-            panel.appendChild(viewResponseBtn);
-
-            // --- NOVOS BOTÕES DE MINIMIZAR E FECHAR ---
-            const controlsContainer = document.createElement('div');
-            Object.assign(controlsContainer.style, {
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '8px'
-            });
-
-            // Botão Minimizar
-            const minimizeBtn = document.createElement('button');
-            minimizeBtn.id = 'minimize-btn';
-            minimizeBtn.innerHTML = '−'; // Sinal de menos
-            Object.assign(minimizeBtn.style, {
-                background: 'none',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0',
-                transition: 'all 0.2s ease'
-            });
-
-            minimizeBtn.addEventListener('mouseover', () => {
-                minimizeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            });
-
-            minimizeBtn.addEventListener('mouseout', () => {
-                minimizeBtn.style.backgroundColor = 'transparent';
-            });
-
-            // Botão Fechar
-            const closeBtn = document.createElement('button');
-            closeBtn.id = 'close-btn';
-            closeBtn.innerHTML = '×'; // Sinal de X
-            Object.assign(closeBtn.style, {
-                background: 'none',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0',
-                transition: 'all 0.2s ease'
-            });
-
-            closeBtn.addEventListener('mouseover', () => {
-                closeBtn.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
-            });
-
-            closeBtn.addEventListener('mouseout', () => {
-                closeBtn.style.backgroundColor = 'transparent';
-            });
-
-            closeBtn.addEventListener('click', () => {
-                panel.remove();
-            });
-
-            controlsContainer.appendChild(minimizeBtn);
-            controlsContainer.appendChild(closeBtn);
-            panel.appendChild(controlsContainer);
-            // --- FIM DOS NOVOS BOTÕES ---
-
-            // --- FRAME ACIMA DO BOTÃO DE IA ---
-            const aiInstruction = document.createElement('div');
-            aiInstruction.innerHTML = 'Escolha abaixo a IA que você escolheu a api.';
-            Object.assign(aiInstruction.style, {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '11px',
-                textAlign: 'center',
-                marginBottom: '4px',
-                fontStyle: 'italic'
-            });
-            panel.appendChild(aiInstruction);
-
-            const aiToggleBtn = document.createElement('button');
-            aiToggleBtn.id = 'ai-toggle-btn';
-            aiToggleBtn.innerText = 'IA: Gemini';
-            Object.assign(aiToggleBtn.style, {
-                background: 'none', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', 
-                cursor: 'pointer',
-                fontSize: '11px', 
-                padding: '4px 8px', 
-                borderRadius: '6px',
-                transition: 'all 0.2s ease',
-                marginBottom: '4px'
-            });
-            aiToggleBtn.addEventListener('click', () => {
-                if (currentAiProvider === 'gemini') {
-                    currentAiProvider = 'deepseek';
-                    aiToggleBtn.innerText = 'IA: DeepSeek';
-                    aiToggleBtn.style.color = '#a78bfa';
-                } else {
-                    currentAiProvider = 'gemini';
-                    aiToggleBtn.innerText = 'IA: Gemini';
-                    aiToggleBtn.style.color = 'rgba(255, 255, 255, 0.6)';
-                }
-                console.log(`Provedor de IA alterado para: ${currentAiProvider}`);
-            });
-            panel.appendChild(aiToggleBtn);
-
-            const button = document.createElement('button');
-            button.id = 'ai-solver-button';
-            button.innerHTML = 'Puxar Resposta';
-            Object.assign(button.style, {
-                background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)', // Cores mais escuras
-                backgroundSize: '400% 400%',
-                border: 'none', 
-                borderRadius: '10px', 
-                color: 'white', 
-                cursor: 'pointer',
-                fontFamily: 'system-ui, sans-serif', 
-                fontSize: '15px', 
-                fontWeight: '600',
-                padding: '10px 20px', 
-                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.2s ease', 
-                letterSpacing: '0.5px',
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '8px',
-                animation: 'rgbFlow 3s linear infinite' // ANIMAÇÃO RGB
-            });
-
-            // Adicionar a animação RGB ao documento
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes rgbFlow {
-                    0% { background-position: 0% 50%; }
-                    100% { background-position: 400% 50%; }
-                }
-            `;
-            document.head.appendChild(style);
-
-            button.addEventListener('mouseover', () => { 
-                button.style.transform = 'translateY(-2px)'; 
-                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
-            });
-            button.addEventListener('mouseout', () => { 
-                button.style.transform = 'translateY(0)'; 
-                button.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)'; 
-            });
-            button.addEventListener('mousedown', () => { 
-                button.style.transform = 'translateY(1px)'; 
-                button.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.15)'; 
-            });
-            button.addEventListener('mouseup', () => { 
-                button.style.transform = 'translateY(-2px)'; 
-                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
-            });
-            button.addEventListener('click', resolverQuestao);
-            panel.appendChild(button);
-
-            const watermark = document.createElement('div');
-            watermark.id = 'mlk-mau-watermark';
-            watermark.innerHTML = `
-                <div style="display: flex; gap: 8px; align-items: center; color: rgba(255,255,255,0.7); margin-top: 8px; justify-content: flex-end;">
-                    <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; font-weight: 400;">MLK MAU</span>
-                </div>
-            `;
-            panel.appendChild(watermark);
-            document.body.appendChild(panel);
-
-            // --- LÓGICA DE MINIMIZAR ---
-            const contentToToggle = [
-                'view-raw-response-btn',
-                'ai-toggle-btn',
-                'ai-solver-button',
-                'mlk-mau-watermark'
-            ];
-
-            // Adicionar a instrução da IA na lista de elementos para ocultar
-            contentToToggle.push(aiInstruction);
-
-            let isMinimized = false;
-
-            minimizeBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Previne que o clique no botão inicie o arraste
-                
-                isMinimized = !isMinimized;
-                
-                if (isMinimized) {
-                    // Estado minimizado - oculta o conteúdo
-                    minimizeBtn.innerHTML = '+'; // Muda para sinal de mais
-                    contentToToggle.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.display = 'none';
-                        }
-                    });
-                    // Reduz o tamanho do painel
-                    panel.style.padding = '8px';
-                    panel.style.gap = '5px';
-                    
-                    // Esconde o response viewer se estiver visível
-                    responseViewer.style.display = 'none';
-                } else {
-                    // Estado normal - mostra o conteúdo
-                    minimizeBtn.innerHTML = '−'; // Volta para sinal de menos
-                    contentToToggle.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.display = '';
-                        }
-                    });
-                    // Restaura o tamanho original do painel
-                    panel.style.padding = '12px';
-                    panel.style.gap = '10px';
-                    
-                    // Re-aplica 'display: none' ao viewResponseBtn se não há resposta
-                    if (!lastAiResponse) {
-                        document.getElementById('view-raw-response-btn').style.display = 'none';
-                    }
-                }
-            });
-
-            // --- LÓGICA DE ARRASTAR ---
-            // A alça é o painel inteiro (agora arrastável mesmo quando minimizado)
-            makeDraggable(panel, panel);
-
-            setTimeout(() => {
-                panel.style.transform = 'translateY(0)';
-                panel.style.opacity = '1';
-            }, 100);
-            console.log("Floating Panel MLK MAU criado com sucesso!");
-        }
-
-        // --- LÓGICA DE DETECÇÃO DE QUIZ ID ---
-
-        function logQuizId(id, source) {
-            if (id === quizIdDetected) {
+    const iniciarMod = () => {
+        sendToast("✍️ Toque na área onde deseja digitar o texto.", 3000);
+        const handler = (e) => {
+            e.preventDefault();
+            document.removeEventListener('click', handler, true);
+            const el = e.target;
+            if (!(el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                sendToast("❌ Esta não é uma área válida para digitação.", 2000);
+                criarBotaoFlutuante();
                 return;
             }
-            quizIdDetected = id;
-            console.log(`[Quizizz Bypass] Novo Quiz ID detectado (${source}): %c${id}`, "color: #00FF00; font-weight: bold;");
-        }
+            const texto = prompt("📋 Cole ou digite o texto:");
+            if (!texto) return criarBotaoFlutuante();
 
-        function detectQuizIdFromURL() {
-            const match = window.location.pathname.match(regexQuizId);
-            return match ? match[1] : null;
-        }
+            el.focus();
+            let i = 0;
+            const progresso = document.createElement('div');
+            Object.assign(progresso.style, {
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0,0,0,0.8)', color: '#fff',
+                padding: '10px 20px', borderRadius: '8px',
+                zIndex: 9999999, fontSize: '20px'
+            });
+            document.body.append(progresso);
 
-        function interceptFetch() {
-            const originalFetch = window.fetch;
-            window.fetch = async function (...args) {
-                const [resource] = args;
-                if (typeof resource === 'string') {
-                    const match = resource.match(regexQuizId);
-                    if (match) {
-                        const id = match[1];
-                        logQuizId(id, "fetch");
-                    }
+            const intervalo = setInterval(() => {
+                if (i < texto.length) {
+                    const c = texto[i++];
+                    document.execCommand('insertText', false, c);
+                    progresso.textContent = `${Math.round(i / texto.length * 100)}%`;
+                } else {
+                    clearInterval(intervalo);
+                    progresso.remove();
+                    el.blur();
+                    setTimeout(() => {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        sendToast("✔️ Texto inserido com sucesso!", 3000);
+                        setTimeout(() => criarBotaoFlutuante(), 3000);
+                    }, 100);
                 }
-                return originalFetch.apply(this, args);
-            };
+            }, 40);
+        };
+        document.addEventListener('click', handler, true);
+    };
+
+    const criarTextoComTema = () => {
+        const tema = prompt("Qual tema deseja?");
+        if (!tema) return;
+        const palavras = prompt("Número mínimo de palavras?");
+        if (!palavras) return;
+        const promptFinal = `Crie um texto com o tema "${tema}" com no mínimo ${palavras} palavras. Seja claro e criativo.`;
+        const url = `https://www.perplexity.ai/search?q=${encodeURIComponent(promptFinal)}`;
+        window.open(url, "_blank");
+    };
+
+    const abrirReescritor = () => {
+        window.open(`https://www.reescrevertexto.net`, "_blank");
+    };
+    
+     // Funções adicionais dos botões
+    const khanAcademy = async (opts = {}) => {
+  const debug = !!opts.debug;
+  const toastShort = (msg) => sendToast(msg, 3000);
+  const toastLong = (msg) => sendToast(msg, 5000);
+
+  toastShort('⌛ Carregando Script Khan Academy...');
+
+  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/khan.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/khan.js?' + Date.now();
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = txt => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let ui = 0; ui < urls.length; ui++) {
+      const u = urls[ui];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
         }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
 
-        function interceptXHR() {
-            const originalOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function (method, url) {
-                if (typeof url === 'string') {
-                    const match = url.match(regexQuizId);
-                    if (match) {
-                        const id = match[1];
-                        logQuizId(id, "XHR");
-                    }
-                }
-                return originalOpen.apply(this, arguments);
-            };
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+      if (prev) prev.remove();
+    } catch (e) {
+      if (debug) console.warn('Falha ao remover script anterior:', e.message);
+    }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    // sucesso
+    toastShort('✔️ Script Khan Academy carregado!');
+
+    // --- remover overlay/fundo se existir ---
+    try {
+      if (typeof fundo !== "undefined" && fundo) {
+        try { fundo.remove(); } catch (e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+      }
+    } catch (e) {
+      if (debug) console.warn('Ignorado erro verificando fundo:', e.message);
+    }
+
+    // --- criar botão/painel flutuante (se função existir) ---
+    try {
+      if (typeof criarBotaoFlutuante === "function") {
+        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
+      }
+    } catch (e) {
+      if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar script Khan Academy:', err);
+    toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+    if (debug) console.error('Debug info:', err);
+    return false;
+  }
+};
+
+    const digitadorV2 = async (opts = {}) => {
+      const debug = !!opts.debug;
+      const toastShort = (m) => sendToast(m, 3000);
+      const toastLong = (m) => sendToast(m, 5000);
+
+      try {
+        if (typeof fundo !== 'undefined' && fundo) {
+          try { fundo.remove(); } catch (e) { if (debug) console.warn('fundo.remove() falhou:', e.message); }
         }
+      } catch (e) { if (debug) console.warn('Ignorado erro removendo fundo:', e.message); }
 
-        function initQuizIdDetector() {
-            console.log("[Quizizz Bypass] Detector de Quiz ID carregado.");
-            const id = detectQuizIdFromURL();
-            if (id) {
-                logQuizId(id, "URL");
-            }
-
-            if (!interceptorsStarted) {
-                console.log("[Quizizz Bypass] Iniciando interceptadores de rede (fetch/XHR).");
-                interceptFetch();
-                interceptXHR();
-                interceptorsStarted = true;
-            }
+      try {
+        if (typeof criarBotaoFlutuante === 'function') {
+          try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('criarBotaoFlutuante() falhou:', e.message); }
         }
+      } catch (e) { if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message); }
 
-        (function monitorSPA() {
-            const pushState = history.pushState;
-            history.pushState = function () {
-                const result = pushState.apply(this, arguments);
-                setTimeout(initQuizIdDetector, 300);
-                return result;
-            };
-            window.addEventListener("popstate", () => setTimeout(initQuizIdDetector, 300));
-        })();
+      toastShort('⌛ Carregando Digitador v2...');
 
-        // --- FIM DA LÓGICA DE DETECÇÃO DE QUIZ ID ---
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/digitador.js?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/digitador.js?' + Date.now();
 
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-        async function fetchWithTimeout(resource, options = {}, timeout = 15000) {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
+      const looksLikeHtmlError = txt => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+               t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+      };
+
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+      };
+
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let ui = 0; ui < urls.length; ui++) {
+          const u = urls[ui];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
             try {
-                const response = await fetch(resource, { ...options, signal: controller.signal });
-                clearTimeout(id);
-                return response;
-            } catch (error) {
-                clearTimeout(id);
-                if (error.name === 'AbortError') throw new Error('A requisição demorou muito e foi cancelada (Timeout).');
-                throw error;
+              if (debug) console.info(`Tentando fetch (${ui+1}/${urls.length}) tentativa ${attempt}`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
             }
+          }
+          await sleep(200);
         }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
 
-        async function imageUrlToBase64(url) {
-            try {
-                const cacheBustUrl = new URL(url);
-                cacheBustUrl.searchParams.set('_t', new Date().getTime());
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
 
-                const r = await fetchWithTimeout(cacheBustUrl.href, { cache: 'no-store' });
-                const b = await r.blob();
-                return new Promise((res, rej) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => res(reader.result);
-                    reader.onerror = (e) => {
-                        console.error("Erro no FileReader:", e);
-                        rej(e);
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="DigitadorV2Script"]');
+          if (prev) prev.remove();
+        } catch (e) { if (debug) console.warn('Não consegui remover script anterior:', e.message); }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'DigitadorV2Script';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        toastShort('✔️ Digitador v2 carregado!');
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar Digitador v2:', err);
+        toastLong('❌ Erro ao carregar Digitador v2. Veja console.');
+        if (debug) console.error('Debug info:', err);
+        return false;
+      }
+    };
+
+    const jogoDaVelha = async (opts = {}) => {
+  const debug = !!opts.debug;
+  const toastShort = (m) => sendToast(m, 3000);
+  const toastLong = (m) => sendToast(m, 5000);
+
+  toastShort('⌛ Carregando Jogo da Velha...');
+
+  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/jv.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/jv.js?' + Date.now();
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    return (
+      t.includes('<!doctype') ||
+      t.includes('<html') ||
+      t.includes('not found') ||
+      t.includes('404') ||
+      t.includes('access denied') ||
+      t.includes('you have been blocked')
+    );
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    toastShort('✔️ Carregado!');
+
+    // --- remover fundo/overlay ---
+    try {
+      if (typeof fundo !== "undefined" && fundo) {
+        fundo.remove();
+        if (debug) console.log("✅ Fundo removido");
+      }
+    } catch (e) {
+      if (debug) console.warn("Erro removendo fundo:", e.message);
+    }
+
+    // --- garantir criação do painel (mesmo que atrase um pouco) ---
+    let tentativas = 0;
+    const interval = setInterval(() => {
+      tentativas++;
+      if (typeof criarBotaoFlutuante === "function") {
+        try {
+          criarBotaoFlutuante();
+          if (debug) console.log("✅ Botão flutuante recriado");
+        } catch (e) {
+          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+        }
+        clearInterval(interval);
+      } else if (tentativas > 10) {
+        // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
+        clearInterval(interval);
+        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+      }
+    }, 500);
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar Jogo da Velha:', err);
+    toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+    if (debug) console.error('Debug info:', err);
+    return false;
+  }
+};
+
+    // ===== NOVA FUNÇÃO (camuflada): Leia PR =====
+const leiaPR = async (opts = {}) => {
+  const debug = !!opts.debug;
+  const toastShort = (m) => sendToast(m, 3000);
+  const toastLong = (m) => sendToast(m, 5000);
+
+  toastShort('⌛ Carregando Leia PR...');
+
+  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiapr.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/leiapr.js?' + Date.now();
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    return (
+      t.includes('<!doctype') ||
+      t.includes('<html') ||
+      t.includes('not found') ||
+      t.includes('404') ||
+      t.includes('access denied') ||
+      t.includes('you have been blocked')
+    );
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="LeiaPR"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'LeiaPR';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    toastShort('✔️ Leia PR carregado!');
+
+    // --- remover fundo/overlay se existir ---
+    try {
+      if (typeof fundo !== "undefined" && fundo) {
+        fundo.remove();
+        if (debug) console.log("✅ Fundo removido");
+      }
+    } catch (e) {
+      if (debug) console.warn("Erro removendo fundo:", e.message);
+    }
+
+    // --- garantir criação do painel (mesmo que atrase um pouco) ---
+    let tentativas = 0;
+    const interval = setInterval(() => {
+      tentativas++;
+      if (typeof criarBotaoFlutuante === "function") {
+        try {
+          criarBotaoFlutuante();
+          if (debug) console.log("✅ Botão flutuante recriado");
+        } catch (e) {
+          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+        }
+        clearInterval(interval);
+      } else if (tentativas > 10) {
+        clearInterval(interval);
+        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+      }
+    }, 500);
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar Leia PR:', err);
+    toastLong('❌ Erro ao carregar Leia PR. Verifique o console.');
+    if (debug) console.error('Debug info:', err);
+    return false;
+  }
+};
+
+    // ===== NOVA FUNÇÃO: WayGroundX =====
+const wayGroundX = async (opts = {}) => {
+  const debug = !!opts.debug;
+  const toastShort = (m) => sendToast(m, 3000);
+  const toastLong = (m) => sendToast(m, 5000);
+
+  toastShort('⌛ Carregando WayGroundX...');
+
+  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js?' + Date.now();
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    return (
+      t.includes('<!doctype') ||
+      t.includes('<html') ||
+      t.includes('not found') ||
+      t.includes('404') ||
+      t.includes('access denied') ||
+      t.includes('you have been blocked')
+    );
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="WayGroundX"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'WayGroundX';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    toastShort('✔️ WayGroundX carregado!');
+
+    // --- remover fundo/overlay se existir ---
+    try {
+      if (typeof fundo !== "undefined" && fundo) {
+        fundo.remove();
+        if (debug) console.log("✅ Fundo removido");
+      }
+    } catch (e) {
+      if (debug) console.warn("Erro removendo fundo:", e.message);
+    }
+
+    // --- garantir criação do painel (mesmo que atrase um pouco) ---
+    let tentativas = 0;
+    const interval = setInterval(() => {
+      tentativas++;
+      if (typeof criarBotaoFlutuante === "function") {
+        try {
+          criarBotaoFlutuante();
+          if (debug) console.log("✅ Botão flutuante recriado");
+        } catch (e) {
+          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+        }
+        clearInterval(interval);
+      } else if (tentativas > 10) {
+        clearInterval(interval);
+        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+      }
+    }, 500);
+
+    return true;
+  } catch (err) {
+    console.error('Erro ao carregar WayGroundX:', err);
+    toastLong('❌ Erro ao carregar WayGroundX. Verifique o console.');
+    if (debug) console.error('Debug info:', err);
+    return false;
+  }
+};
+    
+//semhasaaaa
+let senhasCarregadas = false;
+
+const carregarSenhasRemotas = async (opts = {}) => {
+  const debug = !!opts.debug;
+
+  const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js?' + Date.now();
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  const looksLikeHtmlError = (txt) => {
+    if (!txt || typeof txt !== 'string') return true;
+    const t = txt.trim().toLowerCase();
+    if (t.length < 40) return true;
+    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') ||
+        t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+    return false;
+  };
+
+  const fetchWithTimeout = (resource, timeout = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+  };
+
+  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+    let lastErr = null;
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i];
+      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+        try {
+          if (debug) console.info(`Tentando fetch (url ${i+1}/${urls.length}) tentativa ${attempt}`);
+          const res = await fetchWithTimeout(u, timeout);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const txt = await res.text();
+          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+          return txt;
+        } catch (err) {
+          lastErr = err;
+          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+          await sleep(backoff * attempt);
+        }
+      }
+      await sleep(200);
+    }
+    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+  };
+
+  try {
+    const urlsToTry = [primaryURL, fallbackURL];
+
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+    try {
+      const prev = document.querySelector('script[data-injected-by="senhasRemotas"]');
+      if (prev) prev.remove();
+    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+    const scriptEl = document.createElement('script');
+    scriptEl.type = 'text/javascript';
+    scriptEl.dataset.injectedBy = 'senhasRemotas';
+    scriptEl.textContent = scriptContent;
+    document.head.appendChild(scriptEl);
+
+    if (typeof window.verificarSenha !== 'function') {
+      console.warn('Script remoto carregado, mas verificarSenha não foi definida. Usando fallback local.');
+      window.verificarSenha = function(senha) {
+        const senhasBackup = [
+          "Teste24"
+        ];
+        return senhasBackup.includes(String(senha));
+      };
+    }
+
+    senhasCarregadas = true;
+    if (debug) console.info('Senhas remotas carregadas com sucesso.');
+    return true;
+  } catch (err) {
+    console.error('Falha ao carregar senhas remotas:', err);
+
+    window.verificarSenha = function(senha) {
+      const senhasBackup = [
+        "Teste24"
+      ];
+      return senhasBackup.includes(String(senha));
+    };
+    senhasCarregadas = true;
+
+    sendToast('⚠️ Falha ao carregar senhas remotas — modo offline ativado.', 4000);
+    if (debug) console.error('Debug (erro completo):', err);
+    return false;
+  }
+};
+
+        carregarSenhasRemotas();
+
+    // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
+    function criarAbasInterface(sidebarEl, mainEl) {
+        // definição de botões (mantive funções/existentes)
+        const botoes = {
+            scripts: [
+                { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
+                { nome: 'Khan Academy', func: khanAcademy },
+                { nome: 'Leia PR', func: leiaPR },
+                { nome: 'WayGroundX', func: wayGroundX }
+            ],
+            textos: [
+                { nome: 'Digitador v1', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; iniciarMod(); } },
+                { nome: 'Digitador v2', func: digitadorV2 },
+                { nome: 'Criar Texto com Tema via IA', func: criarTextoComTema },
+                { nome: 'Reescrever Texto (remover plágio)', func: abrirReescritor }
+            ],
+            respostas: [
+                { nome: 'Encontrar Resposta Via Menu', func: encontrarRespostaColar },
+                { nome: 'Encontrar Resposta (Digitar)', func: encontrarRespostaDigitar },
+                { nome: 'Marcar Resposta (Colar)', func: () => navigator.clipboard.readText().then(r => marcarResposta(r)) },
+                { nome: 'Marcar Resposta (Digitar)', func: () => {
+                    const r = prompt("Digite a resposta:");
+                    if (r) marcarResposta(r);
+                }}
+            ],
+            outros: [
+                { nome: 'Extensão libera bloqueio Wifi', func: () => window.open('https://chromewebstore.google.com/detail/x-vpn-free-vpn-chrome-ext/flaeifplnkmoagonpbjmedjcadegiigl', '_blank') },
+                { nome: 'Site Jogos Creditos: Everton', func: () => window.open('https://sites.google.com/view/drive-u-7-home/home', '_blank') },
+                { nome: 'Jogo da Velha', func: jogoDaVelha }
+            ],
+            config: [
+                { nome: 'Sobre o Mod', func: mostrarInfoDono },
+                { nome: 'Alterar cor do Botão Flutuante', func: trocarCorBotao },
+                { nome: 'Resetar Painel', func: () => { if (fundo) try { fundo.remove(); } catch(e){}; criarInterface(); } }
+]
+        };
+
+        // container topo com o texto MENU (restaurado conforme pedido)
+        const botoesAbas = document.createElement('div');
+        botoesAbas.style.display = 'flex';
+        botoesAbas.style.flexDirection = 'column';
+        botoesAbas.style.gap = '8px';
+
+        const tituloMenu = document.createElement('div');
+        tituloMenu.textContent = 'MENU';
+        Object.assign(tituloMenu.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '6px', fontWeight: '800' });
+        botoesAbas.appendChild(tituloMenu);
+
+        ['scripts', 'textos', 'respostas', 'outros', 'config'].forEach((id, idx) => {
+            const botaoAba = document.createElement('button');
+            botaoAba.textContent = id === 'scripts' ? 'Scripts' : id.charAt(0).toUpperCase() + id.slice(1);
+            botaoAba.className = 'sidebar-nav-btn dh-btn';
+            if (idx === 0) botaoAba.classList.add('active');
+            botaoAba.onclick = () => {
+                Array.from(sidebarEl.querySelectorAll('.sidebar-nav-btn')).forEach(b => b.classList.remove('active'));
+                botaoAba.classList.add('active');
+                renderTabContent(id);
+            };
+            botoesAbas.appendChild(botaoAba);
+        });
+
+        // montar a sidebar: botoesAbas + spacer + footer
+        sidebarEl.innerHTML = '';
+        sidebarEl.appendChild(botoesAbas);
+        const spacer = document.createElement('div');
+        spacer.style.flex = '1 1 auto';
+        sidebarEl.appendChild(spacer);
+
+        // render inicial
+        renderTabContent('scripts');
+
+        function renderTabContent(tabId) {
+            mainEl.innerHTML = '';
+            const titulo = document.createElement('div');
+            titulo.textContent = tabId.toUpperCase();
+            Object.assign(titulo.style, { fontSize: '16px', fontWeight: '800', marginBottom: '8px', textAlign: 'left', color: '#ddd' });
+            mainEl.appendChild(titulo);
+
+            const separador = document.createElement('div');
+            Object.assign(separador.style, { height: '1px', background: 'rgba(255,255,255,0.03)', margin: '6px 0 12px 0' });
+            mainEl.appendChild(separador);
+
+            const containerBotoes = document.createElement('div');
+            Object.assign(containerBotoes.style, { display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start' });
+
+            if (botoes[tabId]) {
+                botoes[tabId].forEach(b => {
+                    const btn = document.createElement('button');
+                    btn.className = 'main-btn dh-btn';
+                    btn.textContent = b.nome;
+
+                    // append 4 spans para o efeito (top/right/bottom/left)
+                    const sTop = document.createElement('span'); sTop.className = 'edge top';
+                    const sRight = document.createElement('span'); sRight.className = 'edge right';
+                    const sBottom = document.createElement('span'); sBottom.className = 'edge bottom';
+                    const sLeft = document.createElement('span'); sLeft.className = 'edge left';
+                    btn.appendChild(sTop); btn.appendChild(sRight); btn.appendChild(sBottom); btn.appendChild(sLeft);
+
+                    btn.onclick = () => {
+                        try {
+                            const maybe = b.func();
+                            if (maybe && typeof maybe.then === 'function') {
+                                maybe.catch(err => { console.error(err); sendToast('❌ Erro interno. Veja console.', 3000); });
+                            }
+                        } catch (err) {
+                            console.error('Erro na função:', err);
+                            sendToast('❌ Erro interno. Veja console.', 3000);
+                        }
                     };
-                    reader.readAsDataURL(b);
+                    containerBotoes.appendChild(btn);
                 });
-            } catch (e) {
-                console.error(`Erro ao converter imagem: ${e.message}`, url);
-                return null;
+            } else {
+                const nada = document.createElement('div');
+                nada.textContent = 'Nenhuma função disponível nesta aba.';
+                nada.className = 'dh-small-muted';
+                containerBotoes.appendChild(nada);
+            }
+
+            mainEl.appendChild(containerBotoes);
+        }
+    }
+
+    // ---------- criarMenu (após login) ----------
+    const criarMenu = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        fundo = document.createElement('div');
+        Object.assign(fundo.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.82)', zIndex: '999999', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        });
+
+        janela = document.createElement('div');
+        aplicarEstiloContainer(janela);
+        janela.style.display = 'flex';
+        janela.style.flexDirection = 'column';
+        janela.style.width = '92%';
+        janela.style.maxWidth = '820px';
+        janela.style.height = '56vh'; // altura reduzida
+        janela.style.padding = '0';
+        janela.style.overflow = 'hidden';
+
+        // header
+        const header = document.createElement('div');
+        Object.assign(header.style, { height: '56px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)' });
+
+        const leftHeader = document.createElement('div');
+        leftHeader.style.display = 'flex';
+        leftHeader.style.alignItems = 'center';
+        leftHeader.style.gap = '12px';
+
+        const title = document.createElement('div');
+        title.textContent = 'PAINEL AUXÍLIO';
+        Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
+
+        leftHeader.appendChild(title);
+
+        relogio = document.createElement('div');
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
+        setInterval(() => {
+            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        }, 1000);
+
+        // header controls (close and minimize) - moved to header as requested
+        const headerControls = document.createElement('div');
+        headerControls.className = 'dh-header-controls';
+
+        const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+        const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+
+        const btnFecharHeader = document.createElement('button');
+        btnFecharHeader.className = 'dh-header-btn';
+        btnFecharHeader.innerHTML = svgClose;
+        btnFecharHeader.title = 'Fechar';
+        btnFecharHeader.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
+            const botaoFlutuante = document.getElementById('dhonatanBotao');
+            if (botaoFlutuante) botaoFlutuante.remove();
+        };
+
+        const btnMinimHeader = document.createElement('button');
+        btnMinimHeader.className = 'dh-header-btn';
+        btnMinimHeader.innerHTML = svgMin;
+        btnMinimHeader.title = 'Minimizar';
+        btnMinimHeader.onclick = () => {
+            if (fundo) try { fundo.remove(); } catch(e){}
+            criarBotaoFlutuante();
+        };
+
+        headerControls.appendChild(relogio);
+        headerControls.appendChild(btnMinimHeader);
+        headerControls.appendChild(btnFecharHeader);
+
+        header.appendChild(leftHeader);
+        header.appendChild(headerControls);
+
+        // body wrap
+        const bodyWrap = document.createElement('div');
+        Object.assign(bodyWrap.style, { display: 'flex', flex: '1 1 auto', minHeight: '0', overflow: 'hidden' });
+
+        // sidebar
+        const sidebar = document.createElement('div');
+        Object.assign(sidebar.style, { width: '220px', background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding: '14px', borderRight: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' });
+
+        // texto MENU (restaurado)
+        const sidebarTitle = document.createElement('div');
+        sidebarTitle.textContent = 'MENU';
+        Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '8px', fontWeight: '800' });
+        sidebar.appendChild(sidebarTitle);
+
+        // main panel
+        const mainPanel = document.createElement('div');
+        Object.assign(mainPanel.style, { flex: '1 1 auto', padding: '18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' });
+
+        bodyWrap.appendChild(sidebar);
+        bodyWrap.appendChild(mainPanel);
+
+        janela.appendChild(header);
+        janela.appendChild(bodyWrap);
+        fundo.appendChild(janela);
+        document.body.appendChild(fundo);
+
+        criarAbasInterface(sidebar, mainPanel);
+    };
+
+    // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
+    const criarInterface = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+
+        // ---- esta versão foi restaurada para o layout ORIGINAL que você tinha pedido não modificar ----
+        fundo = document.createElement('div');
+        Object.assign(fundo.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '999999',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+        });
+
+        janela = document.createElement('div');
+        aplicarEstiloContainer(janela);
+        janela.style.maxWidth = '780px';
+        janela.style.padding = '28px';
+        janela.style.borderRadius = '14px';
+
+        nome = document.createElement('div');
+        Object.assign(nome.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '5px'
+        });
+
+        // Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Auxílio';
+aplicarEstiloTexto(textoCima, '20px');
+
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
+
+// 🔮 Texto de AVISO com fundo roxo gradiente
+const textoaviso = document.createElement('div');
+textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso agora é exclusivo para usuários pagos. ATENDIMENTO VIA WhatsApp/Discord (COMPRAS DE ACESSO SOMENTE COM MLK MAU) ⚠️';
+aplicarEstiloTexto(textoaviso, '19px', 'bold');
+textoaviso.style.padding = '8px 12px';
+textoaviso.style.margin = '6px 0';
+textoaviso.style.border = '2px solid #a85cff';
+textoaviso.style.borderRadius = '10px';
+
+// Fundo roxo em degradê suave e moderno
+textoaviso.style.background = 'linear-gradient(90deg, #5b00ff, #9b4dff, #5b00ff)';
+
+textoaviso.style.color = 'white';
+textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8)';
+textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
+
+// Animação de brilho suave
+const estiloAnimacao = document.createElement('style');
+estiloAnimacao.textContent = `
+@keyframes brilhoAviso {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+  100% { filter: brightness(1); }
+}
+`;
+document.head.appendChild(estiloAnimacao)
+
+// Adiciona ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoBaixo);
+nome.appendChild(textoaviso);
+
+// ===== Animação colorida do texto INFERIOR =====
+let hueBaixo = 0;
+setInterval(() => {
+  const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+  textoBaixo.style.color = corAtual;
+  hueBaixo++;
+}, 30);
+
+        const input = document.createElement('input');
+        Object.assign(input.style, {
+            padding: '12px',
+            width: '80%',
+            margin: '15px 0',
+            background: '#222',
+            color: '#fff',
+            border: '1px solid #444',
+            borderRadius: '30px',
+            textAlign: 'center',
+            fontSize: '16px'
+        });
+        input.type = 'password';
+        input.placeholder = 'Digite a senha';
+
+        // Botão principal "Acessar"
+        let botao = document.createElement('button');
+        botao.textContent = 'Acessar';
+        aplicarEstiloBotao(botao, true);
+
+        // Botão do Discord
+const btnDiscord = document.createElement('button');
+btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+aplicarEstiloBotao(btnDiscord);
+btnDiscord.style.background = '#5865F2';
+btnDiscord.onclick = () => {
+    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+};
+
+// Botão do WhatsApp (ao lado do Discord)
+const btnWhatsApp = document.createElement('button');
+btnWhatsApp.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+    </svg> WhatsApp
+`;
+aplicarEstiloBotao(btnWhatsApp);
+btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+btnWhatsApp.onclick = () => {
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+};
+
+// Botão do YouTube Manorick
+const btnmenor = document.createElement('button');
+btnmenor.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal ManoRick
+`;
+aplicarEstiloBotao(btnmenor);
+btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btnmenor.onclick = () => {
+    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+};
+
+// Botão do YouTube Mlk Mau
+const btncriadorpainel = document.createElement('button');
+btncriadorpainel.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal MlkMau
+`;
+aplicarEstiloBotao(btncriadorpainel);
+btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btncriadorpainel.onclick = () => {
+    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+};
+
+// Container para os botões
+const botoesContainer = document.createElement('div');
+Object.assign(botoesContainer.style, {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    gap: '10px',
+    width: '100%',
+    overflowX: 'auto',
+    paddingBottom: '5px',
+    scrollbarWidth: 'thin',
+    scrollbarColor = '#888 #333'
+});
+botoesContainer.style.msOverflowStyle = 'auto';
+botoesContainer.style.overflowY = 'hidden';
+botoesContainer.style.flexWrap = 'nowrap';
+
+// Adiciona todos os botões
+botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+
+        const erro = document.createElement('div');
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
+        Object.assign(erro.style, {
+            display: 'none',
+            color: '#ff5555',
+            marginTop: '15px',
+            fontSize: '14px'
+        });
+
+        botao.onclick = async () => {
+    if (!senhasCarregadas) {
+        await carregarSenhasRemotas();
+    }
+
+    if (verificarSenha && verificarSenha(input.value)) {
+        senhaLiberada = true;
+
+        // remove a tela de login (fundo) e exibe o termo imediatamente
+        try { if (fundo) fundo.remove(); } catch(e){}
+
+        showTermoResponsabilidade(
+            // onAccept
+            () => {
+                sendToast("✔️ Obrigado — termo aceito. Entrando no painel...", 3000);
+                criarMenu();
+            },
+            // onReject
+            () => {
+                sendToast("❌ Acesso cancelado. Você será redirecionado para o login.", 3000);
+                // reabrir a interface de login
+                setTimeout(() => criarInterface(), 800);
+            }
+        );
+
+    } else {
+        erro.style.display = 'block';
+    }
+};
+
+        janela.append(nome, input, botoesContainer, erro);
+        fundo.append(janela);
+        document.body.append(fundo);
+    };
+
+    // ---------- criarBotaoFlutuante (mantido) ----------
+    const criarBotaoFlutuante = () => {
+        const b = document.createElement('div');
+        b.id = "dhonatanBotao";
+        b.textContent = "Painel";
+        Object.assign(b.style, {
+            position: 'fixed',
+            left: posX,
+            top: posY,
+            background: corBotao,
+            padding: '12px 20px',
+            borderRadius: '30px',
+            cursor: 'grab',
+            zIndex: '999999',
+            fontWeight: 'bold',
+            userSelect: 'none',
+            color: '#fff',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            transition: 'all 0.3s ease'
+        });
+
+        aplicarEstiloBotao(b);
+
+        let isDragging = false;
+        let startX, startY;
+        let initialX, initialY;
+        let xOffset = 0, yOffset = 0;
+        const DRAG_THRESHOLD = 5;
+
+        b.addEventListener('mousedown', startDrag);
+        b.addEventListener('touchstart', startDrag, { passive: false });
+
+        function startDrag(e) {
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            startX = clientX;
+            startY = clientY;
+            initialX = clientX - (parseFloat(b.style.left) || 0);
+            initialY = clientY - (parseFloat(b.style.top) || 0);
+
+            isDragging = false;
+
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        function handleDragMove(e) {
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (!isDragging && distance > DRAG_THRESHOLD) {
+                isDragging = true;
+            }
+
+            if (isDragging) {
+                const currentX = clientX - initialX;
+                const currentY = clientY - initialY;
+
+                b.style.left = `${Math.max(8, Math.min(window.innerWidth - 60, currentX))}px`;
+                b.style.top = `${Math.max(8, Math.min(window.innerHeight - 40, currentY))}px`;
+                b.style.cursor = 'grabbing';
             }
         }
 
-        // --- Start ---
-        setTimeout(criarFloatingPanel, 2000); // Inicia a UI
-        initQuizIdDetector(); // Inicia o detector de ID
-    }
+        function endDrag() {
+            if (isDragging) {
+                posX = b.style.left;
+                posY = b.style.top;
+                localStorage.setItem("dhonatanX", posX);
+                localStorage.setItem("dhonatanY", posY);
+            } else {
+                b.remove();
+                senhaLiberada ? criarMenu() : criarInterface();
+            }
 
-    // -----------------------------------------------------------------------------------
-    // INICIAR A SCRIPT
-    // -----------------------------------------------------------------------------------
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeScript);
-    } else {
-        initializeScript();
-    }
+            b.style.cursor = 'grab';
+            isDragging = false;
 
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+        }
+
+        document.body.append(b);
+    };
+
+    // Iniciar o botão flutuante
+    criarBotaoFlutuante();
 })();
