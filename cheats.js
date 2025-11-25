@@ -1208,7 +1208,7 @@
         async function resolverQuestao() {
         const button = document.getElementById('ai-solver-button');
         button.disabled = true;
-        button.innerText = "Pensando...";
+        button.innerText = "👨‍💻";
         button.style.transform = 'scale(0.95)';
         button.style.boxShadow = '0 0 0 rgba(0,0,0,0)';
         try {
@@ -1285,7 +1285,7 @@
                 viewResponseBtn.style.display = 'block';
             }
             button.disabled = false;
-            button.innerText = "✨ Resolver";
+            button.innerText = "Puxar Resposta";
             button.style.transform = 'scale(1)';
             button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
         }
@@ -1550,7 +1550,7 @@
                 transition: 'all 0.2s ease',
                 marginBottom: '4px'
             });
-            viewResponseBtn.innerText = 'Ver Resposta da IA';
+            viewResponseBtn.innerText = 'Ultimada Resposta Obtida';
             viewResponseBtn.addEventListener('click', () => {
                 if (responseViewer.style.display === 'block') {
                     responseViewer.style.display = 'none';
@@ -1639,7 +1639,7 @@
 
             // --- FRAME ACIMA DO BOTÃO DE IA ---
             const aiInstruction = document.createElement('div');
-            aiInstruction.innerHTML = 'Escolha abaixo a ia que você escolheu a api.';
+            aiInstruction.innerHTML = 'Escolha abaixo a IA que você escolheu a api.';
             Object.assign(aiInstruction.style, {
                 color: 'rgba(255, 255, 255, 0.7)',
                 fontSize: '11px',
@@ -1679,7 +1679,7 @@
 
             const button = document.createElement('button');
             button.id = 'ai-solver-button';
-            button.innerHTML = '✨ Resolver';
+            button.innerHTML = 'Puxar Resposta';
             Object.assign(button.style, {
                 background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)', // Cores mais escuras
                 backgroundSize: '400% 400%',
