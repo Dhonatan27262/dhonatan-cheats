@@ -1430,7 +1430,7 @@
             toggleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isHidden = toggleBtn.innerText === 'Mostrar';
-                toggleBtn.innerText = isHidden ? 'Ocultar' : 'Mostrar';
+                toggleBtn.innerText = isHidden ? 'OCULT' : 'Mostrar';
 
                 contentToToggle.forEach(id => {
                     const el = document.getElementById(id);
