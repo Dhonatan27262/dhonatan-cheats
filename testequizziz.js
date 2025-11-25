@@ -9,6 +9,24 @@
     let currentAiProvider = 'gemini';
     const DEEPSEEK_MODEL_NAME = "deepseek/deepseek-chat";
 
+    // Função para verificar quais provedores estão disponíveis
+    function getAvailableProviders() {
+        const providers = [];
+        if (GEMINI_API_KEYS.length > 0 && GEMINI_API_KEYS.some(key => key && key.length > 30)) {
+            providers.push('gemini');
+        }
+        if (OPENROUTER_API_KEYS.length > 0 && OPENROUTER_API_KEYS.some(key => key && key.length > 30)) {
+            providers.push('deepseek');
+        }
+        return providers;
+    }
+
+    // Função para determinar o provedor padrão
+    function getDefaultProvider(availableProviders) {
+        if (availableProviders.length === 0) return 'gemini';
+        return availableProviders[0];
+    }
+
     // Função para mostrar o modal de configuração
     function showApiKeyModal() {
         return new Promise((resolve) => {
@@ -90,7 +108,7 @@
 
             const storageToggleInput = document.createElement('input');
             storageToggleInput.type = 'checkbox';
-            storageToggleInput.checked = true; // Por padrão, salvar no storage
+            storageToggleInput.checked = true;
             Object.assign(storageToggleInput.style, {
                 opacity: '0',
                 width: '0',
@@ -123,7 +141,6 @@
                 borderRadius: '50%'
             });
 
-            // Estilo quando o toggle está ativo
             const updateToggleStyle = () => {
                 if (storageToggleInput.checked) {
                     storageToggleSlider.style.backgroundColor = '#8b5cf6';
@@ -135,7 +152,7 @@
             };
 
             storageToggleInput.addEventListener('change', updateToggleStyle);
-            updateToggleStyle(); // Aplicar estilo inicial
+            updateToggleStyle();
 
             storageToggle.appendChild(storageToggleInput);
             storageToggle.appendChild(storageToggleSlider);
@@ -143,7 +160,6 @@
             storageToggleContainer.appendChild(storageToggleLabel);
             storageToggleContainer.appendChild(storageToggle);
 
-            // Carregar preferência salva do storage
             try {
                 const savePreference = localStorage.getItem('mlk_mau_save_keys');
                 if (savePreference !== null) {
@@ -153,12 +169,10 @@
             } catch (e) {
                 console.warn('Não foi possível carregar preferência de salvamento:', e);
             }
-            // --- FIM DO TOGGLE SWITCH ---
 
             // Container para os campos Gemini
             const geminiSection = document.createElement('div');
             
-            // Título Gemini com link
             const geminiHeader = document.createElement('div');
             Object.assign(geminiHeader.style, {
                 display: 'flex',
@@ -213,7 +227,6 @@
                 marginBottom: '25px'
             });
 
-            // Criar 3 campos para Gemini
             for (let i = 1; i <= 3; i++) {
                 const inputGroup = document.createElement('div');
                 const input = document.createElement('input');
@@ -241,7 +254,6 @@
             // Container para os campos OpenRouter
             const openRouterSection = document.createElement('div');
             
-            // Título OpenRouter com link
             const openRouterHeader = document.createElement('div');
             Object.assign(openRouterHeader.style, {
                 display: 'flex',
@@ -296,7 +308,6 @@
                 marginBottom: '30px'
             });
 
-            // Criar 3 campos para OpenRouter
             for (let i = 1; i <= 3; i++) {
                 const inputGroup = document.createElement('div');
                 const input = document.createElement('input');
@@ -368,7 +379,6 @@
 
                 const shouldSaveToStorage = storageToggleInput.checked;
 
-                // Salvar preferência de storage
                 try {
                     localStorage.setItem('mlk_mau_save_keys', shouldSaveToStorage.toString());
                 } catch (e) {
@@ -379,7 +389,6 @@
                 GEMINI_API_KEYS = geminiKeys.length > 0 ? geminiKeys : [];
                 OPENROUTER_API_KEYS = openRouterKeys.length > 0 ? openRouterKeys : [];
 
-                // Salvar no localStorage apenas se o toggle estiver ativo
                 if (shouldSaveToStorage) {
                     try {
                         localStorage.setItem('mlk_mau_gemini_keys', JSON.stringify(GEMINI_API_KEYS));
@@ -389,7 +398,6 @@
                         console.warn('Não foi possível salvar chaves no localStorage:', e);
                     }
                 } else {
-                    // Remover chaves salvas anteriormente se o usuário desativou o salvamento
                     try {
                         localStorage.removeItem('mlk_mau_gemini_keys');
                         localStorage.removeItem('mlk_mau_openrouter_keys');
@@ -412,14 +420,14 @@
             // Montar modal
             modalContent.appendChild(title);
             modalContent.appendChild(description);
-            modalContent.appendChild(storageToggleContainer); // Adicionar o toggle antes dos campos
+            modalContent.appendChild(storageToggleContainer);
             modalContent.appendChild(geminiSection);
             modalContent.appendChild(openRouterSection);
             modalContent.appendChild(saveButton);
             modal.appendChild(modalContent);
             document.body.appendChild(modal);
 
-            // Tentar carregar chaves salvas apenas se a preferência de salvamento estiver ativa
+            // Tentar carregar chaves salvas
             try {
                 const savePreference = localStorage.getItem('mlk_mau_save_keys');
                 const shouldLoadKeys = savePreference === null || savePreference === 'true';
@@ -450,7 +458,7 @@
     // INICIALIZAÇÃO DA SCRIPT
     // -----------------------------------------------------------------------------------
     async function initializeScript() {
-        // Verificar se já existem chaves salvas (apenas se a preferência de salvamento estiver ativa)
+        // Verificar se já existem chaves salvas
         try {
             const savePreference = localStorage.getItem('mlk_mau_save_keys');
             const shouldLoadKeys = savePreference === null || savePreference === 'true';
@@ -475,43 +483,15 @@
             await showApiKeyModal();
         }
 
-        // Função para determinar automaticamente qual provedor está disponível
-        function determineAvailableProvider() {
-            const hasGeminiKeys = GEMINI_API_KEYS.length > 0 && GEMINI_API_KEYS.some(key => 
-                key && key.length > 30 && !key.includes("SUA_CHAVE"));
-            const hasOpenRouterKeys = OPENROUTER_API_KEYS.length > 0 && OPENROUTER_API_KEYS.some(key => 
-                key && key.length > 30 && !key.includes("SUA_CHAVE"));
+        // Determinar provedores disponíveis e configurar o provedor padrão
+        const availableProviders = getAvailableProviders();
+        currentAiProvider = getDefaultProvider(availableProviders);
 
-            console.log('Detecção automática de provedores:', {
-                hasGeminiKeys,
-                hasOpenRouterKeys,
-                geminiCount: GEMINI_API_KEYS.length,
-                openRouterCount: OPENROUTER_API_KEYS.length
-            });
-
-            if (hasGeminiKeys && !hasOpenRouterKeys) {
-                currentAiProvider = 'gemini';
-                console.log('Apenas Gemini disponível - configurado como padrão');
-            } else if (!hasGeminiKeys && hasOpenRouterKeys) {
-                currentAiProvider = 'deepseek';
-                console.log('Apenas DeepSeek disponível - configurado como padrão');
-            } else if (hasGeminiKeys && hasOpenRouterKeys) {
-                currentAiProvider = 'gemini'; // Padrão quando ambos estão disponíveis
-                console.log('Ambos provedores disponíveis - Gemini configurado como padrão');
-            } else {
-                currentAiProvider = 'gemini'; // Fallback
-                console.log('Nenhuma chave válida detectada - usando Gemini como fallback');
-            }
-        }
-
-        // Determinar provedor automaticamente
-        determineAvailableProvider();
-
-        // Continuar com o restante da script...
         console.log('Script MLK MAU inicializado com sucesso!');
         console.log('Chaves Gemini configuradas:', GEMINI_API_KEYS.length);
         console.log('Chaves OpenRouter configuradas:', OPENROUTER_API_KEYS.length);
-        console.log('Provedor de IA selecionado:', currentAiProvider);
+        console.log('Provedores disponíveis:', availableProviders);
+        console.log('Provedor padrão:', currentAiProvider);
 
         // Resto das variáveis e funções...
         let currentApiKeyIndex = 0;
@@ -522,7 +502,6 @@
         const regexQuizId = /\/(?:quiz|quizzes|admin\/quiz|games|attempts|join)\/([a-f0-9]{24})/i;
         let quizIdDetected = null;
         let interceptorsStarted = false;
-        // -----------------------------------
 
         // --- FUNÇÕES UTILITÁRIAS ---
 
@@ -940,7 +919,7 @@
                 const match = bgImage.match(/rgb\(\d+, \d+, \d+\)/);
                 if (match) return match[0];
             }
-            return style.backgroundColor || 'rgba(255, 255, 255, 0.8)'; // Alterado para branco
+            return style.backgroundColor || 'rgba(255, 255, 255, 0.8)';
         };
 
         switch (quizData.questionType) {
@@ -1198,7 +1177,6 @@
             default:
                 const normalize = (str) => {
                     if (typeof str !== 'string') return '';
-                    // (v48) Mantém letras, números, espaços, e símbolos ² e ³
                     let cleaned = str.replace(/[^a-zA-Z\u00C0-\u017F0-9\s²³]/g, '').replace(/\s+/g, ' ');
                     return cleaned.trim().toLowerCase();
                 };
@@ -1215,7 +1193,7 @@
                     const aiAnswers = aiAnswerText.split('\n').map(normalize).filter(Boolean);
                     quizData.options.forEach(opt => {
                         if (aiAnswers.includes(normalize(opt.text))) {
-                            opt.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                            opt.element.style.border = '5px solid #FFFFFF';
                             opt.element.click();
                         }
                     });
@@ -1228,7 +1206,7 @@
 
                     if (bestMatch) {
                         console.log("Correspondência encontrada!", bestMatch.element);
-                        bestMatch.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                        bestMatch.element.style.border = '5px solid #FFFFFF';
                         bestMatch.element.click();
                     } else {
                         console.warn("Nenhuma correspondência exata encontrada após normalização.");
@@ -1295,7 +1273,7 @@
                         })();
                         const result = (() => { try { return new Function('return ' + computableExpr)(); } catch (e) { return null; } })();
                         if (result !== null && Math.abs(result - targetValue) < 0.001) {
-                            option.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                            option.element.style.border = '5px solid #FFFFFF';
                             option.element.click();
                         }
                     });
@@ -1422,22 +1400,15 @@
             });
         }
 
-        /**
-         * Torna o painel flutuante arrastável.
-         * @param {HTMLElement} panel - O elemento principal do painel.
-         * @param {HTMLElement} handle - O elemento que aciona o arraste (neste caso, o próprio painel).
-         */
         function makeDraggable(panel, handle) {
             let offsetX = 0, offsetY = 0, isDragging = false;
 
             handle.addEventListener('mousedown', (e) => {
-                // Previne o arraste se o clique foi em um botão ou link
                 if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
 
-                // Converte a posição 'bottom'/'right' para 'top'/'left' na primeira vez
                 if (panel.style.bottom || panel.style.right) {
                     panel.style.right = 'auto';
                     panel.style.bottom = 'auto';
@@ -1448,7 +1419,7 @@
                 offsetX = e.clientX - panel.getBoundingClientRect().left;
                 offsetY = e.clientY - panel.getBoundingClientRect().top;
 
-                panel.style.transition = 'none'; // Desabilita transição suave durante o arraste
+                panel.style.transition = 'none';
                 handle.style.cursor = 'grabbing';
             });
 
@@ -1458,7 +1429,6 @@
                 let newX = e.clientX - offsetX;
                 let newY = e.clientY - offsetY;
 
-                // Mantém o painel dentro da tela
                 newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
                 newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
 
@@ -1469,11 +1439,10 @@
             document.addEventListener('mouseup', () => {
                 if (!isDragging) return;
                 isDragging = false;
-                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
                 handle.style.cursor = 'grab';
             });
 
-            // Suporte para touch (mobile)
             handle.addEventListener('touchstart', (e) => {
                 if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
@@ -1532,7 +1501,7 @@
                 alignItems: 'stretch',
                 gap: '10px', 
                 padding: '12px', 
-                backgroundColor: 'rgba(0, 0, 0, 0.95)', // FUNDO PRETO
+                backgroundColor: 'rgba(0, 0, 0, 0.95)',
                 backdropFilter: 'blur(8px)', 
                 webkitBackdropFilter: 'blur(8px)', 
                 borderRadius: '16px',
@@ -1540,7 +1509,7 @@
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
                 transform: 'translateY(20px)', 
                 opacity: '0',
-                cursor: 'grab', // CURSOR DE ARRASTAR
+                cursor: 'grab',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             });
 
@@ -1594,7 +1563,7 @@
             });
             panel.appendChild(viewResponseBtn);
 
-            // --- NOVOS BOTÕES DE MINIMIZAR E FECHAR ---
+            // --- CONTROLES ---
             const controlsContainer = document.createElement('div');
             Object.assign(controlsContainer.style, {
                 display: 'flex',
@@ -1606,7 +1575,7 @@
             // Botão Minimizar
             const minimizeBtn = document.createElement('button');
             minimizeBtn.id = 'minimize-btn';
-            minimizeBtn.innerHTML = '−'; // Sinal de menos
+            minimizeBtn.innerHTML = '−';
             Object.assign(minimizeBtn.style, {
                 background: 'none',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1635,7 +1604,7 @@
             // Botão Fechar
             const closeBtn = document.createElement('button');
             closeBtn.id = 'close-btn';
-            closeBtn.innerHTML = '×'; // Sinal de X
+            closeBtn.innerHTML = '×';
             Object.assign(closeBtn.style, {
                 background: 'none',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -1668,21 +1637,14 @@
             controlsContainer.appendChild(minimizeBtn);
             controlsContainer.appendChild(closeBtn);
             panel.appendChild(controlsContainer);
-            // --- FIM DOS NOVOS BOTÕES ---
 
-            // --- DETECTAR QUAIS IAs ESTÃO DISPONÍVEIS ---
-            const hasGeminiKeys = GEMINI_API_KEYS.length > 0 && GEMINI_API_KEYS.some(key => 
-                key && key.length > 30 && !key.includes("SUA_CHAVE"));
-            const hasOpenRouterKeys = OPENROUTER_API_KEYS.length > 0 && OPENROUTER_API_KEYS.some(key => 
-                key && key.length > 30 && !key.includes("SUA_CHAVE"));
-
-            console.log('Disponibilidade no UI:', { hasGeminiKeys, hasOpenRouterKeys });
-
-            // --- BOTÃO DE ALTERNÂNCIA DE IA (APENAS SE AMBOS ESTIVEREM DISPONÍVEIS) ---
-            if (hasGeminiKeys && hasOpenRouterKeys) {
-                // Ambos disponíveis - mostrar seletor
+            // --- BOTÃO DE ALTERNÂNCIA DE IA (APENAS SE HOUVER MAIS DE UM PROVEDOR) ---
+            const availableProviders = getAvailableProviders();
+            
+            if (availableProviders.length > 1) {
+                // Frame acima do botão de IA
                 const aiInstruction = document.createElement('div');
-                aiInstruction.innerHTML = 'Escolha abaixo a IA que você escolheu a api.';
+                aiInstruction.innerHTML = 'Escolha abaixo a IA que você configurou.';
                 Object.assign(aiInstruction.style, {
                     color: 'rgba(255, 255, 255, 0.7)',
                     fontSize: '11px',
@@ -1692,13 +1654,14 @@
                 });
                 panel.appendChild(aiInstruction);
 
+                // Botão de alternância
                 const aiToggleBtn = document.createElement('button');
                 aiToggleBtn.id = 'ai-toggle-btn';
-                aiToggleBtn.innerText = currentAiProvider === 'gemini' ? 'IA: Gemini' : 'IA: DeepSeek';
+                aiToggleBtn.innerText = `IA: ${currentAiProvider === 'gemini' ? 'Gemini' : 'DeepSeek'}`;
                 Object.assign(aiToggleBtn.style, {
                     background: 'none', 
                     border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: currentAiProvider === 'gemini' ? 'rgba(255, 255, 255, 0.6)' : '#a78bfa', 
+                    color: 'rgba(255, 255, 255, 0.6)', 
                     cursor: 'pointer',
                     fontSize: '11px', 
                     padding: '4px 8px', 
@@ -1706,51 +1669,31 @@
                     transition: 'all 0.2s ease',
                     marginBottom: '4px'
                 });
+                
                 aiToggleBtn.addEventListener('click', () => {
-                    if (currentAiProvider === 'gemini') {
-                        currentAiProvider = 'deepseek';
-                        aiToggleBtn.innerText = 'IA: DeepSeek';
-                        aiToggleBtn.style.color = '#a78bfa';
-                    } else {
-                        currentAiProvider = 'gemini';
-                        aiToggleBtn.innerText = 'IA: Gemini';
-                        aiToggleBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+                    const availableProviders = getAvailableProviders();
+                    if (availableProviders.length > 1) {
+                        // Alternar entre os provedores disponíveis
+                        const currentIndex = availableProviders.indexOf(currentAiProvider);
+                        const nextIndex = (currentIndex + 1) % availableProviders.length;
+                        currentAiProvider = availableProviders[nextIndex];
+                        
+                        aiToggleBtn.innerText = `IA: ${currentAiProvider === 'gemini' ? 'Gemini' : 'DeepSeek'}`;
+                        aiToggleBtn.style.color = currentAiProvider === 'gemini' ? 'rgba(255, 255, 255, 0.6)' : '#a78bfa';
+                        
+                        console.log(`Provedor de IA alterado para: ${currentAiProvider}`);
                     }
-                    console.log(`Provedor de IA alterado para: ${currentAiProvider}`);
                 });
+                
+                // Definir cor inicial baseada no provedor atual
+                aiToggleBtn.style.color = currentAiProvider === 'gemini' ? 'rgba(255, 255, 255, 0.6)' : '#a78bfa';
                 panel.appendChild(aiToggleBtn);
-            } else if (hasGeminiKeys) {
-                // Apenas Gemini disponível
+            } else if (availableProviders.length === 1) {
+                // Apenas um provedor disponível - mostrar indicador fixo
                 const aiIndicator = document.createElement('div');
-                aiIndicator.innerHTML = '🔷 Usando Gemini';
+                aiIndicator.innerHTML = `IA: ${availableProviders[0] === 'gemini' ? 'Gemini' : 'DeepSeek'}`;
                 Object.assign(aiIndicator.style, {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontSize: '11px',
-                    textAlign: 'center',
-                    marginBottom: '4px',
-                    fontStyle: 'italic'
-                });
-                panel.appendChild(aiIndicator);
-                currentAiProvider = 'gemini';
-            } else if (hasOpenRouterKeys) {
-                // Apenas DeepSeek disponível
-                const aiIndicator = document.createElement('div');
-                aiIndicator.innerHTML = '🟣 Usando DeepSeek';
-                Object.assign(aiIndicator.style, {
-                    color: '#a78bfa',
-                    fontSize: '11px',
-                    textAlign: 'center',
-                    marginBottom: '4px',
-                    fontStyle: 'italic'
-                });
-                panel.appendChild(aiIndicator);
-                currentAiProvider = 'deepseek';
-            } else {
-                // Nenhuma chave válida
-                const aiIndicator = document.createElement('div');
-                aiIndicator.innerHTML = '⚠️ Nenhuma IA configurada';
-                Object.assign(aiIndicator.style, {
-                    color: 'rgba(255, 0, 0, 0.7)',
+                    color: 'rgba(255, 255, 255, 0.5)',
                     fontSize: '11px',
                     textAlign: 'center',
                     marginBottom: '4px',
@@ -1759,12 +1702,12 @@
                 panel.appendChild(aiIndicator);
             }
 
-            // --- BOTÃO PRINCIPAL DE RESPOSTA ---
+            // --- BOTÃO PRINCIPAL DE RESOLVER QUESTÃO ---
             const button = document.createElement('button');
             button.id = 'ai-solver-button';
             button.innerHTML = 'Puxar Resposta';
             Object.assign(button.style, {
-                background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)', // Cores mais escuras
+                background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)',
                 backgroundSize: '400% 400%',
                 border: 'none', 
                 borderRadius: '10px', 
@@ -1781,10 +1724,10 @@
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 gap: '8px',
-                animation: 'rgbFlow 3s linear infinite' // ANIMAÇÃO RGB
+                animation: 'rgbFlow 3s linear infinite'
             });
 
-            // Adicionar a animação RGB ao documento
+            // Adicionar animação RGB
             const style = document.createElement('style');
             style.textContent = `
                 @keyframes rgbFlow {
@@ -1823,58 +1766,50 @@
             panel.appendChild(watermark);
             document.body.appendChild(panel);
 
-            // --- CORREÇÃO: LISTA CORRETA DE ELEMENTOS PARA MINIMIZAR ---
+            // --- LÓGICA DE MINIMIZAR ---
             const contentToToggle = [
-                viewResponseBtn,
-                aiInstruction || aiIndicator,
-                aiToggleBtn || null,
-                button,
-                watermark
-            ].filter(Boolean); // Remove elementos nulos
+                'view-raw-response-btn',
+                'ai-toggle-btn',
+                'ai-solver-button',
+                'mlk-mau-watermark'
+            ];
+
+            // Adicionar elementos específicos baseados nos provedores disponíveis
+            if (availableProviders.length > 1) {
+                contentToToggle.push(aiInstruction);
+            }
 
             let isMinimized = false;
 
             minimizeBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Previne que o clique no botão inicie o arraste
+                e.stopPropagation();
                 
                 isMinimized = !isMinimized;
                 
                 if (isMinimized) {
-                    // Estado minimizado - oculta o conteúdo
-                    minimizeBtn.innerHTML = '+'; // Muda para sinal de mais
-                    contentToToggle.forEach(element => {
-                        if (element) element.style.display = 'none';
+                    minimizeBtn.innerHTML = '+';
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
                     });
-                    // Reduz o tamanho do painel
                     panel.style.padding = '8px';
                     panel.style.gap = '5px';
-                    
-                    // Esconde o response viewer se estiver visível
                     responseViewer.style.display = 'none';
                 } else {
-                    // Estado normal - mostra o conteúdo
-                    minimizeBtn.innerHTML = '−'; // Volta para sinal de menos
-                    contentToToggle.forEach(element => {
-                        if (element) element.style.display = '';
+                    minimizeBtn.innerHTML = '−';
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = '';
                     });
-                    // Restaura o tamanho original do painel
                     panel.style.padding = '12px';
                     panel.style.gap = '10px';
-                    
-                    // Re-aplica 'display: none' ao viewResponseBtn se não há resposta
                     if (!lastAiResponse) {
-                        viewResponseBtn.style.display = 'none';
-                    }
-                    
-                    // Garante que os indicadores de IA apareçam corretamente
-                    if (aiIndicator) {
-                        aiIndicator.style.display = '';
+                        document.getElementById('view-raw-response-btn').style.display = 'none';
                     }
                 }
             });
 
             // --- LÓGICA DE ARRASTAR ---
-            // A alça é o painel inteiro (agora arrastável mesmo quando minimizado)
             makeDraggable(panel, panel);
 
             setTimeout(() => {
@@ -1955,7 +1890,6 @@
 
         // --- FIM DA LÓGICA DE DETECÇÃO DE QUIZ ID ---
 
-
         async function fetchWithTimeout(resource, options = {}, timeout = 15000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -1993,8 +1927,8 @@
         }
 
         // --- Start ---
-        setTimeout(criarFloatingPanel, 2000); // Inicia a UI
-        initQuizIdDetector(); // Inicia o detector de ID
+        setTimeout(criarFloatingPanel, 2000);
+        initQuizIdDetector();
     }
 
     // -----------------------------------------------------------------------------------
