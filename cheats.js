@@ -1324,7 +1324,7 @@
             // --- Botão Ocultar ---
             const toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-ui-btn';
-            toggleBtn.innerText = 'Ocultar';
+            toggleBtn.innerText = 'OCULT';
             Object.assign(toggleBtn.style, {
                 background: 'none', 
                 border: '1px solid rgba(255, 255, 255, 0.2)',
