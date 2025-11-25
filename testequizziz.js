@@ -1403,21 +1403,8 @@
         function makeDraggable(panel, handle) {
             let offsetX = 0, offsetY = 0, isDragging = false;
 
-            // Criar um handle específico para arrastar
-            const dragHandle = document.createElement('div');
-            dragHandle.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 30px;
-                cursor: grab;
-                z-index: 1;
-            `;
-            panel.appendChild(dragHandle);
-
-            dragHandle.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
@@ -1433,7 +1420,7 @@
                 offsetY = e.clientY - panel.getBoundingClientRect().top;
 
                 panel.style.transition = 'none';
-                dragHandle.style.cursor = 'grabbing';
+                handle.style.cursor = 'grabbing';
             });
 
             document.addEventListener('mousemove', (e) => {
@@ -1453,11 +1440,11 @@
                 if (!isDragging) return;
                 isDragging = false;
                 panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-                dragHandle.style.cursor = 'grab';
+                handle.style.cursor = 'grab';
             });
 
-            dragHandle.addEventListener('touchstart', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
                 isDragging = true;
                 const rect = panel.getBoundingClientRect();
@@ -1522,6 +1509,7 @@
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
                 transform: 'translateY(0)',
                 opacity: '1',
+                cursor: 'grab',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             });
 
@@ -1581,9 +1569,7 @@
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '8px',
-                position: 'relative',
-                zIndex: '2'
+                marginBottom: '8px'
             });
 
             // Botão Minimizar
@@ -1604,8 +1590,7 @@
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0',
-                transition: 'all 0.2s ease',
-                zIndex: '2'
+                transition: 'all 0.2s ease'
             });
 
             minimizeBtn.addEventListener('mouseover', () => {
@@ -1634,8 +1619,7 @@
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0',
-                transition: 'all 0.2s ease',
-                zIndex: '2'
+                transition: 'all 0.2s ease'
             });
 
             closeBtn.addEventListener('mouseover', () => {
@@ -1660,15 +1644,13 @@
             if (availableProviders.length > 1) {
                 // Frame acima do botão de IA
                 const aiInstruction = document.createElement('div');
-                aiInstruction.id = 'ai-instruction';
                 aiInstruction.innerHTML = 'Escolha abaixo a IA que você configurou.';
                 Object.assign(aiInstruction.style, {
                     color: 'rgba(255, 255, 255, 0.7)',
                     fontSize: '11px',
                     textAlign: 'center',
                     marginBottom: '4px',
-                    fontStyle: 'italic',
-                    zIndex: '2'
+                    fontStyle: 'italic'
                 });
                 panel.appendChild(aiInstruction);
 
@@ -1685,8 +1667,7 @@
                     padding: '4px 8px', 
                     borderRadius: '6px',
                     transition: 'all 0.2s ease',
-                    marginBottom: '4px',
-                    zIndex: '2'
+                    marginBottom: '4px'
                 });
                 
                 aiToggleBtn.addEventListener('click', () => {
@@ -1710,15 +1691,13 @@
             } else if (availableProviders.length === 1) {
                 // Apenas um provedor disponível - mostrar indicador fixo
                 const aiIndicator = document.createElement('div');
-                aiIndicator.id = 'ai-indicator';
                 aiIndicator.innerHTML = `IA: ${availableProviders[0] === 'gemini' ? 'Gemini' : 'DeepSeek'}`;
                 Object.assign(aiIndicator.style, {
                     color: 'rgba(255, 255, 255, 0.5)',
                     fontSize: '11px',
                     textAlign: 'center',
                     marginBottom: '4px',
-                    fontStyle: 'italic',
-                    zIndex: '2'
+                    fontStyle: 'italic'
                 });
                 panel.appendChild(aiIndicator);
             }
@@ -1745,8 +1724,7 @@
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 gap: '8px',
-                animation: 'rgbFlow 3s linear infinite',
-                zIndex: '2'
+                animation: 'rgbFlow 3s linear infinite'
             });
 
             // Adicionar animação RGB
@@ -1789,17 +1767,16 @@
             document.body.appendChild(panel);
 
             // --- LÓGICA DE MINIMIZAR ---
-            const elementsToToggle = [
+            const contentToToggle = [
                 'view-raw-response-btn',
+                'ai-toggle-btn',
                 'ai-solver-button',
                 'mlk-mau-watermark'
             ];
 
             // Adicionar elementos específicos baseados nos provedores disponíveis
             if (availableProviders.length > 1) {
-                elementsToToggle.push('ai-instruction', 'ai-toggle-btn');
-            } else if (availableProviders.length === 1) {
-                elementsToToggle.push('ai-indicator');
+                contentToToggle.push('ai-toggle-btn');
             }
 
             let isMinimized = false;
@@ -1811,7 +1788,7 @@
                 
                 if (isMinimized) {
                     minimizeBtn.innerHTML = '+';
-                    elementsToToggle.forEach(id => {
+                    contentToToggle.forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = 'none';
                     });
@@ -1820,7 +1797,7 @@
                     responseViewer.style.display = 'none';
                 } else {
                     minimizeBtn.innerHTML = '−';
-                    elementsToToggle.forEach(id => {
+                    contentToToggle.forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = '';
                     });
@@ -1832,7 +1809,7 @@
                 }
             });
 
-            // --- LÓGICA DE ARRASTAR ---
+            // --- LÓGICA DE ARRASTAR (CORREÇÃO: SEMPRE ARRASTÁVEL) ---
             makeDraggable(panel, panel);
 
             console.log("Floating Panel MLK MAU criado com sucesso!");
