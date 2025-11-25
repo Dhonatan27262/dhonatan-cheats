@@ -1507,8 +1507,8 @@
                 borderRadius: '16px',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-                transform: 'translateY(20px)', 
-                opacity: '0',
+                transform: 'translateY(0)', // CORREÇÃO: Removido translateY inicial
+                opacity: '1', // CORREÇÃO: Definido como visível desde o início
                 cursor: 'grab',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             });
@@ -1812,10 +1812,7 @@
             // --- LÓGICA DE ARRASTAR ---
             makeDraggable(panel, panel);
 
-            setTimeout(() => {
-                panel.style.transform = 'translateY(0)';
-                panel.style.opacity = '1';
-            }, 100);
+            // CORREÇÃO: Removido o setTimeout que causava atraso na exibição
             console.log("Floating Panel MLK MAU criado com sucesso!");
         }
 
@@ -1927,7 +1924,8 @@
         }
 
         // --- Start ---
-        setTimeout(criarFloatingPanel, 2000);
+        // CORREÇÃO: Criar o painel imediatamente após a inicialização
+        criarFloatingPanel();
         initQuizIdDetector();
     }
 
