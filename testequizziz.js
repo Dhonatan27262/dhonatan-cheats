@@ -61,7 +61,7 @@
             });
 
             const title = document.createElement('h2');
-            title.innerText = '🔑 Configuração de Chaves API - MLK MAU';
+            title.innerText = '🔑 Configuração de Chaves API - MLKU';
             Object.assign(title.style, {
                 margin: '0 0 20px 0',
                 textAlign: 'center',
