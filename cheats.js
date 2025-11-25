@@ -1208,34 +1208,57 @@
                 if (!isDragging) return;
                 isDragging = false;
                 panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
-                handle.style.cursor = 'default';
+                handle.style.cursor = 'grab';
             });
         }
 
         function criarFloatingPanel() {
             if (document.getElementById('mlk-mau-floating-panel')) return;
+            
             const panel = document.createElement('div');
             panel.id = 'mlk-mau-floating-panel';
             Object.assign(panel.style, {
-                position: 'fixed', bottom: '60px', right: '20px', zIndex: '2147483647',
-                display: 'flex', flexDirection: 'column', alignItems: 'stretch',
-                gap: '10px', padding: '12px', backgroundColor: 'rgba(26, 27, 30, 0.7)',
-                backdropFilter: 'blur(8px)', webkitBackdropFilter: 'blur(8px)', borderRadius: '16px',
+                position: 'fixed', 
+                bottom: '60px', 
+                right: '20px', 
+                zIndex: '2147483647',
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'stretch',
+                gap: '10px', 
+                padding: '12px', 
+                backgroundColor: 'rgba(0, 0, 0, 0.95)', // FUNDO PRETO
+                backdropFilter: 'blur(8px)', 
+                webkitBackdropFilter: 'blur(8px)', 
+                borderRadius: '16px',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
                 transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
-                transform: 'translateY(20px)', opacity: '0',
-                cursor: 'default'
+                transform: 'translateY(20px)', 
+                opacity: '0',
+                cursor: 'grab', // CURSOR DE ARRASTAR
+                border: '1px solid rgba(255, 255, 255, 0.1)'
             });
 
             const responseViewer = document.createElement('div');
             responseViewer.id = 'ai-response-viewer';
             Object.assign(responseViewer.style, {
-                display: 'none', position: 'absolute', bottom: 'calc(100% + 10px)', right: '0',
-                width: '300px', maxHeight: '200px', overflowY: 'auto',
-                background: 'rgba(10, 10, 15, 0.9)', backdropFilter: 'blur(5px)',
-                borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.2)',
-                padding: '12px', color: '#f0f0f0', fontSize: '12px',
-                fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                display: 'none', 
+                position: 'absolute', 
+                bottom: 'calc(100% + 10px)', 
+                right: '0',
+                width: '300px', 
+                maxHeight: '200px', 
+                overflowY: 'auto',
+                background: 'rgba(10, 10, 15, 0.95)', 
+                backdropFilter: 'blur(5px)',
+                borderRadius: '8px', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                padding: '12px', 
+                color: '#f0f0f0', 
+                fontSize: '12px',
+                fontFamily: 'monospace', 
+                whiteSpace: 'pre-wrap', 
+                wordBreak: 'break-all',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
                 textAlign: 'left'
             });
@@ -1244,10 +1267,15 @@
             const viewResponseBtn = document.createElement('button');
             viewResponseBtn.id = 'view-raw-response-btn';
             Object.assign(viewResponseBtn.style, {
-                background: 'none', border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', cursor: 'pointer',
-                fontSize: '11px', padding: '4px 8px', borderRadius: '6px',
-                display: 'none', transition: 'all 0.2s ease',
+                background: 'none', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)', 
+                cursor: 'pointer',
+                fontSize: '11px', 
+                padding: '4px 8px', 
+                borderRadius: '6px',
+                display: 'none', 
+                transition: 'all 0.2s ease',
                 marginBottom: '4px'
             });
             viewResponseBtn.innerText = 'Ver Resposta da IA';
@@ -1266,9 +1294,13 @@
             toggleBtn.id = 'toggle-ui-btn';
             toggleBtn.innerText = 'Ocultar';
             Object.assign(toggleBtn.style, {
-                background: 'none', border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', cursor: 'pointer',
-                fontSize: '11px', padding: '4px 8px', borderRadius: '6px',
+                background: 'none', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)', 
+                cursor: 'pointer',
+                fontSize: '11px', 
+                padding: '4px 8px', 
+                borderRadius: '6px',
                 transition: 'all 0.2s ease',
                 marginBottom: '4px'
             });
@@ -1279,9 +1311,13 @@
             aiToggleBtn.id = 'ai-toggle-btn';
             aiToggleBtn.innerText = 'IA: Gemini';
             Object.assign(aiToggleBtn.style, {
-                background: 'none', border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', cursor: 'pointer',
-                fontSize: '11px', padding: '4px 8px', borderRadius: '6px',
+                background: 'none', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)', 
+                cursor: 'pointer',
+                fontSize: '11px', 
+                padding: '4px 8px', 
+                borderRadius: '6px',
                 transition: 'all 0.2s ease',
                 marginBottom: '4px'
             });
@@ -1303,17 +1339,52 @@
             button.id = 'ai-solver-button';
             button.innerHTML = '✨ Resolver';
             Object.assign(button.style, {
-                background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
-                border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer',
-                fontFamily: 'system-ui, sans-serif', fontSize: '15px', fontWeight: '600',
-                padding: '10px 20px', boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.2s ease', letterSpacing: '0.5px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                background: 'linear-gradient(90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000)',
+                backgroundSize: '400% 400%',
+                border: 'none', 
+                borderRadius: '10px', 
+                color: 'white', 
+                cursor: 'pointer',
+                fontFamily: 'system-ui, sans-serif', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                padding: '10px 20px', 
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.2s ease', 
+                letterSpacing: '0.5px',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                animation: 'rgbFlow 3s linear infinite' // ANIMAÇÃO RGB
             });
-            button.addEventListener('mouseover', () => { button.style.transform = 'translateY(-2px)'; button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; });
-            button.addEventListener('mouseout', () => { button.style.transform = 'translateY(0)'; button.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)'; });
-            button.addEventListener('mousedown', () => { button.style.transform = 'translateY(1px)'; button.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.15)'; });
-            button.addEventListener('mouseup', () => { button.style.transform = 'translateY(-2px)'; button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; });
+
+            // Adicionar a animação RGB ao documento
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes rgbFlow {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 400% 50%; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            button.addEventListener('mouseover', () => { 
+                button.style.transform = 'translateY(-2px)'; 
+                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
+            });
+            button.addEventListener('mouseout', () => { 
+                button.style.transform = 'translateY(0)'; 
+                button.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)'; 
+            });
+            button.addEventListener('mousedown', () => { 
+                button.style.transform = 'translateY(1px)'; 
+                button.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.15)'; 
+            });
+            button.addEventListener('mouseup', () => { 
+                button.style.transform = 'translateY(-2px)'; 
+                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
+            });
             button.addEventListener('click', resolverQuestao);
             panel.appendChild(button);
 
