@@ -1210,6 +1210,49 @@
                 panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
                 handle.style.cursor = 'grab';
             });
+
+            // Suporte para touch (mobile)
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+                const touch = e.touches[0];
+
+                if (panel.style.bottom || panel.style.right) {
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.top = rect.top + 'px';
+                    panel.style.left = rect.left + 'px';
+                }
+
+                offsetX = touch.clientX - panel.getBoundingClientRect().left;
+                offsetY = touch.clientY - panel.getBoundingClientRect().top;
+
+                panel.style.transition = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+
+                const touch = e.touches[0];
+                let newX = touch.clientX - offsetX;
+                let newY = touch.clientY - offsetY;
+
+                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
+
+                panel.style.top = newY + 'px';
+                panel.style.left = newX + 'px';
+                e.preventDefault();
+            });
+
+            document.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+            });
         }
 
         function criarFloatingPanel() {
@@ -1289,23 +1332,81 @@
             });
             panel.appendChild(viewResponseBtn);
 
-            // --- Botão Ocultar ---
-            const toggleBtn = document.createElement('button');
-            toggleBtn.id = 'toggle-ui-btn';
-            toggleBtn.innerText = 'Ocultar';
-            Object.assign(toggleBtn.style, {
-                background: 'none', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', 
-                cursor: 'pointer',
-                fontSize: '11px', 
-                padding: '4px 8px', 
-                borderRadius: '6px',
-                transition: 'all 0.2s ease',
-                marginBottom: '4px'
+            // --- NOVOS BOTÕES DE MINIMIZAR E FECHAR ---
+            const controlsContainer = document.createElement('div');
+            Object.assign(controlsContainer.style, {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
             });
-            panel.appendChild(toggleBtn);
-            // --- Fim do Botão Ocultar ---
+
+            // Botão Minimizar
+            const minimizeBtn = document.createElement('button');
+            minimizeBtn.id = 'minimize-btn';
+            minimizeBtn.innerHTML = '−'; // Sinal de menos
+            Object.assign(minimizeBtn.style, {
+                background: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0',
+                transition: 'all 0.2s ease'
+            });
+
+            minimizeBtn.addEventListener('mouseover', () => {
+                minimizeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            minimizeBtn.addEventListener('mouseout', () => {
+                minimizeBtn.style.backgroundColor = 'transparent';
+            });
+
+            // Botão Fechar
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'close-btn';
+            closeBtn.innerHTML = '×'; // Sinal de X
+            Object.assign(closeBtn.style, {
+                background: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0',
+                transition: 'all 0.2s ease'
+            });
+
+            closeBtn.addEventListener('mouseover', () => {
+                closeBtn.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            });
+
+            closeBtn.addEventListener('mouseout', () => {
+                closeBtn.style.backgroundColor = 'transparent';
+            });
+
+            closeBtn.addEventListener('click', () => {
+                panel.remove();
+            });
+
+            controlsContainer.appendChild(minimizeBtn);
+            controlsContainer.appendChild(closeBtn);
+            panel.appendChild(controlsContainer);
+            // --- FIM DOS NOVOS BOTÕES ---
 
             const aiToggleBtn = document.createElement('button');
             aiToggleBtn.id = 'ai-toggle-btn';
@@ -1398,7 +1499,7 @@
             panel.appendChild(watermark);
             document.body.appendChild(panel);
 
-            // --- LÓGICA DE OCULTAR/MOSTRAR ---
+            // --- LÓGICA DE MINIMIZAR ---
             const contentToToggle = [
                 'view-raw-response-btn',
                 'ai-toggle-btn',
@@ -1406,26 +1507,50 @@
                 'mlk-mau-watermark'
             ];
 
-            toggleBtn.addEventListener('click', (e) => {
+            let isMinimized = false;
+
+            minimizeBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); // Previne que o clique no botão inicie o arraste
-                const isHidden = toggleBtn.innerText === 'Mostrar';
-                toggleBtn.innerText = isHidden ? 'Ocultar' : 'Mostrar';
-
-                contentToToggle.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.style.display = isHidden ? '' : 'none';
+                
+                isMinimized = !isMinimized;
+                
+                if (isMinimized) {
+                    // Estado minimizado - oculta o conteúdo
+                    minimizeBtn.innerHTML = '+'; // Muda para sinal de mais
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    // Reduz o tamanho do painel
+                    panel.style.padding = '8px';
+                    panel.style.gap = '5px';
+                    
+                    // Esconde o response viewer se estiver visível
+                    responseViewer.style.display = 'none';
+                } else {
+                    // Estado normal - mostra o conteúdo
+                    minimizeBtn.innerHTML = '−'; // Volta para sinal de menos
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.style.display = '';
+                        }
+                    });
+                    // Restaura o tamanho original do painel
+                    panel.style.padding = '12px';
+                    panel.style.gap = '10px';
+                    
+                    // Re-aplica 'display: none' ao viewResponseBtn se não há resposta
+                    if (!lastAiResponse) {
+                        document.getElementById('view-raw-response-btn').style.display = 'none';
                     }
-                });
-
-                // Re-aplica 'display: none' ao viewResponseBtn se ele já estava oculto
-                if (isHidden && !lastAiResponse) {
-                     document.getElementById('view-raw-response-btn').style.display = 'none';
                 }
             });
 
             // --- LÓGICA DE ARRASTAR ---
-            // A alça é o painel inteiro
+            // A alça é o painel inteiro (agora arrastável mesmo quando minimizado)
             makeDraggable(panel, panel);
 
             setTimeout(() => {
