@@ -1,894 +1,1929 @@
-let loadedPlugins = [];
-let videoExploitEnabled = true;
-let autoClickEnabled = true;
-let autoClickPaused = false;
-let correctAnswerSystemEnabled = true;
+(function() {
+    'use strict';
 
-console.clear();
-const noop = () => {};
-console.warn = console.error = window.debug = noop;
+    // -----------------------------------------------------------------------------------
+    // CONFIGURAÇÃO DE CHAVES DE API (MODAL INTERATIVO)
+    // -----------------------------------------------------------------------------------
+    let GEMINI_API_KEYS = [];
+    let OPENROUTER_API_KEYS = [];
+    let currentAiProvider = 'gemini';
+    const DEEPSEEK_MODEL_NAME = "deepseek/deepseek-chat";
 
-const splashScreen = document.createElement('splashScreen');
-
-class EventEmitter {
-  constructor() { this.events = {}; }
-  on(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      (this.events[t] = this.events[t] || []).push(e);
-    });
-  }
-  off(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
-    });
-  }
-  emit(t, ...e) {
-    this.events[t]?.forEach(h => h(...e));
-  }
-  once(t, e) {
-    const s = (...i) => {
-      e(...i);
-      this.off(t, s);
-    };
-    this.on(t, s);
-  }
-}
-
-const plppdo = new EventEmitter();
-
-new MutationObserver(mutationsList =>
-  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
-).observe(document.body, { childList: true, subtree: true });
-
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const findAndClickBySelector = selector => document.querySelector(selector)?.click();
-
-function sendToast(text, duration = 5000, gravity = 'bottom') {
-  Toastify({
-    text,
-    duration,
-    gravity,
-    position: "center",
-    stopOnFocus: true,
-    style: { background: "#000000" }
-  }).showToast();
-}
-
-async function showSplashScreen() {
-  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">MLK</span><span style="color:#ff1717;"> MAU O PROPRIO</span>';
-  document.body.appendChild(splashScreen);
-  setTimeout(() => splashScreen.style.opacity = '1', 10);
-}
-
-async function hideSplashScreen() {
-  splashScreen.style.opacity = '0';
-  setTimeout(() => splashScreen.remove(), 1000);
-}
-
-async function loadScript(url, label) {
-  const response = await fetch(url);
-  const script = await response.text();
-  loadedPlugins.push(label);
-  eval(script);
-}
-
-async function loadCss(url) {
-  return new Promise(resolve => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = url;
-    link.onload = resolve;
-    document.head.appendChild(link);
-  });
-}
-
-function createFloatingMenu() {
-  const container = document.createElement('div');
-  container.id = 'santos-floating-menu';
-  container.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    right: 20px;
-    z-index: 10000;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    user-select: none;
-  `;
-
-  const mainButton = document.createElement('button');
-  mainButton.id = 'santos-main-btn';
-  mainButton.innerHTML = 'PainelV2';
-  
-  mainButton.style.cssText = `
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    font-weight: bold;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    min-width: 130px;
-    outline: none;
-    user-select: none;
-  `;
-  
-  const optionsMenu = document.createElement('div');
-  optionsMenu.id = 'santos-options-menu';
-  optionsMenu.style.cssText = `
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    padding: 15px;
-    margin-top: 10px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    width: 180px;
-    border: 1px solid rgba(255,255,255,0.1);
-    user-select: none;
-  `;
-  
-  const themeOption = document.createElement('div');
-  themeOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  themeOption.innerHTML = `
-    <span>Tema</span>
-    <div id="theme-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: #4CAF50;
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: 22px;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  
-  optionsMenu.appendChild(themeOption);
-  
-  const exploitOption = document.createElement('div');
-  exploitOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  exploitOption.innerHTML = `
-    <span>Exploit Vídeo</span>
-    <div id="exploit-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${videoExploitEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${videoExploitEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(exploitOption);
-  
-  const correctAnswerOption = document.createElement('div');
-  correctAnswerOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  correctAnswerOption.innerHTML = `
-    <span>Sistema de Respostas</span>
-    <div id="correct-answer-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${correctAnswerSystemEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${correctAnswerSystemEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(correctAnswerOption);
-  
-  const autoClickOption = document.createElement('div');
-  autoClickOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  autoClickOption.innerHTML = `
-    <span>Automação Cliques</span>
-    <div id="auto-click-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${autoClickEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(autoClickOption);
-  
-  const speedControl = document.createElement('div');
-  speedControl.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  
-  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
-  
-  speedControl.innerHTML = `
-    <div style="display: flex; justify-content: space-between;">
-      <span>Velocidade</span>
-      <span id="speed-value">${savedSpeed}s</span>
-    </div>
-    <input type="range" min="1" max="60" step="0.5" value="${savedSpeed}" 
-           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
-  `;
-  
-  optionsMenu.appendChild(speedControl);
-  
-  const hideMenuOption = document.createElement('div');
-  hideMenuOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
-    background: rgba(255, 100, 100, 0.2);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: #ff6b6b;
-    font-size: 14px;
-    user-select: none;
-    margin-top: 5px;
-  `;
-  hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
-  optionsMenu.appendChild(hideMenuOption);
-  
-  const futureOptions = document.createElement('div');
-  futureOptions.id = 'santos-future-options';
-  futureOptions.style.cssText = `
-    color: #aaa;
-    font-size: 12px;
-    text-align: center;
-    padding: 10px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    margin-top: 10px;
-    user-select: none;
-  `;
-  futureOptions.textContent = 'Mais opções em breve...';
-  optionsMenu.appendChild(futureOptions);
-  
-  container.appendChild(mainButton);
-  container.appendChild(optionsMenu);
-  document.body.appendChild(container);
-  
-  let isDarkMode = true;
-  
-  function updateThemeSwitch() {
-    const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
-    if (isDarkMode) {
-      switchInner.style.left = '22px';
-      themeOption.querySelector('#theme-toggle-switch').style.background = '#4CAF50';
-    } else {
-      switchInner.style.left = '2px';
-      themeOption.querySelector('#theme-toggle-switch').style.background = '#ccc';
-    }
-  }
-  
-  themeOption.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    
-    if (isDarkMode) {
-      DarkReader.enable();
-      sendToast("🌙｜Tema escuro ativado", 1500);
-    } else {
-      DarkReader.disable();
-      sendToast("☀️｜Tema claro ativado", 1500);
-    }
-    
-    updateThemeSwitch();
-  });
-  
-  exploitOption.addEventListener('click', () => {
-    videoExploitEnabled = !videoExploitEnabled;
-    
-    const exploitSwitch = exploitOption.querySelector('#exploit-toggle-switch');
-    const exploitSwitchInner = exploitSwitch.querySelector('div');
-    
-    if (videoExploitEnabled) {
-      exploitSwitch.style.background = '#4CAF50';
-      exploitSwitchInner.style.left = '22px';
-      sendToast("✅｜Exploit de vídeo ATIVADO", 1500);
-    } else {
-      exploitSwitch.style.background = '#ccc';
-      exploitSwitchInner.style.left = '2px';
-      sendToast("❌｜Exploit de vídeo DESATIVADO", 1500);
-    }
-  });
-  
-  autoClickOption.addEventListener('click', () => {
-    autoClickEnabled = !autoClickEnabled;
-    
-    const autoClickSwitch = autoClickOption.querySelector('#auto-click-toggle-switch');
-    const autoClickSwitchInner = autoClickSwitch.querySelector('div');
-    const speedSlider = document.getElementById('speed-slider');
-    
-    if (autoClickEnabled) {
-      autoClickSwitch.style.background = '#4CAF50';
-      autoClickSwitchInner.style.left = '22px';
-      if (speedSlider) speedSlider.disabled = false;
-      sendToast("🤖｜Automação de cliques ATIVADA", 1500);
-    } else {
-      autoClickSwitch.style.background = '#ccc';
-      autoClickSwitchInner.style.left = '2px';
-      if (speedSlider) speedSlider.disabled = true;
-      sendToast("🖱️｜Automação de cliques DESATIVADA", 1500);
-    }
-  });
-  
-  correctAnswerOption.addEventListener('click', () => {
-    correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
-    
-    const correctAnswerSwitch = correctAnswerOption.querySelector('#correct-answer-toggle-switch');
-    const correctAnswerSwitchInner = correctAnswerSwitch.querySelector('div');
-    
-    if (correctAnswerSystemEnabled) {
-      correctAnswerSwitch.style.background = '#4CAF50';
-      correctAnswerSwitchInner.style.left = '22px';
-      sendToast("✅｜Sistema de respostas ATIVADO", 1500);
-    } else {
-      correctAnswerSwitch.style.background = '#ccc';
-      correctAnswerSwitchInner.style.left = '2px';
-      sendToast("❌｜Sistema de respostas DESATIVADO", 1500);
-    }
-  });
-  
-  let isMenuOpen = false;
-  
-  function closeMenu() {
-    if (!isMenuOpen) return;
-    
-    isMenuOpen = false;
-    optionsMenu.style.display = 'none';
-    mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    
-    autoClickPaused = false;
-    sendToast("▶️｜Automação retomada", 1000);
-  }
-  
-  function openMenu() {
-    if (isMenuOpen) return;
-    
-    isMenuOpen = true;
-    optionsMenu.style.display = 'flex';
-    mainButton.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.5)';
-    
-    autoClickPaused = true;
-    sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
-  }
-  
-  function toggleMenu() {
-    if (isMenuOpen) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  }
-  
-  mainButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
-  
-  document.addEventListener('click', (e) => {
-    if (!container.contains(e.target) && isMenuOpen) {
-      closeMenu();
-    }
-  });
-  
-  hideMenuOption.addEventListener('click', () => {
-    closeMenu();
-    
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
-    
-    const reactivateBtn = document.createElement('div');
-    reactivateBtn.id = 'santos-reactivate-btn';
-    reactivateBtn.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      background: rgba(102, 126, 234, 0.2);
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 10000;
-      transition: background 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: rgba(255,255,255,0.5);
-    `;
-    reactivateBtn.innerHTML = '☰';
-    document.body.appendChild(reactivateBtn);
-    
-    reactivateBtn.addEventListener('mouseenter', () => {
-      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.5)';
-      reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
-    });
-    
-    reactivateBtn.addEventListener('mouseleave', () => {
-      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.2)';
-      reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
-    });
-    
-    reactivateBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.style.opacity = '1';
-      container.style.pointerEvents = 'auto';
-      reactivateBtn.remove();
-    });
-  });
-  
-  let isDragging = false;
-  let startX, startY;
-  let initialX, initialY;
-  let xOffset = 0, yOffset = 0;
-  const DRAG_THRESHOLD = 5;
-  
-  mainButton.addEventListener('mousedown', startDrag);
-  mainButton.addEventListener('touchstart', startDrag, { passive: false });
-  
-  function startDrag(e) {
-    e.stopPropagation();
-    
-    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-    
-    startX = clientX;
-    startY = clientY;
-    initialX = clientX - xOffset;
-    initialY = clientY - yOffset;
-    
-    isDragging = false;
-    
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('touchmove', handleDragMove, { passive: false });
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-    document.addEventListener('mouseleave', endDrag);
-  }
-  
-  function handleDragMove(e) {
-    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-    
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (!isDragging && distance > DRAG_THRESHOLD) {
-      isDragging = true;
-      if (isMenuOpen) closeMenu();
-    }
-    
-    if (isDragging) {
-      const currentX = clientX - initialX;
-      const currentY = clientY - initialY;
-      
-      xOffset = currentX;
-      yOffset = currentY;
-      
-      setTranslate(currentX, currentY, container);
-    }
-  }
-  
-  function endDrag(e) {
-    if (isDragging) {
-      localStorage.setItem('santosMenuPosition', JSON.stringify({
-        x: xOffset,
-        y: yOffset
-      }));
-    }
-    
-    document.removeEventListener('mousemove', handleDragMove);
-    document.removeEventListener('touchmove', handleDragMove);
-    document.removeEventListener('mouseup', endDrag);
-    document.removeEventListener('touchend', endDrag);
-    document.removeEventListener('mouseleave', endDrag);
-    
-    isDragging = false;
-  }
-  
-  function setTranslate(xPos, yPos, el) {
-    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-  }
-  
-  const savedPosition = localStorage.getItem('santosMenuPosition');
-  if (savedPosition) {
-    const { x, y } = JSON.parse(savedPosition);
-    xOffset = x;
-    yOffset = y;
-    setTranslate(x, y, container);
-  }
-  
-  mainButton.addEventListener('mouseenter', () => {
-    mainButton.style.transform = 'scale(1.05)';
-    mainButton.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
-  });
-  
-  mainButton.addEventListener('mouseleave', () => {
-    mainButton.style.transform = 'scale(1)';
-    if (!isMenuOpen) {
-      mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    }
-  });
-  
-  const speedSlider = document.getElementById('speed-slider');
-  const speedValue = document.getElementById('speed-value');
-  
-  if (speedSlider && speedValue) {
-    speedSlider.disabled = !autoClickEnabled;
-    
-    speedSlider.addEventListener('input', () => {
-      const value = speedSlider.value;
-      speedValue.textContent = value + 's';
-      localStorage.setItem('santosSpeed', value);
-      sendToast(`⚡｜Velocidade: ${value}s`, 1500);
-    });
-  }
-  
-  updateThemeSwitch();
-}
-
-function setupMain() {
-  const originalFetch = window.fetch;
-  const correctAnswers = new Map();
-
-  const spoofPhrases = [
-    "⚔️ Segue lá no Github [**@mzzvxm**](https://github.com/mzzvxm/).",
-    "🌀 Chapa Máxima!",
-  ];
-
-  const toFraction = (d) => {
-    if (d === 0 || d === 1) return String(d);
-    const decimals = (String(d).split('.')[1] || '').length;
-    let num = Math.round(d * Math.pow(10, decimals)), den = Math.pow(10, decimals);
-    const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
-    const div = gcd(Math.abs(num), Math.abs(den));
-    return den / div === 1 ? String(num / div) : `${num / div}/${den / div}`;
-  };
-
-  window.fetch = async function(resource, init) {
-    let content;
-    const url = resource instanceof Request ? resource.url : resource;
-
-    if (resource instanceof Request) {
-      content = await resource.clone().text();
-    } else if (init?.body) {
-      content = init.body;
-    }
-
-    if (videoExploitEnabled && content?.includes('"operationName":"updateUserVideoProgress"')) {
-      try {
-        const parsed = JSON.parse(content);
-        const input = parsed.variables?.input;
-        if (input) {
-          input.secondsWatched = input.durationSeconds;
-          input.lastSecondWatched = input.durationSeconds;
-          content = JSON.stringify(parsed);
-          if (resource instanceof Request) {
-            resource = new Request(resource, { body: content });
-          } else {
-            init.body = content;
-          }
-          sendToast("🔄｜Vídeo exploitado.", 1000);
-        }
-      } catch (e) {}
-    }
-
-    if (correctAnswerSystemEnabled && url.includes('attemptProblem') && content) {
-      try {
-        let bodyObj = JSON.parse(content);
-        const itemId = bodyObj.variables?.input?.assessmentItemId;
-        const answers = correctAnswers.get(itemId);
-
-        if (answers?.length > 0) {
-          const attemptContent = [], userInput = {};
-          let attemptState = bodyObj.variables.input.attemptState ? JSON.parse(bodyObj.variables.input.attemptState) : null;
-
-          answers.forEach(a => {
-            if (a.type === 'radio') {
-              attemptContent.push({ selectedChoiceIds: [a.choiceId] });
-              userInput[a.widgetKey] = { selectedChoiceIds: [a.choiceId] };
-            }
-            else if (a.type === 'numeric') {
-              attemptContent.push({ currentValue: a.value });
-              userInput[a.widgetKey] = { currentValue: a.value };
-              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].currentValue = a.value;
-            }
-            else if (a.type === 'expression') {
-              attemptContent.push(a.value);
-              userInput[a.widgetKey] = a.value;
-              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].value = a.value;
-            }
-            else if (a.type === 'grapher') {
-              const graph = { type: a.graphType, coords: a.coords, asymptote: a.asymptote || null };
-              attemptContent.push(graph);
-              userInput[a.widgetKey] = graph;
-              if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].plot = graph;
-            }
-          });
-
-          bodyObj.variables.input.attemptContent = JSON.stringify([attemptContent, []]);
-          bodyObj.variables.input.userInput = JSON.stringify(userInput);
-          if (attemptState) bodyObj.variables.input.attemptState = JSON.stringify(attemptState);
-
-          content = JSON.stringify(bodyObj);
-          if (resource instanceof Request) resource = new Request(resource, { body: content });
-          else init.body = content;
-
-          sendToast(`✨ ${answers.length} resposta(s) aplicada(s).`, 750);
-        }
-      } catch (e) { console.error(e); }
-    }
-
-    const response = await originalFetch.apply(this, arguments);
-
-    if (correctAnswerSystemEnabled && url.includes('getAssessmentItem')) {
-      try {
-        const clone = response.clone();
-        const text = await clone.text();
-        const parsed = JSON.parse(text);
-
-        let item = null;
-        if (parsed?.data) {
-          for (const key in parsed.data) {
-            if (parsed.data[key]?.item) {
-              item = parsed.data[key].item;
-              break;
-            }
-          }
-        }
-
-        const itemDataRaw = item?.itemData;
-        if (itemDataRaw) {
-          let itemData = JSON.parse(itemDataRaw);
-          const answers = [];
-
-          for (const [key, w] of Object.entries(itemData.question.widgets || {})) {
-            if (w.type === 'radio' && w.options?.choices) {
-              const choices = w.options.choices.map((c, i) => ({ ...c, id: c.id || `radio-choice-${i}` }));
-              const correct = choices.find(c => c.correct);
-              if (correct) answers.push({ type: 'radio', choiceId: correct.id, widgetKey: key });
-            }
-            else if (w.type === 'numeric-input' && w.options?.answers) {
-              const correct = w.options.answers.find(a => a.status === 'correct');
-              if (correct) {
-                const val = correct.answerForms?.some(f => f === 'proper' || f === 'improper')
-                  ? toFraction(correct.value) : String(correct.value);
-                answers.push({ type: 'numeric', value: val, widgetKey: key });
-              }
-            }
-            else if (w.type === 'expression' && w.options?.answerForms) {
-              const correct = w.options.answerForms.find(f => f.considered === 'correct' || f.form === true);
-              if (correct) answers.push({ type: 'expression', value: correct.value, widgetKey: key });
-            }
-            else if (w.type === 'grapher' && w.options?.correct) {
-              const c = w.options.correct;
-              if (c.type && c.coords) answers.push({
-                type: 'grapher', graphType: c.type, coords: c.coords,
-                asymptote: c.asymptote || null, widgetKey: key
-              });
-            }
-          }
-
-          if (answers.length > 0) {
-            correctAnswers.set(item.id, answers);
-          }
-
-          if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-            const randomPhrase = spoofPhrases[Math.floor(Math.random() * spoofPhrases.length)];
-
-            itemData.answerArea = {
-              calculator: false,
-              chi2Table: false,
-              periodicTable: false,
-              tTable: false,
-              zTable: false,
-            };
-
-            itemData.question.content = randomPhrase + "\n\n**Tenho Outros Scripts também! depois dá uma olhada no [ScriptHub](https://scripthubb.vercel.app/)**" + `[[☃ radio 1]]` + `\n\n**〽️ Segue lá no Instagram! [@mzzvxm](https://instagram.com/mzzvxm)**` ;
-
-            itemData.question.widgets = {
-              "radio 1": {
-                type: "radio", alignment: "default", static: false, graded: true,
-                options: {
-                  choices: [
-                    { content: "**〽️**", correct: true, id: "correct-choice" },
-                    { content: "", correct: false, id: "incorrect-choice" }
-                  ],
-                  randomize: false, multipleSelect: false, displayCount: null, deselectEnabled: false
-                },
-                version: { major: 1, minor: 0 }
-              },
-            };
-
-            const modifiedData = { ...parsed };
-            if (modifiedData.data) {
-              for (const key in modifiedData.data) {
-                if (modifiedData.data[key]?.item?.itemData) {
-                  modifiedData.data[key].item.itemData = JSON.stringify(itemData);
-                  break;
-                }
-              }
-            }
-
-            sendToast("🔓 Questão exploitada.", 750);
-            return new Response(JSON.stringify(modifiedData), {
-              status: response.status,
-              statusText: response.statusText,
-              headers: response.headers,
+    // Função para mostrar o modal de configuração
+    function showApiKeyModal() {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.id = 'api-key-modal';
+            Object.assign(modal.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '100vw',
+                height: '100vh',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                zIndex: '2147483647',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'system-ui, sans-serif'
             });
-          }
-        }
-      } catch (e) { console.error(e); }
+
+            const modalContent = document.createElement('div');
+            Object.assign(modalContent.style, {
+                background: 'rgba(26, 27, 30, 0.95)',
+                padding: '30px',
+                borderRadius: '16px',
+                color: 'white',
+                maxWidth: '600px',
+                width: '90%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+            });
+
+            const title = document.createElement('h2');
+            title.innerText = '🔑 Configuração de Chaves API - MLK MAU';
+            Object.assign(title.style, {
+                margin: '0 0 20px 0',
+                textAlign: 'center',
+                color: '#8b5cf6'
+            });
+
+            const description = document.createElement('p');
+            description.innerText = 'Cole suas chaves de API abaixo. Você pode configurar até 3 chaves para cada serviço (mínimo 1).';
+            Object.assign(description.style, {
+                margin: '0 0 25px 0',
+                lineHeight: '1.5',
+                color: 'rgba(255, 255, 255, 0.8)',
+                textAlign: 'center'
+            });
+
+            // --- TOGGLE SWITCH PARA SALVAR NO STORAGE ---
+            const storageToggleContainer = document.createElement('div');
+            Object.assign(storageToggleContainer.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '25px',
+                padding: '12px 16px',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+            });
+
+            const storageToggleLabel = document.createElement('span');
+            storageToggleLabel.innerText = '💾 Salvar chaves no navegador';
+            Object.assign(storageToggleLabel.style, {
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'rgba(255, 255, 255, 0.9)'
+            });
+
+            const storageToggle = document.createElement('label');
+            Object.assign(storageToggle.style, {
+                position: 'relative',
+                display: 'inline-block',
+                width: '50px',
+                height: '24px'
+            });
+
+            const storageToggleInput = document.createElement('input');
+            storageToggleInput.type = 'checkbox';
+            storageToggleInput.checked = true; // Por padrão, salvar no storage
+            Object.assign(storageToggleInput.style, {
+                opacity: '0',
+                width: '0',
+                height: '0'
+            });
+
+            const storageToggleSlider = document.createElement('span');
+            Object.assign(storageToggleSlider.style, {
+                position: 'absolute',
+                cursor: 'pointer',
+                top: '0',
+                left: '0',
+                right: '0',
+                bottom: '0',
+                backgroundColor: '#ccc',
+                transition: '0.4s',
+                borderRadius: '24px'
+            });
+
+            const storageToggleSliderBefore = document.createElement('span');
+            Object.assign(storageToggleSliderBefore.style, {
+                position: 'absolute',
+                content: '""',
+                height: '16px',
+                width: '16px',
+                left: '4px',
+                bottom: '4px',
+                backgroundColor: 'white',
+                transition: '0.4s',
+                borderRadius: '50%'
+            });
+
+            // Estilo quando o toggle está ativo
+            const updateToggleStyle = () => {
+                if (storageToggleInput.checked) {
+                    storageToggleSlider.style.backgroundColor = '#8b5cf6';
+                    storageToggleSliderBefore.style.transform = 'translateX(26px)';
+                } else {
+                    storageToggleSlider.style.backgroundColor = '#ccc';
+                    storageToggleSliderBefore.style.transform = 'translateX(0)';
+                }
+            };
+
+            storageToggleInput.addEventListener('change', updateToggleStyle);
+            updateToggleStyle(); // Aplicar estilo inicial
+
+            storageToggle.appendChild(storageToggleInput);
+            storageToggle.appendChild(storageToggleSlider);
+            storageToggleSlider.appendChild(storageToggleSliderBefore);
+            storageToggleContainer.appendChild(storageToggleLabel);
+            storageToggleContainer.appendChild(storageToggle);
+
+            // Carregar preferência salva do storage
+            try {
+                const savePreference = localStorage.getItem('mlk_mau_save_keys');
+                if (savePreference !== null) {
+                    storageToggleInput.checked = savePreference === 'true';
+                    updateToggleStyle();
+                }
+            } catch (e) {
+                console.warn('Não foi possível carregar preferência de salvamento:', e);
+            }
+            // --- FIM DO TOGGLE SWITCH ---
+
+            // Container para os campos Gemini
+            const geminiSection = document.createElement('div');
+            
+            // Título Gemini com link
+            const geminiHeader = document.createElement('div');
+            Object.assign(geminiHeader.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '15px'
+            });
+            
+            const geminiTitle = document.createElement('h3');
+            geminiTitle.innerText = 'Gemini API Keys';
+            Object.assign(geminiTitle.style, {
+                color: '#a78bfa',
+                margin: '0',
+                fontSize: '16px'
+            });
+
+            const geminiLink = document.createElement('a');
+            geminiLink.innerText = '🔗 gere sua api aqui';
+            geminiLink.href = 'https://aistudio.google.com/app/apikey';
+            geminiLink.target = '_blank';
+            Object.assign(geminiLink.style, {
+                color: '#8b5cf6',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: '500',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+            });
+
+            geminiLink.addEventListener('mouseover', () => {
+                geminiLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                geminiLink.style.transform = 'translateY(-1px)';
+            });
+
+            geminiLink.addEventListener('mouseout', () => {
+                geminiLink.style.backgroundColor = 'transparent';
+                geminiLink.style.transform = 'translateY(0)';
+            });
+
+            geminiHeader.appendChild(geminiTitle);
+            geminiHeader.appendChild(geminiLink);
+            geminiSection.appendChild(geminiHeader);
+            
+            const geminiContainer = document.createElement('div');
+            Object.assign(geminiContainer.style, {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                marginBottom: '25px'
+            });
+
+            // Criar 3 campos para Gemini
+            for (let i = 1; i <= 3; i++) {
+                const inputGroup = document.createElement('div');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Chave Gemini ${i} (Opcional)`;
+                input.dataset.index = i - 1;
+                input.dataset.type = 'gemini';
+                
+                Object.assign(input.style, {
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    color: 'white',
+                    fontSize: '14px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                });
+
+                inputGroup.appendChild(input);
+                geminiContainer.appendChild(inputGroup);
+            }
+            geminiSection.appendChild(geminiContainer);
+
+            // Container para os campos OpenRouter
+            const openRouterSection = document.createElement('div');
+            
+            // Título OpenRouter com link
+            const openRouterHeader = document.createElement('div');
+            Object.assign(openRouterHeader.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '15px'
+            });
+            
+            const openRouterTitle = document.createElement('h3');
+            openRouterTitle.innerText = 'OpenRouter API Keys';
+            Object.assign(openRouterTitle.style, {
+                color: '#a78bfa',
+                margin: '0',
+                fontSize: '16px'
+            });
+
+            const openRouterLink = document.createElement('a');
+            openRouterLink.innerText = '🔗 gere sua api aqui';
+            openRouterLink.href = 'https://openrouter.ai/settings/keys';
+            openRouterLink.target = '_blank';
+            Object.assign(openRouterLink.style, {
+                color: '#8b5cf6',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: '500',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+            });
+
+            openRouterLink.addEventListener('mouseover', () => {
+                openRouterLink.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                openRouterLink.style.transform = 'translateY(-1px)';
+            });
+
+            openRouterLink.addEventListener('mouseout', () => {
+                openRouterLink.style.backgroundColor = 'transparent';
+                openRouterLink.style.transform = 'translateY(0)';
+            });
+
+            openRouterHeader.appendChild(openRouterTitle);
+            openRouterHeader.appendChild(openRouterLink);
+            openRouterSection.appendChild(openRouterHeader);
+            
+            const openRouterContainer = document.createElement('div');
+            Object.assign(openRouterContainer.style, {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                marginBottom: '30px'
+            });
+
+            // Criar 3 campos para OpenRouter
+            for (let i = 1; i <= 3; i++) {
+                const inputGroup = document.createElement('div');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Chave OpenRouter ${i} (Opcional)`;
+                input.dataset.index = i - 1;
+                input.dataset.type = 'openrouter';
+                
+                Object.assign(input.style, {
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    color: 'white',
+                    fontSize: '14px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                });
+
+                inputGroup.appendChild(input);
+                openRouterContainer.appendChild(inputGroup);
+            }
+            openRouterSection.appendChild(openRouterContainer);
+
+            // Botão de salvar
+            const saveButton = document.createElement('button');
+            saveButton.innerText = '💾 Salvar e Iniciar Script';
+            Object.assign(saveButton.style, {
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                padding: '15px 30px',
+                width: '100%',
+                transition: 'all 0.2s ease'
+            });
+
+            saveButton.addEventListener('mouseover', () => {
+                saveButton.style.transform = 'translateY(-2px)';
+                saveButton.style.boxShadow = '0 8px 20px rgba(139, 92, 246, 0.4)';
+            });
+
+            saveButton.addEventListener('mouseout', () => {
+                saveButton.style.transform = 'translateY(0)';
+                saveButton.style.boxShadow = 'none';
+            });
+
+            saveButton.addEventListener('click', () => {
+                // Coletar chaves Gemini
+                const geminiInputs = modalContent.querySelectorAll('input[data-type="gemini"]');
+                const geminiKeys = Array.from(geminiInputs)
+                    .map(input => input.value.trim())
+                    .filter(key => key && key.length > 30 && !key.includes("SUA_CHAVE"));
+
+                // Coletar chaves OpenRouter
+                const openRouterInputs = modalContent.querySelectorAll('input[data-type="openrouter"]');
+                const openRouterKeys = Array.from(openRouterInputs)
+                    .map(input => input.value.trim())
+                    .filter(key => key && key.length > 30 && !key.includes("SUA_CHAVE"));
+
+                // Validar pelo menos uma chave
+                if (geminiKeys.length === 0 && openRouterKeys.length === 0) {
+                    alert('❌ Por favor, insira pelo menos uma chave API válida para Gemini ou OpenRouter.');
+                    return;
+                }
+
+                const shouldSaveToStorage = storageToggleInput.checked;
+
+                // Salvar preferência de storage
+                try {
+                    localStorage.setItem('mlk_mau_save_keys', shouldSaveToStorage.toString());
+                } catch (e) {
+                    console.warn('Não foi possível salvar preferência de storage:', e);
+                }
+
+                // Atualizar arrays globais
+                GEMINI_API_KEYS = geminiKeys.length > 0 ? geminiKeys : [];
+                OPENROUTER_API_KEYS = openRouterKeys.length > 0 ? openRouterKeys : [];
+
+                // Salvar no localStorage apenas se o toggle estiver ativo
+                if (shouldSaveToStorage) {
+                    try {
+                        localStorage.setItem('mlk_mau_gemini_keys', JSON.stringify(GEMINI_API_KEYS));
+                        localStorage.setItem('mlk_mau_openrouter_keys', JSON.stringify(OPENROUTER_API_KEYS));
+                        console.log('Chaves API salvas no localStorage');
+                    } catch (e) {
+                        console.warn('Não foi possível salvar chaves no localStorage:', e);
+                    }
+                } else {
+                    // Remover chaves salvas anteriormente se o usuário desativou o salvamento
+                    try {
+                        localStorage.removeItem('mlk_mau_gemini_keys');
+                        localStorage.removeItem('mlk_mau_openrouter_keys');
+                        console.log('Chaves API removidas do localStorage (salvamento desativado)');
+                    } catch (e) {
+                        console.warn('Não foi possível remover chaves do localStorage:', e);
+                    }
+                }
+
+                console.log('Chaves API configuradas:', {
+                    gemini: GEMINI_API_KEYS,
+                    openrouter: OPENROUTER_API_KEYS,
+                    savedToStorage: shouldSaveToStorage
+                });
+
+                modal.remove();
+                resolve();
+            });
+
+            // Montar modal
+            modalContent.appendChild(title);
+            modalContent.appendChild(description);
+            modalContent.appendChild(storageToggleContainer); // Adicionar o toggle antes dos campos
+            modalContent.appendChild(geminiSection);
+            modalContent.appendChild(openRouterSection);
+            modalContent.appendChild(saveButton);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Tentar carregar chaves salvas apenas se a preferência de salvamento estiver ativa
+            try {
+                const savePreference = localStorage.getItem('mlk_mau_save_keys');
+                const shouldLoadKeys = savePreference === null || savePreference === 'true';
+                
+                if (shouldLoadKeys) {
+                    const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
+                    const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
+                    
+                    if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
+                        savedGeminiKeys.forEach((key, index) => {
+                            const input = modalContent.querySelector(`input[data-type="gemini"][data-index="${index}"]`);
+                            if (input && key) input.value = key;
+                        });
+                        
+                        savedOpenRouterKeys.forEach((key, index) => {
+                            const input = modalContent.querySelector(`input[data-type="openrouter"][data-index="${index}"]`);
+                            if (input && key) input.value = key;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Não foi possível carregar chaves salvas:', e);
+            }
+        });
     }
 
-    return response;
-  };
-
-  (async () => {
-    const selectors = [
-      `[data-testid="choice-icon__library-choice-icon"]`,
-      `[data-testid="exercise-check-answer"]`,
-      `[data-testid="exercise-next-question"]`,
-      `._1udzurba`,
-      `._awve9b`
-    ];
-
-    window.khanwareDominates = true;
-
-    while (window.khanwareDominates) {
-      if (!autoClickEnabled || autoClickPaused) {
-        await delay(2000);
-        continue;
-      }
-
-      for (const selector of selectors) {
-        findAndClickBySelector(selector);
-        const element = document.querySelector(`${selector}> div`);
-        if (element?.innerText === "Mostrar resumo") {
-          sendToast("🎉｜Exercício concluído!", 3000);
+    // -----------------------------------------------------------------------------------
+    // INICIALIZAÇÃO DA SCRIPT
+    // -----------------------------------------------------------------------------------
+    async function initializeScript() {
+        // Verificar se já existem chaves salvas (apenas se a preferência de salvamento estiver ativa)
+        try {
+            const savePreference = localStorage.getItem('mlk_mau_save_keys');
+            const shouldLoadKeys = savePreference === null || savePreference === 'true';
+            
+            if (shouldLoadKeys) {
+                const savedGeminiKeys = JSON.parse(localStorage.getItem('mlk_mau_gemini_keys') || '[]');
+                const savedOpenRouterKeys = JSON.parse(localStorage.getItem('mlk_mau_openrouter_keys') || '[]');
+                
+                if (savedGeminiKeys.length > 0 || savedOpenRouterKeys.length > 0) {
+                    GEMINI_API_KEYS = savedGeminiKeys;
+                    OPENROUTER_API_KEYS = savedOpenRouterKeys;
+                    console.log('Chaves carregadas do localStorage (preferência de salvamento: ativa)');
+                } else {
+                    await showApiKeyModal();
+                }
+            } else {
+                console.log('Preferência de salvamento: desativada - solicitando chaves...');
+                await showApiKeyModal();
+            }
+        } catch (e) {
+            console.warn('Erro ao verificar preferência de salvamento:', e);
+            await showApiKeyModal();
         }
-      }
 
-      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
-      await delay(speed * 1000);
+        // Continuar com o restante da script...
+        console.log('Script MLK MAU inicializado com sucesso!');
+        console.log('Chaves Gemini configuradas:', GEMINI_API_KEYS.length);
+        console.log('Chaves OpenRouter configuradas:', OPENROUTER_API_KEYS.length);
+
+        // Resto das variáveis e funções...
+        let currentApiKeyIndex = 0;
+        let currentOpenRouterKeyIndex = 0;
+        let lastAiResponse = '';
+
+        // --- DETECÇÃO DE QUIZ ID ---
+        const regexQuizId = /\/(?:quiz|quizzes|admin\/quiz|games|attempts|join)\/([a-f0-9]{24})/i;
+        let quizIdDetected = null;
+        let interceptorsStarted = false;
+        // -----------------------------------
+
+        // --- FUNÇÕES UTILITÁRIAS ---
+
+        function waitForElement(selector, all = false, timeout = 5000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                const interval = setInterval(() => {
+                    const elements = all ? document.querySelectorAll(selector) : document.querySelector(selector);
+                    if ((all && elements.length > 0) || (!all && elements)) {
+                        clearInterval(interval);
+                        resolve(elements);
+                    } else if (Date.now() - startTime > timeout) {
+                        clearInterval(interval);
+                        reject(new Error(`Elemento(s) "${selector}" não encontrado(s) após ${timeout / 1000} segundos.`));
+                    }
+                }, 100);
+            });
+        }
+
+        function waitForElementToDisappear(selector, timeout = 5000) {
+            return new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                const interval = setInterval(() => {
+                    const element = document.querySelector(selector);
+                    if (!element) {
+                        clearInterval(interval);
+                        resolve();
+                    } else if (Date.now() - startTime > timeout) {
+                        clearInterval(interval);
+                        reject(new Error(`Elemento "${selector}" não desapareceu após ${timeout / 1000} segundos.`));
+                    }
+                }, 100);
+            });
+        }
+
+        // --- LÓGICA DO RESOLVEDOR ---
+
+        async function extrairDadosDaQuestao() {
+        try {
+            const questionTextElement = document.querySelector('#questionText');
+            const questionText = questionTextElement ? questionTextElement.innerText.trim().replace(/\s+/g, ' ') : "Não foi possível encontrar o texto da pergunta.";
+            const questionImageElement = document.querySelector('img[data-testid="question-container-image"]');
+            const questionImageUrl = questionImageElement ? questionImageElement.src : null;
+
+            const extractText = (el) => {
+                const mathElement = el.querySelector('annotation[encoding="application/x-tex"]');
+                return mathElement ? mathElement.textContent.trim() : el.querySelector('#optionText')?.innerText.trim() || '';
+            };
+
+            const dropdownButtons = document.querySelectorAll('button.options-dropdown');
+            if (dropdownButtons.length > 1) {
+                console.log("Tipo Múltiplos Dropdowns detectado.");
+                const dropdowns = [];
+                let questionTextWithPlaceholders = questionTextElement.innerHTML;
+                const popperSelector = '.v-popper__popper--shown';
+
+                dropdownButtons.forEach((btn, i) => {
+                    const placeholder = ` [RESPOSTA ${i + 1}] `;
+                    const wrapper = btn.closest('.dropdown-wrapper');
+                    if (wrapper) {
+                         questionTextWithPlaceholders = questionTextWithPlaceholders.replace(wrapper.outerHTML, placeholder);
+                    }
+                });
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = questionTextWithPlaceholders;
+                const cleanQuestionText = tempDiv.innerText.replace(/\s+/g, ' ');
+
+                let allAvailableOptions = [];
+                const firstBtn = dropdownButtons[0];
+                firstBtn.click();
+                try {
+                    const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
+                    allAvailableOptions = Array.from(optionElements).map(el => el.innerText.trim());
+                    console.log("Pool de opções detectado:", allAvailableOptions);
+                } catch (e) {
+                    console.error("Falha ao ler o pool de opções do primeiro dropdown.", e);
+                    if (document.querySelector(popperSelector)) document.body.click();
+                }
+
+                if (document.querySelector(popperSelector)) document.body.click();
+                try {
+                    await waitForElementToDisappear(popperSelector, 2000);
+                } catch (e) {
+                    console.warn("Popper não fechou, mas continuando...");
+                }
+
+                dropdownButtons.forEach((btn, i) => {
+                     dropdowns.push({
+                        button: btn,
+                        placeholder: `[RESPOSTA ${i + 1}]`
+                    });
+                });
+
+                console.log("Texto Limpo Enviado para IA:", cleanQuestionText);
+                return { questionText: cleanQuestionText, questionImageUrl, questionType: 'multi_dropdown', dropdowns, allAvailableOptions };
+            }
+
+            if (dropdownButtons.length === 1) {
+                return { questionText, questionImageUrl, questionType: 'dropdown', dropdownButton: dropdownButtons[0] };
+            }
+
+            const equationEditor = document.querySelector('div[data-cy="equation-editor"]');
+            if (equationEditor) {
+                return { questionText, questionImageUrl, questionType: 'equation' };
+            }
+            const droppableBlanks = document.querySelectorAll('button.droppable-blank');
+            const dragOptions = document.querySelectorAll('.drag-option');
+            if (droppableBlanks.length > 1 && dragOptions.length > 0) {
+                const questionContainer = document.querySelector('.drag-drop-text > div');
+                const dropZones = [];
+                if (questionContainer) {
+                    const children = Array.from(questionContainer.children);
+                    for (let i = 0; i < children.length; i++) {
+                        const blankButton = children[i].querySelector('button.droppable-blank');
+                        if (blankButton) {
+                            const precedingSpan = children[i - 1];
+                            if (precedingSpan && precedingSpan.tagName === 'SPAN') {
+                                let promptText = precedingSpan.innerText.trim().replace(/:\s*$/, '').replace(/\s+/g, ' ');
+                                dropZones.push({ prompt: promptText, blankElement: blankButton });
+                            }
+                        }
+                    }
+                }
+                const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.innerText.trim(), element: el }));
+                return { questionText: questionContainer.innerText.trim(), questionImageUrl, questionType: 'multi_drag_into_blank', draggableOptions, dropZones };
+            }
+            if (droppableBlanks.length === 1 && dragOptions.length > 0) {
+                 const draggableOptions = Array.from(dragOptions).map(el => ({ text: el.querySelector('.dnd-option-text')?.innerText.trim() || '', element: el }));
+                return { questionText, questionImageUrl, questionType: 'drag_into_blank', draggableOptions, dropZone: { element: droppableBlanks[0] } };
+            }
+
+            const matchContainer = document.querySelector('.match-order-options-container, .question-options-layout');
+            if (matchContainer) {
+                const draggableItemElements = Array.from(matchContainer.querySelectorAll('.match-order-option.is-option-tile'));
+                const dropZoneElements = Array.from(matchContainer.querySelectorAll('.match-order-option.is-drop-tile'));
+
+                const isImageMatch = draggableItemElements.length > 0 && (draggableItemElements[0].querySelector('.option-image') || draggableItemElements[0].dataset.type === 'image');
+
+                if (isImageMatch) {
+                    console.log("Tipo Match-Order (Imagem p/ Texto) detectado.");
+                    const draggableItems = [];
+                    for (let i = 0; i < draggableItemElements.length; i++) {
+                        const el = draggableItemElements[i];
+                        const imgDiv = el.querySelector('.option-image');
+                        const style = imgDiv ? window.getComputedStyle(imgDiv).backgroundImage : null;
+                        const urlMatch = style ? style.match(/url\("(.+?)"\)/) : null;
+                        let imageUrl = urlMatch ? urlMatch[1] : null;
+
+                        if (!imageUrl) {
+                            const dataCy = el.dataset.cy;
+                            if (dataCy && dataCy.includes('url(')) {
+                                const urlMatchCy = dataCy.match(/url\((.+)\)/);
+                                if (urlMatchCy) imageUrl = urlMatchCy[1].replace(/\?w=\d+&h=\d+$/, '');
+                            }
+                        }
+
+                        if (imageUrl) {
+                            draggableItems.push({ id: `IMAGEM ${i + 1}`, imageUrl, element: el });
+                        }
+                    }
+
+                    const dropZones = dropZoneElements.map(el => ({ text: extractText(el), element: el }));
+
+                    return { questionText, questionImageUrl, questionType: 'match_image_to_text', draggableItems, dropZones };
+
+                } else if (draggableItemElements.length > 0 && dropZoneElements.length > 0) {
+                    const draggableItems = draggableItemElements.map(el => ({ text: extractText(el), element: el }));
+                    const dropZones = dropZoneElements.map(el => ({ text: extractText(el), element: el }));
+
+                    const questionType = questionText.toLowerCase().includes('reorder') ? 'reorder' : 'match_order';
+                    return { questionText, questionImageUrl, questionType, draggableItems, dropZones };
+                }
+            }
+
+            const openEndedTextarea = document.querySelector('textarea[data-cy="open-ended-textarea"]');
+            if (openEndedTextarea) {
+                return { questionText, questionImageUrl, questionType: 'open_ended', answerElement: openEndedTextarea };
+            }
+            const optionElements = document.querySelectorAll('.option.is-selectable');
+            if (optionElements.length > 0) {
+                const isMultipleChoice = Array.from(optionElements).some(el => el.classList.contains('is-msq'));
+                const options = Array.from(optionElements).map(el => ({ text: extractText(el), element: el }));
+                return { questionText, questionImageUrl, questionType: isMultipleChoice ? 'multiple_choice' : 'single_choice', options };
+            }
+            console.error("Tipo de questão não reconhecido.");
+            return null;
+        } catch (error) {
+            console.error("Erro ao extrair dados da questão:", error);
+            return null;
+        }
     }
-  })();
-}
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
-  window.location.href = "https://pt.khanacademy.org/";
-} else {
-  (async function init() {
-    await showSplashScreen();
+        async function obterRespostaDaIA(quizData) {
+            lastAiResponse = '';
+            const viewResponseBtn = document.getElementById('view-raw-response-btn');
+            if (viewResponseBtn) viewResponseBtn.style.display = 'none';
 
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(() => {
-        DarkReader.setFetchMethod(window.fetch);
-        DarkReader.enable();
-      }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
+            // --- 1. Lógica de Prompt ---
+            let promptDeInstrucao = "", formattedOptions = "";
+            switch (quizData.questionType) {
+                case 'multi_dropdown':
+                    promptDeInstrucao = `Esta é uma questão com múltiplas lacunas ([RESPOSTA X]). As opções disponíveis são um pool compartilhado e cada opção só pode ser usada uma vez. Determine a resposta correta para CADA placeholder. Responda com cada resposta em uma nova linha, no formato '[RESPOSTA X]: Resposta Correta'. Se algum placeholder não tiver uma resposta lógica no pool (ex: está fora da sequência), omita-o da resposta.`;
+                    formattedOptions = "Pool de Opções Disponíveis: " + quizData.allAvailableOptions.join(', ');
+                    break;
+                case 'match_image_to_text':
+                    promptDeInstrucao = `Esta é uma questão de combinar imagens com seus textos correspondentes. Para cada imagem, forneça o par correto no formato EXATO: 'Texto da Opção -> ID da Imagem' (ex: 90° -> IMAGEM 3), com cada par em uma nova linha.`;
+                    const dropZoneTexts = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
+                    formattedOptions = `Opções de Texto (Locais para Soltar):\n${dropZoneTexts}`;
+                    break;
+                case 'match_order':
+                    promptDeInstrucao = `Responda com os pares no formato EXATO: 'Texto do Local para Soltar -> Texto do Item para Arrastar', com cada par em uma nova linha.`;
+                    const draggables = quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
+                    const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
+                    formattedOptions = `Itens para Arrastar:\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
+                    break;
+                case 'multi_drag_into_blank': promptDeInstrucao = `Esta é uma questão de combinar múltiplas sentenças com suas expressões corretas. Responda com os pares no formato EXATO: 'Sentença da pergunta -> Expressão da opção', com cada par em uma nova linha.`; const prompts = quizData.dropZones.map(item => `- "${item.prompt}"`).join('\n'); const options = quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); formattedOptions = `Sentenças:\n${prompts}\n\nExpressões (Opções):\n${options}`; break;
+                case 'equation': promptDeInstrucao = `Resolva a seguinte equação ou inequação. Forneça apenas a expressão final simplificada (ex: x = 5, ou y > 3).`; formattedOptions = `EQUAÇÃO: "${quizData.questionText}"`; break;
+                case 'dropdown': case 'single_choice': promptDeInstrucao = `Responda APENAS com o texto exato da ÚNICA alternativa correta.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
+                case 'reorder': promptDeInstrucao = `A tarefa é: "${quizData.questionText}". Forneça a ordem correta listando os textos dos itens, um por linha, do primeiro ao último.`; formattedOptions = "Itens para ordenar:\n" + quizData.draggableItems.map(item => `- "${item.text}"`).join('\n'); break;
+                case 'drag_into_blank': promptDeInstrucao = `Responda APENAS com o texto da ÚNICA opção correta que preenche a lacuna.`; formattedOptions = "Opções para arrastar:\n" + quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); break;
+                case 'open_ended': promptDeInstrucao = `Responda APENAS com a palavra ou frase curta que preenche a lacuna.`; break;
+                case 'multiple_choice': promptDeInstrucao = `Responda APENAS com os textos exatos de TODAS as alternativas corretas, separando cada uma em uma NOVA LINHA.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
+            }
+            let textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
 
-    await delay(2000);
-    await hideSplashScreen();
+            // --- 2. Processamento de Imagem ---
+            let base64Image = null;
+            if (quizData.questionImageUrl) {
+                base64Image = await imageUrlToBase64(quizData.questionImageUrl);
+            }
+            const hasDraggableImages = quizData.questionType === 'match_image_to_text';
 
-    createFloatingMenu();
-    setupMain();
-    
-    sendToast("Carregando...!");
-    setTimeout(() => {
-        sendToast("Carregado", 2500);
-    }, 1000);
-    setTimeout(() => {
-        sendToast("KHAN MENU INICIADO", 2500);
-    }, 3500);
-    
-    console.clear();
-  })();
-}
+            // Verificação de Imagem do DeepSeek
+            if (currentAiProvider === 'deepseek' && (base64Image || hasDraggableImages)) {
+                console.warn("DeepSeek não suporta imagens. Mostrando aviso...");
+                try {
+                    const acaoUsuario = await mostrarAvisoDeepSeekImagem();
+                    if (acaoUsuario === 'gemini') {
+                        console.log("Usuário escolheu usar Gemini.");
+                        currentAiProvider = 'gemini';
+                        const aiToggleBtn = document.getElementById('ai-toggle-btn');
+                        if (aiToggleBtn) {
+                            aiToggleBtn.innerText = 'IA: Gemini';
+                            aiToggleBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+                        }
+                    } else if (acaoUsuario === 'sem_imagem') {
+                        console.log("Usuário escolheu enviar para o DeepSeek sem a imagem.");
+                        base64Image = null;
+                        if (quizData.questionType === 'match_image_to_text') {
+                            quizData.questionType = 'match_order'; // Downgrade
+                            quizData.draggableItems = quizData.draggableItems.map(item => ({
+                                text: item.id, // Usa "IMAGEM 1" como texto
+                                element: item.element
+                            }));
+                            promptDeInstrucao = `Responda com os pares no formato EXATO: 'Texto do Local para Soltar -> ID da Imagem' (ex: 90° -> IMAGEM 3), com cada par em uma nova linha.`;
+                            const draggables = quizData.draggableItems.map(item => `- "${item.text}"`).join('\n');
+                            const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
+                            formattedOptions = `Itens para Arrastar (IDs):\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
+                            textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error(error.message);
+                    throw error;
+                }
+            }
+
+            // --- 3. Lógica de Fetch ---
+            try {
+                let aiResponseText = null;
+                if (currentAiProvider === 'gemini') {
+                    console.log("Usando Provedor: Gemini");
+                    let geminiKeyFailed = false;
+                    for (let i = 0; i < GEMINI_API_KEYS.length; i++) {
+                        const currentKey = GEMINI_API_KEYS[currentApiKeyIndex];
+                        if (!currentKey || currentKey.includes("SUA_") || currentKey.length < 30) {
+                            console.warn(`Chave de API Gemini #${currentApiKeyIndex + 1} parece ser um placeholder. Pulando...`);
+                            currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
+                            continue;
+                        }
+                        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`;
+
+                        let promptParts = [{ text: textPrompt }];
+
+                        if (base64Image) {
+                            const [header, data] = base64Image.split(',');
+                            let mimeType = header.match(/:(.*?);/)[1];
+                            if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
+                            promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
+                        }
+
+                        if (quizData.questionType === 'match_image_to_text') {
+                            promptParts.push({ text: "\n\nIMAGENS (Itens para Arrastar):\n" });
+                            for (const item of quizData.draggableItems) {
+                                 const base64 = await imageUrlToBase64(item.imageUrl);
+                                 if (base64) {
+                                    const [header, data] = base64.split(',');
+                                    let mimeType = header.match(/:(.*?);/)[1];
+                                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
+                                    promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
+                                    promptParts.push({ text: `- ${item.id}` }); // Envia " - IMAGEM 1"
+                                 }
+                            }
+                        }
+
+                        try {
+                            const response = await fetchWithTimeout(API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ contents: [{ parts: promptParts }] })
+                            });
+                            if (response.ok) {
+                                const data = await response.json();
+                                aiResponseText = data.candidates[0].content.parts[0].text;
+                                console.log(`Sucesso com a Chave API Gemini #${currentApiKeyIndex + 1}.`);
+                                break;
+                            }
+                            const errorData = await response.json();
+                            const errorMessage = errorData.error?.message || `Erro ${response.status}`;
+                            console.warn(`Chave API Gemini #${currentApiKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
+                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${errorMessage}`;
+                        } catch (error) {
+                            console.warn(`Erro na requisição com a Chave API Gemini #${currentApiKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
+                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${error.message}`;
+                        }
+                        currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
+                        if (i === GEMINI_API_KEYS.length - 1) {
+                             geminiKeyFailed = true;
+                        }
+                    }
+                    if (!aiResponseText && geminiKeyFailed) {
+                        throw new Error("Todas as chaves de API do Gemini falharam.");
+                    }
+
+                } else if (currentAiProvider === 'deepseek') {
+                    console.log("Usando Provedor: DeepSeek (via OpenRouter)");
+                    let deepseekKeyFailed = false;
+
+                    for (let i = 0; i < OPENROUTER_API_KEYS.length; i++) {
+                        const currentKey = OPENROUTER_API_KEYS[currentOpenRouterKeyIndex];
+                        if (!currentKey || currentKey.includes("SUA_") || currentKey.length < 30) {
+                            console.warn(`Chave OpenRouter #${currentOpenRouterKeyIndex + 1} parece ser um placeholder. Pulando...`);
+                            currentOpenRouterKeyIndex = (currentOpenRouterKeyIndex + 1) % OPENROUTER_API_KEYS.length;
+                            continue;
+                        }
+
+                        const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+                        const body = JSON.stringify({
+                            model: DEEPSEEK_MODEL_NAME,
+                            messages: [ { role: 'user', content: textPrompt } ],
+                            max_tokens: 1024
+                        });
+
+                        try {
+                            const response = await fetchWithTimeout(API_URL, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${currentKey}`,
+                                    'HTTP-Referer': 'https://github.com/mzzvxm',
+                                    'X-Title': 'Quizizz Bypass Script'
+                                },
+                                body: body
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                aiResponseText = data.choices[0].message.content;
+                                console.log(`Sucesso com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}.`);
+                                break;
+                            }
+
+                            const errorData = await response.json();
+                            const errorMessage = errorData.error?.message || `Erro ${response.status}`;
+                            console.warn(`Chave OpenRouter #${currentOpenRouterKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
+                            lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${errorMessage}`;
+
+                        } catch (error) {
+                             console.warn(`Erro na requisição com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
+                             lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}`;
+                        }
+
+                        currentOpenRouterKeyIndex = (currentOpenRouterKeyIndex + 1) % OPENROUTER_API_KEYS.length;
+                        if (i === OPENROUTER_API_KEYS.length - 1) {
+                            deepseekKeyFailed = true;
+                        }
+                    }
+
+                    if (!aiResponseText && deepseekKeyFailed) {
+                        throw new Error("Todas as chaves de API do OpenRouter falharam.");
+                    }
+                }
+
+                // --- 4. Retorno ---
+                console.log("Resposta bruta da IA:", aiResponseText);
+                lastAiResponse = aiResponseText;
+                return aiResponseText;
+
+            } catch (error) {
+                console.error(`Falha ao obter resposta da IA (${currentAiProvider}):`, error.message);
+                lastAiResponse = `Erro: ${error.message}`;
+                throw error;
+            }
+        }
+
+
+        async function performAction(aiAnswerText, quizData) {
+        if (!aiAnswerText) return;
+
+        const getElementColor = (element) => {
+            const style = window.getComputedStyle(element);
+            const bgImage = style.backgroundImage;
+            if (bgImage && bgImage.includes('gradient')) {
+                const match = bgImage.match(/rgb\(\d+, \d+, \d+\)/);
+                if (match) return match[0];
+            }
+            return style.backgroundColor || 'rgba(255, 255, 255, 0.8)'; // Alterado para branco
+        };
+
+        switch (quizData.questionType) {
+            case 'multi_dropdown':
+                const popperSelector = '.v-popper__popper--shown';
+                const answers = aiAnswerText.split('\n').map(line => {
+                    const match = line.match(/\[RESPOSTA (\d+)\]:\s*(.*)/i);
+                    if (!match) return null;
+                    return {
+                        index: parseInt(match[1], 10) - 1,
+                        answer: match[2].trim().replace(/["'`]/g, '')
+                    };
+                }).filter(Boolean);
+
+                const answersMap = new Map(answers.map(a => [a.index, a.answer]));
+                const placeholderText = 'Selecionar resposta';
+
+                // Fase 1: Limpeza
+                console.log("FASE 1: Limpando dropdowns com respostas erradas ou desnecessárias...");
+                for (let i = 0; i < quizData.dropdowns.length; i++) {
+                    const dd = quizData.dropdowns[i];
+                    const currentButtonText = dd.button.innerText.trim();
+                    const targetAnswer = answersMap.get(i);
+
+                    const isFilled = currentButtonText !== placeholderText;
+                    const hasTarget = !!targetAnswer;
+                    const isWrong = isFilled && hasTarget && currentButtonText !== targetAnswer;
+                    const isUnnecessary = isFilled && !hasTarget;
+
+                    if (isWrong || isUnnecessary) {
+                        console.log(`Limpando Dropdown #${i + 1} (estava com "${currentButtonText}")...`);
+                        dd.button.click();
+                        try {
+                            const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
+                            const selectedOption = Array.from(optionElements).find(el => el.innerText.trim() === currentButtonText);
+                            if (selectedOption) {
+                                selectedOption.click();
+                            } else {
+                                document.body.click();
+                            }
+                            await waitForElementToDisappear(popperSelector, 2000);
+                        } catch (e) {
+                            console.error(`Erro ao tentar limpar Dropdown #${i + 1}: ${e.message}`);
+                            if (document.querySelector(popperSelector)) {
+                                document.body.click();
+                                try { await waitForElementToDisappear(popperSelector, 2000); } catch (err) {}
+                            }
+                        }
+                    }
+                }
+
+                // Fase 2: Preenchimento
+                console.log("FASE 2: Preenchendo respostas corretas da IA...");
+                for (const res of answers) {
+                    const dd = quizData.dropdowns[res.index];
+                    if (!dd) {
+                        console.error(`Dropdown com índice ${res.index} não encontrado.`);
+                        continue;
+                    }
+                    const currentButtonText = dd.button.innerText.trim();
+                    if (currentButtonText === res.answer) {
+                        continue;
+                    }
+                    dd.button.click();
+                    try {
+                        const optionElements = await waitForElement(`${popperSelector} button.dropdown-option`, true, 2000);
+                        const targetOption = Array.from(optionElements).find(el => el.innerText.trim() === res.answer);
+                        if (targetOption) {
+                            if (targetOption.disabled || targetOption.classList.contains('used-option')) {
+                                console.warn(`Opção "${res.answer}" para Dropdown #${res.index + 1} ainda está desabilitada.`);
+                                document.body.click();
+                            } else {
+                                targetOption.click();
+                            }
+                        } else {
+                            console.error(`Opção "${res.answer}" não encontrada no Dropdown #${res.index + 1}. (A IA pode ter alucinado)`);
+                            document.body.click();
+                        }
+                        await waitForElementToDisappear(popperSelector, 2000);
+                    } catch (e) {
+                        console.error(`Erro ao tentar selecionar para o dropdown #${res.index + 1}: ${e.message}`);
+                        if (document.querySelector(popperSelector)) {
+                            document.body.click();
+                            try { await waitForElementToDisappear(popperSelector, 2000); } catch (err) {}
+                        }
+                    }
+                }
+                break;
+
+            case 'multi_drag_into_blank':
+                const highlightColors = ['#FFD700', '#00FFFF', '#FF00FF', '#7FFF00', '#FF8C00', '#DA70D6'];
+                let colorIndex = 0;
+                const cleanPairPartMulti = (str) => str.replace(/[`"']/g, '').trim();
+                const pairingsMulti = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
+                    const parts = line.split('->');
+                    return parts.length === 2 ? [cleanPairPartMulti(parts[0]), cleanPairPartMulti(parts[1])] : null;
+                }).filter(Boolean);
+                if (pairingsMulti.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
+                const draggableMap = new Map(quizData.draggableOptions.map(i => [i.text, i.element]));
+                const dropZoneMap = new Map(quizData.dropZones.map(i => [i.prompt, i.blankElement]));
+                for (const [promptText, optionText] of pairingsMulti) {
+                    const bestPromptMatch = [...dropZoneMap.keys()].find(key => key.includes(promptText) || promptText.includes(key));
+                    const blankEl = dropZoneMap.get(bestPromptMatch);
+                    const optionEl = draggableMap.get(optionText);
+                    if (blankEl && optionEl) {
+                        const color = highlightColors[colorIndex % highlightColors.length];
+                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 4px;`;
+                        blankEl.style.cssText = highlightStyle;
+                        optionEl.style.cssText = highlightStyle;
+                        colorIndex++;
+                    } else {
+                        console.warn(`Par não encontrado no DOM: "${promptText}" -> "${optionText}"`);
+                    }
+                }
+                break;
+
+            case 'equation':
+                const KEYPAD_MAP = {
+                    '0': 'icon-fas-0', '1': 'icon-fas-1', '2': 'icon-fas-2', '3': 'icon-fas-3', '4': 'icon-fas-4',
+                    '5': 'icon-fas-5', '6': 'icon-fas-6', '7': 'icon-fas-7', '8': 'icon-fas-8', '9': 'icon-fas-9',
+                    '+': 'icon-fas-plus', '-': 'icon-fas-minus', '*': 'icon-fas-times', '×': 'icon-fas-times',
+                    '/': 'icon-fas-divide', '÷': 'icon-fas-divide', '=': 'icon-fas-equals', '.': 'icon-fas-period',
+                    '<': 'icon-fas-less-than', '>': 'icon-fas-greater-than',
+                    '≤': 'icon-fas-less-than-equal', '≥': 'icon-fas-greater-than-equal',
+                    'x': 'icon-fas-variable', 'y': 'icon-fas-variable', 'z': 'icon-fas-variable',
+                    '(': 'icon-fas-brackets-round', ')': 'icon-fas-brackets-round',
+                    'π': 'icon-fas-pi', 'e': 'icon-fas-euler',
+                };
+                let answerSequence = aiAnswerText.trim().replace(/\s/g, '').replace(/<=/g, '≤').replace(/>=/g, '≥');
+                console.log(`Digitando a resposta: ${answerSequence}`);
+                const editor = document.querySelector('div[data-cy="equation-editor"]');
+                if (editor) {
+                    editor.click();
+                    await new Promise(r => setTimeout(r, 100));
+                } else {
+                    console.error("Não foi possível encontrar o editor de equação para focar.");
+                    return;
+                }
+                for (const char of answerSequence) {
+                    const iconClass = KEYPAD_MAP[char.toLowerCase()];
+                    if (iconClass) {
+                        const keyElement = document.querySelector(`.editor-button i.${iconClass}`);
+                        if (keyElement) {
+                            const button = keyElement.closest('button');
+                            if (button) {
+                                button.click();
+                                await new Promise(r => setTimeout(r, 100));
+                            }
+                        } else {
+                            console.error(`Não foi possível encontrar a tecla para o caractere: "${char}" (ícone: ${iconClass})`);
+                        }
+                    } else {
+                        console.error(`Caractere não mapeado no teclado: "${char}"`);
+                    }
+                }
+                break;
+
+            case 'reorder':
+                const cleanText = (str) => str.replace(/["'`]/g, '').trim();
+                const orderedItems = aiAnswerText.split('\n').map(cleanText).filter(Boolean);
+                const draggablesMapReorder = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
+                const dropZonesInOrder = quizData.dropZones;
+                if (orderedItems.length === dropZonesInOrder.length) {
+                    for (let i = 0; i < orderedItems.length; i++) {
+                        const sourceText = orderedItems[i];
+                        const sourceEl = draggablesMapReorder.get(sourceText);
+                        const destinationEl = dropZonesInOrder[i].element;
+                        if (sourceEl && destinationEl) {
+                            const color = getElementColor(sourceEl);
+                            const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
+                            sourceEl.style.cssText = highlightStyle;
+                            destinationEl.style.cssText = highlightStyle;
+                        }
+                    }
+                }
+                break;
+
+            case 'drag_into_blank':
+                const cleanAiAnswerBlank = aiAnswerText.trim().replace(/["'`]/g, '');
+                const targetOption = quizData.draggableOptions.find(opt => opt.text === cleanAiAnswerBlank);
+                if (targetOption) {
+                    const color = getElementColor(targetOption.element);
+                    const highlightStyle = `box-shadow: 0 0 15px 5px ${color}`;
+                    targetOption.element.style.cssText = highlightStyle;
+                    quizData.dropZone.element.style.cssText = highlightStyle;
+                }
+                break;
+
+            case 'match_image_to_text':
+                const highlightColorsImg = ['#FFD700', '#00FFFF', '#FF00FF', '#7FFF00', '#FF8C00', '#DA70D6'];
+                let colorIndexImg = 0;
+
+                const cleanPairPartImg = (str) => str.replace(/[`"\[\]]/g, '').trim();
+
+                const pairingsImg = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
+                    const parts = line.split('->');
+                    return parts.length === 2 ? [cleanPairPartImg(parts[0]), cleanPairPartImg(parts[1])] : null;
+                }).filter(Boolean);
+
+                if (pairingsImg.length === 0) { console.error("Não foi possível extrair pares válidos (Texto -> ID Imagem) da resposta da IA."); return; }
+
+                const draggablesMapImg = new Map(quizData.draggableItems.map(i => [i.id, i.element]));
+                const dropZonesMapImg = new Map(quizData.dropZones.map(i => [i.text, i.element]));
+
+                for (const [partA, partB] of pairingsImg) {
+                    let sourceEl, destinationEl;
+                    if (dropZonesMapImg.has(partA) && draggablesMapImg.has(partB)) {
+                        destinationEl = dropZonesMapImg.get(partA);
+                        sourceEl = draggablesMapImg.get(partB);
+                    } else if (dropZonesMapImg.has(partB) && draggablesMapImg.has(partA)) {
+                        destinationEl = dropZonesMapImg.get(partB);
+                        sourceEl = draggablesMapImg.get(partA);
+                    } else {
+                        console.warn(`Par não mapeado: "${partA}" (existe? ${dropZonesMapImg.has(partA)}) -> "${partB}" (existe? ${draggablesMapImg.has(partB)})`);
+                        continue;
+                    }
+
+                    if (sourceEl && destinationEl) {
+                        const color = highlightColorsImg[colorIndexImg % highlightColorsImg.length];
+                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
+                        sourceEl.style.cssText = highlightStyle;
+                        destinationEl.style.cssText = highlightStyle;
+                        colorIndexImg++;
+                    }
+                }
+                break;
+
+            case 'match_order':
+                const cleanPairPart = (str) => str.replace(/["'`]/g, '').trim();
+                const pairings = aiAnswerText.split('\n').filter(line => line.includes('->')).map(line => {
+                    const parts = line.split('->');
+                    return parts.length === 2 ? [cleanPairPart(parts[0]), cleanPairPart(parts[1])] : null;
+                }).filter(Boolean);
+                if (pairings.length === 0) { console.error("Não foi possível extrair pares válidos da resposta da IA."); return; }
+                const draggablesMapMatch = new Map(quizData.draggableItems.map(i => [i.text, i.element]));
+                const dropZonesMap = new Map(quizData.dropZones.map(i => [i.text, i.element]));
+                for (const [partA, partB] of pairings) {
+                    let sourceEl, destinationEl;
+                    if (dropZonesMap.has(partA) && draggablesMapMatch.has(partB)) {
+                        destinationEl = dropZonesMap.get(partA);
+                        sourceEl = draggablesMapMatch.get(partB);
+                    } else if (dropZonesMap.has(partB) && draggablesMapMatch.has(partA)) {
+                        destinationEl = dropZonesMap.get(partB);
+                        sourceEl = draggablesMapMatch.get(partA);
+                    } else { continue; }
+                    if (sourceEl && destinationEl) {
+                        const color = getElementColor(sourceEl);
+                        const highlightStyle = `box-shadow: 0 0 15px 5px ${color}; border-radius: 8px;`;
+                        sourceEl.style.cssText = highlightStyle;
+                        destinationEl.style.cssText = highlightStyle;
+                    }
+                }
+                break;
+
+            default:
+                const normalize = (str) => {
+                    if (typeof str !== 'string') return '';
+                    // (v48) Mantém letras, números, espaços, e símbolos ² e ³
+                    let cleaned = str.replace(/[^a-zA-Z\u00C0-\u017F0-9\s²³]/g, '').replace(/\s+/g, ' ');
+                    return cleaned.trim().toLowerCase();
+                };
+
+                if (quizData.questionType === 'open_ended') {
+                    await new Promise(resolve => {
+                        quizData.answerElement.focus();
+                        quizData.answerElement.value = aiAnswerText.trim();
+                        quizData.answerElement.dispatchEvent(new Event('input', { bubbles: true }));
+                        setTimeout(resolve, 100);
+                    });
+                    setTimeout(() => document.querySelector('.submit-button-wrapper button, button.submit-btn')?.click(), 500);
+                } else if (quizData.questionType === 'multiple_choice') {
+                    const aiAnswers = aiAnswerText.split('\n').map(normalize).filter(Boolean);
+                    quizData.options.forEach(opt => {
+                        if (aiAnswers.includes(normalize(opt.text))) {
+                            opt.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                            opt.element.click();
+                        }
+                    });
+                } else if (quizData.questionType === 'single_choice') {
+                    const normalizedAiAnswer = normalize(aiAnswerText);
+                    const bestMatch = quizData.options.find(opt => {
+                        const normalizedOption = normalize(opt.text);
+                        return normalizedOption === normalizedAiAnswer;
+                    });
+
+                    if (bestMatch) {
+                        console.log("Correspondência encontrada!", bestMatch.element);
+                        bestMatch.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                        bestMatch.element.click();
+                    } else {
+                        console.warn("Nenhuma correspondência exata encontrada após normalização.");
+                    }
+                }
+                break;
+        }
+    }
+
+        async function resolverQuestao() {
+        const button = document.getElementById('ai-solver-button');
+        button.disabled = true;
+        button.innerText = "👨‍💻";
+        button.style.transform = 'scale(0.95)';
+        button.style.boxShadow = '0 0 0 rgba(0,0,0,0)';
+        try {
+            const quizData = await extrairDadosDaQuestao();
+            if (!quizData) {
+                alert("Não foi possível extrair os dados da questão.");
+                return;
+            }
+
+            if (quizData.questionType === 'multi_dropdown') {
+                 console.log("Usando IA para resolver múltiplos dropdowns (lógica de pool)...");
+                 const aiAnswer = await obterRespostaDaIA(quizData);
+                 if (aiAnswer) {
+                     await performAction(aiAnswer, quizData);
+                 }
+            } else if (quizData.questionType === 'dropdown') {
+                console.log("Iniciando fluxo otimizado para Dropdown...");
+                quizData.dropdownButton.click();
+                try {
+                    const optionElements = await waitForElement('.v-popper__popper--shown button.dropdown-option', true);
+                    quizData.options = Array.from(optionElements).map(el => ({ text: el.innerText.trim() }));
+                    const aiAnswer = await obterRespostaDaIA(quizData);
+                    if (aiAnswer) {
+                        const cleanAiAnswerDrop = aiAnswer.trim().replace(/["'`]/g, '');
+                        const targetOptionDrop = Array.from(optionElements).find(el => el.innerText.trim() === cleanAiAnswerDrop);
+                        if (targetOptionDrop) {
+                            targetOptionDrop.click();
+                        } else {
+                            console.error(`Não foi possível encontrar a opção dropdown com o texto: "${cleanAiAnswerDrop}"`);
+                            document.body.click();
+                        }
+                    } else {
+                         document.body.click();
+                    }
+                } catch (error) {
+                    console.error("Falha ao processar o dropdown:", error.message);
+                    document.body.click();
+                }
+            } else {
+                const isMath = quizData.options && quizData.options.length > 0 && (quizData.options[0].text.includes('\\') || quizData.questionText.toLowerCase().includes('value of'));
+                const matchValue = quizData.questionText.match(/value of ([\d.]+)/i);
+                if (isMath && matchValue) {
+                    console.log("Questão de matemática detectada. Resolvendo localmente...");
+                    const targetValue = parseFloat(matchValue[1]);
+                    quizData.options.forEach(option => {
+                        const computableExpr = (() => {
+                            let c = option.text.replace(/\\left/g, '').replace(/\\right/g, '').replace(/\\div/g, '/').replace(/\\times/g, '*').replace(/\\ /g, '').replace(/(\d+)\s*\(/g, '$1 * (').replace(/\)\s*(\d+)/g, ') * $1');
+                            c = c.replace(/(\d+)\\frac\{(\d+)\}\{(\d+)\}/g, '($1+$2/$3)');
+                            c = c.replace(/\\frac\{(\d+)\}\{(\d+)\}/g, '($1/$2)');
+                            return c;
+                        })();
+                        const result = (() => { try { return new Function('return ' + computableExpr)(); } catch (e) { return null; } })();
+                        if (result !== null && Math.abs(result - targetValue) < 0.001) {
+                            option.element.style.border = '5px solid #FFFFFF'; // Alterado para branco
+                            option.element.click();
+                        }
+                    });
+                } else {
+                    console.log("Usando IA para resolver...");
+                    const aiAnswer = await obterRespostaDaIA(quizData);
+                    if (aiAnswer) {
+                        await performAction(aiAnswer, quizData);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Um erro inesperado ocorreu no fluxo principal:", error);
+            if (error.message && !error.message.includes("Ação cancelada")) {
+                alert("Ocorreu um erro: " + error.message);
+            }
+        } finally {
+            const viewResponseBtn = document.getElementById('view-raw-response-btn');
+            if (viewResponseBtn && lastAiResponse) {
+                viewResponseBtn.style.display = 'block';
+            }
+            button.disabled = false;
+            button.innerText = "Puxar Resposta";
+            button.style.transform = 'scale(1)';
+            button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+        }
+    }
+
+        // --- LÓGICA DA UI ---
+
+        function mostrarAvisoDeepSeekImagem() {
+            return new Promise((resolve, reject) => {
+                const oldModal = document.getElementById('deepseek-warning-modal');
+                if (oldModal) oldModal.remove();
+
+                const overlay = document.createElement('div');
+                overlay.id = 'deepseek-warning-modal';
+                Object.assign(overlay.style, {
+                    position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)', zIndex: '2147483648',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'opacity 0.2s ease', opacity: '0'
+                });
+
+                const modalContainer = document.createElement('div');
+                Object.assign(modalContainer.style, {
+                    background: 'rgba(26, 27, 30, 0.9)', backdropFilter: 'blur(10px)',
+                    padding: '24px', borderRadius: '16px', color: 'white',
+                    fontFamily: 'system-ui, sans-serif', maxWidth: '400px',
+                    textAlign: 'center', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                });
+
+                const title = document.createElement('h3');
+                title.innerText = '⚠️ DeepSeek Não Vê Imagens';
+                Object.assign(title.style, {
+                    margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600'
+                });
+
+                const message = document.createElement('p');
+                message.innerText = 'Esta pergunta contém uma ou mais imagens que o DeepSeek não pode processar. O que você deseja fazer?';
+                Object.assign(message.style, {
+                    margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.5',
+                    color: 'rgba(255, 255, 255, 0.8)'
+                });
+
+                const buttonContainer = document.createElement('div');
+                Object.assign(buttonContainer.style, {
+                    display: 'flex', flexDirection: 'column', gap: '10px'
+                });
+
+                const closeModal = () => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 200);
+                };
+
+                const btnGemini = document.createElement('button');
+                btnGemini.innerText = 'Usar a Gemini (Recomendado)';
+                Object.assign(btnGemini.style, {
+                    background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
+                    border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer',
+                    fontSize: '14px', fontWeight: '500', padding: '12px',
+                    transition: 'all 0.2s ease'
+                });
+                btnGemini.onmouseover = () => btnGemini.style.opacity = '0.9';
+                btnGemini.onmouseout = () => btnGemini.style.opacity = '1';
+                btnGemini.onclick = () => {
+                    closeModal();
+                    resolve('gemini');
+                };
+
+                const btnNoImage = document.createElement('button');
+                btnNoImage.innerText = 'Responder sem enviar Imagem';
+                Object.assign(btnNoImage.style, {
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px', color: 'rgba(255, 255, 255, 0.8)',
+                    cursor: 'pointer', fontSize: '14px', fontWeight: '500',
+                    padding: '12px', transition: 'all 0.2s ease'
+                });
+                btnNoImage.onmouseover = () => btnNoImage.style.background = 'rgba(255, 255, 255, 0.15)';
+                btnNoImage.onmouseout = () => btnNoImage.style.background = 'rgba(255, 255, 255, 0.1)';
+                btnNoImage.onclick = () => {
+                    closeModal();
+                    resolve('sem_imagem');
+                };
+
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) {
+                        closeModal();
+                        reject(new Error('Ação cancelada.'));
+                    }
+                };
+
+                buttonContainer.appendChild(btnGemini);
+                buttonContainer.appendChild(btnNoImage);
+                modalContainer.appendChild(title);
+                modalContainer.appendChild(message);
+                modalContainer.appendChild(buttonContainer);
+                overlay.appendChild(modalContainer);
+                document.body.appendChild(overlay);
+
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            });
+        }
+
+        /**
+         * Torna o painel flutuante arrastável.
+         * @param {HTMLElement} panel - O elemento principal do painel.
+         * @param {HTMLElement} handle - O elemento que aciona o arraste (neste caso, o próprio painel).
+         */
+        function makeDraggable(panel, handle) {
+            let offsetX = 0, offsetY = 0, isDragging = false;
+
+            handle.addEventListener('mousedown', (e) => {
+                // Previne o arraste se o clique foi em um botão ou link
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+
+                // Converte a posição 'bottom'/'right' para 'top'/'left' na primeira vez
+                if (panel.style.bottom || panel.style.right) {
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.top = rect.top + 'px';
+                    panel.style.left = rect.left + 'px';
+                }
+
+                offsetX = e.clientX - panel.getBoundingClientRect().left;
+                offsetY = e.clientY - panel.getBoundingClientRect().top;
+
+                panel.style.transition = 'none'; // Desabilita transição suave durante o arraste
+                handle.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                let newX = e.clientX - offsetX;
+                let newY = e.clientY - offsetY;
+
+                // Mantém o painel dentro da tela
+                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
+
+                panel.style.top = newY + 'px';
+                panel.style.left = newX + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // Reabilita
+                handle.style.cursor = 'grab';
+            });
+
+            // Suporte para touch (mobile)
+            handle.addEventListener('touchstart', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+                const touch = e.touches[0];
+
+                if (panel.style.bottom || panel.style.right) {
+                    panel.style.right = 'auto';
+                    panel.style.bottom = 'auto';
+                    panel.style.top = rect.top + 'px';
+                    panel.style.left = rect.left + 'px';
+                }
+
+                offsetX = touch.clientX - panel.getBoundingClientRect().left;
+                offsetY = touch.clientY - panel.getBoundingClientRect().top;
+
+                panel.style.transition = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+
+                const touch = e.touches[0];
+                let newX = touch.clientX - offsetX;
+                let newY = touch.clientY - offsetY;
+
+                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
+
+                panel.style.top = newY + 'px';
+                panel.style.left = newX + 'px';
+                e.preventDefault();
+            });
+
+            document.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+            });
+        }
+
+        function criarFloatingPanel() {
+            if (document.getElementById('mlk-mau-floating-panel')) return;
+            
+            const panel = document.createElement('div');
+            panel.id = 'mlk-mau-floating-panel';
+            Object.assign(panel.style, {
+                position: 'fixed', 
+                bottom: '60px', 
+                right: '20px', 
+                zIndex: '2147483647',
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'stretch',
+                gap: '10px', 
+                padding: '12px', 
+                backgroundColor: 'rgba(0, 0, 0, 0.95)', // FUNDO PRETO
+                backdropFilter: 'blur(8px)', 
+                webkitBackdropFilter: 'blur(8px)', 
+                borderRadius: '16px',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
+                transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
+                transform: 'translateY(20px)', 
+                opacity: '0',
+                cursor: 'grab', // CURSOR DE ARRASTAR
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+            });
+
+            const responseViewer = document.createElement('div');
+            responseViewer.id = 'ai-response-viewer';
+            Object.assign(responseViewer.style, {
+                display: 'none', 
+                position: 'absolute', 
+                bottom: 'calc(100% + 10px)', 
+                right: '0',
+                width: '300px', 
+                maxHeight: '200px', 
+                overflowY: 'auto',
+                background: 'rgba(10, 10, 15, 0.95)', 
+                backdropFilter: 'blur(5px)',
+                borderRadius: '8px', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                padding: '12px', 
+                color: '#f0f0f0', 
+                fontSize: '12px',
+                fontFamily: 'monospace', 
+                whiteSpace: 'pre-wrap', 
+                wordBreak: 'break-all',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
+                textAlign: 'left'
+            });
+            panel.appendChild(responseViewer);
+
+            const viewResponseBtn = document.createElement('button');
+            viewResponseBtn.id = 'view-raw-response-btn';
+            Object.assign(viewResponseBtn.style, {
+                background: 'none', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)', 
+                cursor: 'pointer',
+                fontSize: '11px', 
+                padding: '4px 8px', 
+                borderRadius: '6px',
+                display: 'none', 
+                transition: 'all 0.2s ease',
+                marginBottom: '4px'
+            });
+            viewResponseBtn.innerText = 'Ultimada Resposta Obtida';
+            viewResponseBtn.addEventListener('click', () => {
+                if (responseViewer.style.display === 'block') {
+                    responseViewer.style.display = 'none';
+                } else {
+                    responseViewer.innerText = lastAiResponse || "Nenhuma resposta da IA foi recebida ainda.";
+                    responseViewer.style.display = 'block';
+                }
+            });
+            panel.appendChild(viewResponseBtn);
+
+            // --- NOVOS BOTÕES DE MINIMIZAR E FECHAR ---
+            const controlsContainer = document.createElement('div');
+            Object.assign(controlsContainer.style, {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
+            });
+
+            // Botão Minimizar
+            const minimizeBtn = document.createElement('button');
+            minimizeBtn.id = 'minimize-btn';
+            minimizeBtn.innerHTML = '−'; // Sinal de menos
+            Object.assign(minimizeBtn.style, {
+                background: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0',
+                transition: 'all 0.2s ease'
+            });
+
+            minimizeBtn.addEventListener('mouseover', () => {
+                minimizeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            minimizeBtn.addEventListener('mouseout', () => {
+                minimizeBtn.style.backgroundColor = 'transparent';
+            });
+
+            // Botão Fechar
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'close-btn';
+            closeBtn.innerHTML = '×'; // Sinal de X
+            Object.assign(closeBtn.style, {
+                background: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0',
+                transition: 'all 0.2s ease'
+            });
+
+            closeBtn.addEventListener('mouseover', () => {
+                closeBtn.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            });
+
+            closeBtn.addEventListener('mouseout', () => {
+                closeBtn.style.backgroundColor = 'transparent';
+            });
+
+            closeBtn.addEventListener('click', () => {
+                panel.remove();
+            });
+
+            controlsContainer.appendChild(minimizeBtn);
+            controlsContainer.appendChild(closeBtn);
+            panel.appendChild(controlsContainer);
+            // --- FIM DOS NOVOS BOTÕES ---
+
+            // --- FRAME ACIMA DO BOTÃO DE IA ---
+            const aiInstruction = document.createElement('div');
+            aiInstruction.innerHTML = 'Escolha abaixo a IA que você escolheu a api.';
+            Object.assign(aiInstruction.style, {
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '11px',
+                textAlign: 'center',
+                marginBottom: '4px',
+                fontStyle: 'italic'
+            });
+            panel.appendChild(aiInstruction);
+
+            const aiToggleBtn = document.createElement('button');
+            aiToggleBtn.id = 'ai-toggle-btn';
+            aiToggleBtn.innerText = 'IA: Gemini';
+            Object.assign(aiToggleBtn.style, {
+                background: 'none', 
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: 'rgba(255, 255, 255, 0.6)', 
+                cursor: 'pointer',
+                fontSize: '11px', 
+                padding: '4px 8px', 
+                borderRadius: '6px',
+                transition: 'all 0.2s ease',
+                marginBottom: '4px'
+            });
+            aiToggleBtn.addEventListener('click', () => {
+                if (currentAiProvider === 'gemini') {
+                    currentAiProvider = 'deepseek';
+                    aiToggleBtn.innerText = 'IA: DeepSeek';
+                    aiToggleBtn.style.color = '#a78bfa';
+                } else {
+                    currentAiProvider = 'gemini';
+                    aiToggleBtn.innerText = 'IA: Gemini';
+                    aiToggleBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+                }
+                console.log(`Provedor de IA alterado para: ${currentAiProvider}`);
+            });
+            panel.appendChild(aiToggleBtn);
+
+            const button = document.createElement('button');
+            button.id = 'ai-solver-button';
+            button.innerHTML = 'Puxar Resposta';
+            Object.assign(button.style, {
+                background: 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)', // Cores mais escuras
+                backgroundSize: '400% 400%',
+                border: 'none', 
+                borderRadius: '10px', 
+                color: 'white', 
+                cursor: 'pointer',
+                fontFamily: 'system-ui, sans-serif', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                padding: '10px 20px', 
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.2s ease', 
+                letterSpacing: '0.5px',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px',
+                animation: 'rgbFlow 3s linear infinite' // ANIMAÇÃO RGB
+            });
+
+            // Adicionar a animação RGB ao documento
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes rgbFlow {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 400% 50%; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            button.addEventListener('mouseover', () => { 
+                button.style.transform = 'translateY(-2px)'; 
+                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
+            });
+            button.addEventListener('mouseout', () => { 
+                button.style.transform = 'translateY(0)'; 
+                button.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)'; 
+            });
+            button.addEventListener('mousedown', () => { 
+                button.style.transform = 'translateY(1px)'; 
+                button.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.15)'; 
+            });
+            button.addEventListener('mouseup', () => { 
+                button.style.transform = 'translateY(-2px)'; 
+                button.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)'; 
+            });
+            button.addEventListener('click', resolverQuestao);
+            panel.appendChild(button);
+
+            const watermark = document.createElement('div');
+            watermark.id = 'mlk-mau-watermark';
+            watermark.innerHTML = `
+                <div style="display: flex; gap: 8px; align-items: center; color: rgba(255,255,255,0.7); margin-top: 8px; justify-content: flex-end;">
+                    <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; font-weight: 400;">MLK MAU</span>
+                </div>
+            `;
+            panel.appendChild(watermark);
+            document.body.appendChild(panel);
+
+            // --- LÓGICA DE MINIMIZAR ---
+            const contentToToggle = [
+                'view-raw-response-btn',
+                'ai-toggle-btn',
+                'ai-solver-button',
+                'mlk-mau-watermark'
+            ];
+
+            // Adicionar a instrução da IA na lista de elementos para ocultar
+            contentToToggle.push(aiInstruction);
+
+            let isMinimized = false;
+
+            minimizeBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Previne que o clique no botão inicie o arraste
+                
+                isMinimized = !isMinimized;
+                
+                if (isMinimized) {
+                    // Estado minimizado - oculta o conteúdo
+                    minimizeBtn.innerHTML = '+'; // Muda para sinal de mais
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    // Reduz o tamanho do painel
+                    panel.style.padding = '8px';
+                    panel.style.gap = '5px';
+                    
+                    // Esconde o response viewer se estiver visível
+                    responseViewer.style.display = 'none';
+                } else {
+                    // Estado normal - mostra o conteúdo
+                    minimizeBtn.innerHTML = '−'; // Volta para sinal de menos
+                    contentToToggle.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.style.display = '';
+                        }
+                    });
+                    // Restaura o tamanho original do painel
+                    panel.style.padding = '12px';
+                    panel.style.gap = '10px';
+                    
+                    // Re-aplica 'display: none' ao viewResponseBtn se não há resposta
+                    if (!lastAiResponse) {
+                        document.getElementById('view-raw-response-btn').style.display = 'none';
+                    }
+                }
+            });
+
+            // --- LÓGICA DE ARRASTAR ---
+            // A alça é o painel inteiro (agora arrastável mesmo quando minimizado)
+            makeDraggable(panel, panel);
+
+            setTimeout(() => {
+                panel.style.transform = 'translateY(0)';
+                panel.style.opacity = '1';
+            }, 100);
+            console.log("Floating Panel MLK MAU criado com sucesso!");
+        }
+
+        // --- LÓGICA DE DETECÇÃO DE QUIZ ID ---
+
+        function logQuizId(id, source) {
+            if (id === quizIdDetected) {
+                return;
+            }
+            quizIdDetected = id;
+            console.log(`[Quizizz Bypass] Novo Quiz ID detectado (${source}): %c${id}`, "color: #00FF00; font-weight: bold;");
+        }
+
+        function detectQuizIdFromURL() {
+            const match = window.location.pathname.match(regexQuizId);
+            return match ? match[1] : null;
+        }
+
+        function interceptFetch() {
+            const originalFetch = window.fetch;
+            window.fetch = async function (...args) {
+                const [resource] = args;
+                if (typeof resource === 'string') {
+                    const match = resource.match(regexQuizId);
+                    if (match) {
+                        const id = match[1];
+                        logQuizId(id, "fetch");
+                    }
+                }
+                return originalFetch.apply(this, args);
+            };
+        }
+
+        function interceptXHR() {
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function (method, url) {
+                if (typeof url === 'string') {
+                    const match = url.match(regexQuizId);
+                    if (match) {
+                        const id = match[1];
+                        logQuizId(id, "XHR");
+                    }
+                }
+                return originalOpen.apply(this, arguments);
+            };
+        }
+
+        function initQuizIdDetector() {
+            console.log("[Quizizz Bypass] Detector de Quiz ID carregado.");
+            const id = detectQuizIdFromURL();
+            if (id) {
+                logQuizId(id, "URL");
+            }
+
+            if (!interceptorsStarted) {
+                console.log("[Quizizz Bypass] Iniciando interceptadores de rede (fetch/XHR).");
+                interceptFetch();
+                interceptXHR();
+                interceptorsStarted = true;
+            }
+        }
+
+        (function monitorSPA() {
+            const pushState = history.pushState;
+            history.pushState = function () {
+                const result = pushState.apply(this, arguments);
+                setTimeout(initQuizIdDetector, 300);
+                return result;
+            };
+            window.addEventListener("popstate", () => setTimeout(initQuizIdDetector, 300));
+        })();
+
+        // --- FIM DA LÓGICA DE DETECÇÃO DE QUIZ ID ---
+
+
+        async function fetchWithTimeout(resource, options = {}, timeout = 15000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(resource, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                if (error.name === 'AbortError') throw new Error('A requisição demorou muito e foi cancelada (Timeout).');
+                throw error;
+            }
+        }
+
+        async function imageUrlToBase64(url) {
+            try {
+                const cacheBustUrl = new URL(url);
+                cacheBustUrl.searchParams.set('_t', new Date().getTime());
+
+                const r = await fetchWithTimeout(cacheBustUrl.href, { cache: 'no-store' });
+                const b = await r.blob();
+                return new Promise((res, rej) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => res(reader.result);
+                    reader.onerror = (e) => {
+                        console.error("Erro no FileReader:", e);
+                        rej(e);
+                    };
+                    reader.readAsDataURL(b);
+                });
+            } catch (e) {
+                console.error(`Erro ao converter imagem: ${e.message}`, url);
+                return null;
+            }
+        }
+
+        // --- Start ---
+        setTimeout(criarFloatingPanel, 2000); // Inicia a UI
+        initQuizIdDetector(); // Inicia o detector de ID
+    }
+
+    // -----------------------------------------------------------------------------------
+    // INICIAR A SCRIPT
+    // -----------------------------------------------------------------------------------
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeScript);
+    } else {
+        initializeScript();
+    }
+
+})();
