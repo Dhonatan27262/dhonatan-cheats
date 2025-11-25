@@ -317,90 +317,105 @@ function showWelcomeToasts() {
         return { pergunta, alternativas };
     };
 
-async function encontrarRespostaColar(options = {}) {
-  const debug = !!options.debug;
-  sendToast('⌛ Carregando script...', 3000);
+    // ---------- encontrarRespostaColar (OFUSCAÇÃO REMOVIDA; URLs expostas abaixo) ----------
+    // OBSERVAÇÃO: deixei abaixo as partes ofuscadas originais como comentário para referência.
+    /*
+    original primaryParts (ofuscado):
+    ['c0RHa','6MH','XYy9yL','2Zuc','NXdiVHa0l','bvNmcl','uQnblRn','1F2Lt92Y',
+     'ahBHe','l5W','DMy8Cb','3LwU','VGavMnZlJ','bvMHZh','j9ibpFW','yFGdlx2b',
+     'ZyVGc','uV3','mclFGd','GczV','MnauEGdz9','=']
+    original fallbackParts (ofuscado):
+    ['Hc0RHa','y9yL6M','ZucXY','VHa0l2','lNXdi','nbvNmc','QnblR','a0l2Zu',
+     'yajFG','v02bj5','c4VXY','VmbpFG','wIzLs','WbvATN','9ibpF','dlx2bj',
+     'GcyFG','uV3ZyV','clFGd','9GczVm','uEGdz','=Mna']
+    */
+    async function encontrarRespostaColar(options = {}) {
+      const debug = !!options.debug;
+      sendToast('⌛ Carregando script...', 3000);
 
-  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js?' + Date.now();
+      // URLs (ofuscadas removidas; expostas em texto claro)
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js' + '?' + Date.now();
+      const fallbackURL = 'https://raw.githubusercontent.githack.com/auxpainel/2050/main/coletarperguntaeresposta.js' + '?' + Date.now();
 
-  const sleep = ms => new Promise(res => setTimeout(res, ms));
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-  const looksLikeHtmlError = (txt) => {
-    if (!txt || typeof txt !== 'string') return true;
-    const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true;
-    if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
-    return false;
-  };
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true; // muito curto -> provavelmente não é script
+        if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
+        return false;
+      };
 
-  const fetchWithTimeout = (resource, timeout = 15000) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal })
-      .finally(() => clearTimeout(id));
-  };
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal })
+          .finally(() => clearTimeout(id));
+      };
 
-  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
-    let lastErr = null;
-    for (let i = 0; i < urls.length; i++) {
-      const u = urls[i];
-      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-        try {
-          if (debug) console.info(`Tentando fetch (url ${i + 1}/${urls.length}, tentativa ${attempt})...`);
-          const res = await fetchWithTimeout(u, timeout);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
-          return txt;
-        } catch (err) {
-          lastErr = err;
-          if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
-          await sleep(backoff * attempt);
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 500 } = {}) => {
+        let lastErr = null;
+        for (let i = 0; i < urls.length; i++) {
+          const u = urls[i];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+            try {
+              if (debug) console.info(`Tentando fetch (url ${i + 1}/${urls.length}, tentativa ${attempt})...`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
+              // backoff antes da próxima tentativa
+              await sleep(backoff * attempt);
+            }
+          }
+          // pequena pausa antes de tentar o próximo URL
+          await sleep(200);
         }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
+
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
+          if (prev) prev.remove();
+        } catch (e) {
+          if (debug) console.warn('Não consegui remover script anterior:', e.message);
+        }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        sendToast('✔️ Script carregado com sucesso!', 3000);
+        if (typeof fundo !== "undefined" && fundo) {
+          try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+        }
+        if (typeof criarBotaoFlutuante === "function") {
+          try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
+        }
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar script:', err);
+        sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
+        if (debug) {
+          console.error('Debug info (não mostra URL):', err);
+        }
+        return false;
       }
-      await sleep(200);
     }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
-
-  try {
-    const urlsToTry = [primaryURL, fallbackURL];
-
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 600 });
-
-    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou vazio');
-
-    try {
-      const prev = document.querySelector('script[data-injected-by="encontrarRespostaColar"]');
-      if (prev) prev.remove();
-    } catch (e) {
-      if (debug) console.warn('Não consegui remover script anterior:', e.message);
-    }
-
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'encontrarRespostaColar';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
-
-    sendToast('✔️ Script carregado com sucesso!', 3000);
-    if (typeof fundo !== "undefined" && fundo) {
-      try { fundo.remove(); } catch(e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
-    }
-    if (typeof criarBotaoFlutuante === "function") {
-      try { criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro executar criarBotaoFlutuante:', e.message); }
-    }
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar script:', err);
-    sendToast('❌ Erro ao carregar o script. Veja console para detalhes.', 5000);
-    if (debug) {
-      console.error('Debug info (não mostra URL):', err);
-    }
-    return false;
-  }
-}
 
     const encontrarRespostaDigitar = () => {
         const pergunta = prompt("Digite a pergunta:");
@@ -585,104 +600,109 @@ function showTermoResponsabilidade(onAccept, onReject) {
     };
     
      // Funções adicionais dos botões
+
+    // ===== khanAcademy (OFUSCAÇÃO REMOVIDA; URLs expostas abaixo) =====
+    /*
+    original primaryChunks/fallbackChunks (ofuscado) foram mantidos como comentário no código original.
+    */
     const khanAcademy = async (opts = {}) => {
-  const debug = !!opts.debug;
-  const toastShort = (msg) => sendToast(msg, 3000);
-  const toastLong = (msg) => sendToast(msg, 5000);
+      const debug = !!opts.debug;
+      const toastShort = (msg) => sendToast(msg, 3000);
+      const toastLong = (msg) => sendToast(msg, 5000);
 
-  toastShort('⌛ Carregando Script Khan Academy...');
+      toastShort('⌛ Carregando Script Khan Academy...');
 
-  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/khan.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/khan.js?' + Date.now();
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/script.js' + '?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/script.js' + '?' + Date.now();
 
-  const sleep = ms => new Promise(res => setTimeout(res, ms));
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
+      const looksLikeHtmlError = txt => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
+      };
 
-  const looksLikeHtmlError = txt => {
-    if (!txt || typeof txt !== 'string') return true;
-    const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true;
-    return t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked');
-  };
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+      };
 
-  const fetchWithTimeout = (resource, timeout = 15000) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-  };
-
-  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-    let lastErr = null;
-    for (let ui = 0; ui < urls.length; ui++) {
-      const u = urls[ui];
-      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-        try {
-          if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
-          const res = await fetchWithTimeout(u, timeout);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
-          return txt;
-        } catch (err) {
-          lastErr = err;
-          if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
-          await sleep(backoff * attempt);
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let ui = 0; ui < urls.length; ui++) {
+          const u = urls[ui];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+            try {
+              if (debug) console.info(`Tentando (${ui+1}/${urls.length}) tentativa ${attempt}`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (provável 403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${ui+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
+            }
+          }
+          await sleep(200);
         }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
+
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+        if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
+          if (prev) prev.remove();
+        } catch (e) {
+          if (debug) console.warn('Falha ao remover script anterior:', e.message);
+        }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'KhanAcademyScript';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        // sucesso
+        toastShort('✔️ Script Khan Academy carregado!');
+
+        // --- remover overlay/fundo se existir ---
+        try {
+          if (typeof fundo !== "undefined" && fundo) {
+            try { fundo.remove(); } catch (e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
+          }
+        } catch (e) {
+          if (debug) console.warn('Ignorado erro verificando fundo:', e.message);
+        }
+
+        // --- criar botão/painel flutuante (se função existir) ---
+        try {
+          if (typeof criarBotaoFlutuante === "function") {
+            try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
+          }
+        } catch (e) {
+          if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message);
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar script Khan Academy:', err);
+        toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
+        if (debug) console.error('Debug info:', err);
+        return false;
       }
-      await sleep(200);
-    }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
+    };
 
-  try {
-    const urlsToTry = [primaryURL, fallbackURL];
-
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
-
-    if (!scriptContent || scriptContent.length < 60) throw new Error('Conteúdo do script inválido/curto');
-
-    try {
-      const prev = document.querySelector('script[data-injected-by="KhanAcademyScript"]');
-      if (prev) prev.remove();
-    } catch (e) {
-      if (debug) console.warn('Falha ao remover script anterior:', e.message);
-    }
-
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'KhanAcademyScript';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
-
-    // sucesso
-    toastShort('✔️ Script Khan Academy carregado!');
-
-    // --- remover overlay/fundo se existir ---
-    try {
-      if (typeof fundo !== "undefined" && fundo) {
-        try { fundo.remove(); } catch (e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
-      }
-    } catch (e) {
-      if (debug) console.warn('Ignorado erro verificando fundo:', e.message);
-    }
-
-    // --- criar botão/painel flutuante (se função existir) ---
-    try {
-      if (typeof criarBotaoFlutuante === "function") {
-        try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
-      }
-    } catch (e) {
-      if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message);
-    }
-
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar script Khan Academy:', err);
-    toastLong('❌ Erro ao carregar script Khan Academy. Veja console.');
-    if (debug) console.error('Debug info:', err);
-    return false;
-  }
-};
-
+    // ===== digitadorV2 (OFUSCAÇÃO REMOVIDA) =====
     const digitadorV2 = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (m) => sendToast(m, 3000);
@@ -702,8 +722,9 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
       toastShort('⌛ Carregando Digitador v2...');
 
-      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/digitador.js?' + Date.now();
-      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/digitador.js?' + Date.now();
+      // URLs expostas (ofuscacao removida)
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/autodigitador.js?' + Date.now();
 
       const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -772,344 +793,234 @@ function showTermoResponsabilidade(onAccept, onReject) {
       }
     };
 
+    // ===== jogoDaVelha (OFUSCAÇÃO REMOVIDA) =====
     const jogoDaVelha = async (opts = {}) => {
-  const debug = !!opts.debug;
-  const toastShort = (m) => sendToast(m, 3000);
-  const toastLong = (m) => sendToast(m, 5000);
+      const debug = !!opts.debug;
+      const toastShort = (m) => sendToast(m, 3000);
+      const toastLong = (m) => sendToast(m, 5000);
 
-  toastShort('⌛ Carregando Jogo da Velha...');
+      toastShort('⌛ Carregando Jogo da Velha...');
 
-  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/jv.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/jv.js?' + Date.now();
+      // URLs expostas (raw + cdn)
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/jogodavelha.js?' + Date.now();
 
-  const sleep = ms => new Promise(res => setTimeout(res, ms));
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-  const looksLikeHtmlError = (txt) => {
-    if (!txt || typeof txt !== 'string') return true;
-    const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true;
-    return (
-      t.includes('<!doctype') ||
-      t.includes('<html') ||
-      t.includes('not found') ||
-      t.includes('404') ||
-      t.includes('access denied') ||
-      t.includes('you have been blocked')
-    );
-  };
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        return (
+          t.includes('<!doctype') ||
+          t.includes('<html') ||
+          t.includes('not found') ||
+          t.includes('404') ||
+          t.includes('access denied') ||
+          t.includes('you have been blocked')
+        );
+      };
 
-  const fetchWithTimeout = (resource, timeout = 15000) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-  };
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+      };
 
-  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-    let lastErr = null;
-    for (let i = 0; i < urls.length; i++) {
-      const u = urls[i];
-      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-        try {
-          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
-          const res = await fetchWithTimeout(u, timeout);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
-          return txt;
-        } catch (err) {
-          lastErr = err;
-          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
-          await sleep(backoff * attempt);
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let i = 0; i < urls.length; i++) {
+          const u = urls[i];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+            try {
+              if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
+            }
+          }
+          await sleep(200);
         }
-      }
-      await sleep(200);
-    }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
 
-  try {
-    const urlsToTry = [primaryURL, fallbackURL];
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
 
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
-    try {
-      const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
-      if (prev) prev.remove();
-    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
-
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
-
-    toastShort('✔️ Carregado!');
-
-    // --- remover fundo/overlay ---
-    try {
-      if (typeof fundo !== "undefined" && fundo) {
-        fundo.remove();
-        if (debug) console.log("✅ Fundo removido");
-      }
-    } catch (e) {
-      if (debug) console.warn("Erro removendo fundo:", e.message);
-    }
-
-    // --- garantir criação do painel (mesmo que atrase um pouco) ---
-    let tentativas = 0;
-    const interval = setInterval(() => {
-      tentativas++;
-      if (typeof criarBotaoFlutuante === "function") {
         try {
-          criarBotaoFlutuante();
-          if (debug) console.log("✅ Botão flutuante recriado");
+          const prev = document.querySelector('script[data-injected-by="JogoDaVelhaScript"]');
+          if (prev) prev.remove();
+        } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'JogoDaVelhaScript';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        toastShort('✔️ Carregado!');
+
+        // --- remover fundo/overlay ---
+        try {
+          if (typeof fundo !== "undefined" && fundo) {
+            fundo.remove();
+            if (debug) console.log("✅ Fundo removido");
+          }
         } catch (e) {
-          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+          if (debug) console.warn("Erro removendo fundo:", e.message);
         }
-        clearInterval(interval);
-      } else if (tentativas > 10) {
-        // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
-        clearInterval(interval);
-        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+
+        // --- garantir criação do painel (mesmo que atrase um pouco) ---
+        let tentativas = 0;
+        const interval = setInterval(() => {
+          tentativas++;
+          if (typeof criarBotaoFlutuante === "function") {
+            try {
+              criarBotaoFlutuante();
+              if (debug) console.log("✅ Botão flutuante recriado");
+            } catch (e) {
+              if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+            }
+            clearInterval(interval);
+          } else if (tentativas > 10) {
+            // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
+            clearInterval(interval);
+            if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+          }
+        }, 500);
+
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar Jogo da Velha:', err);
+        toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
+        if (debug) console.error('Debug info:', err);
+        return false;
       }
-    }, 500);
+    };
 
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar Jogo da Velha:', err);
-    toastLong('❌ Erro ao carregar Jogo da Velha. Verifique o console.');
-    if (debug) console.error('Debug info:', err);
-    return false;
-  }
-};
+    // ===== Leia PR (OFUSCAÇÃO REMOVIDA; URLs expostas) =====
+    const leiaPR = async (opts = {}) => {
+      const debug = !!opts.debug;
+      const toastShort = (m) => sendToast(m, 3000);
+      const toastLong = (m) => sendToast(m, 5000);
 
-    // ===== NOVA FUNÇÃO (camuflada): Leia PR =====
-const leiaPR = async (opts = {}) => {
-  const debug = !!opts.debug;
-  const toastShort = (m) => sendToast(m, 3000);
-  const toastLong = (m) => sendToast(m, 5000);
+      toastShort('⌛ Carregando Leia PR...');
 
-  toastShort('⌛ Carregando Leia PR...');
+      // URL direta (raw) + fallback (cdn)
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiapr.js' + '?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/leiapr.js' + '?' + Date.now();
 
-  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiapr.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/leiapr.js?' + Date.now();
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-  const sleep = ms => new Promise(res => setTimeout(res, ms));
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        return (
+          t.includes('<!doctype') ||
+          t.includes('<html') ||
+          t.includes('not found') ||
+          t.includes('404') ||
+          t.includes('access denied') ||
+          t.includes('you have been blocked')
+        );
+      };
 
-  const looksLikeHtmlError = (txt) => {
-    if (!txt || typeof txt !== 'string') return true;
-    const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true;
-    return (
-      t.includes('<!doctype') ||
-      t.includes('<html') ||
-      t.includes('not found') ||
-      t.includes('404') ||
-      t.includes('access denied') ||
-      t.includes('you have been blocked')
-    );
-  };
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+      };
 
-  const fetchWithTimeout = (resource, timeout = 15000) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-  };
-
-  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-    let lastErr = null;
-    for (let i = 0; i < urls.length; i++) {
-      const u = urls[i];
-      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-        try {
-          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
-          const res = await fetchWithTimeout(u, timeout);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
-          return txt;
-        } catch (err) {
-          lastErr = err;
-          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
-          await sleep(backoff * attempt);
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let i = 0; i < urls.length; i++) {
+          const u = urls[i];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+            try {
+              if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
+            }
+          }
+          await sleep(200);
         }
-      }
-      await sleep(200);
-    }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
 
-  try {
-    const urlsToTry = [primaryURL, fallbackURL];
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
 
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
-    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
-    try {
-      const prev = document.querySelector('script[data-injected-by="LeiaPR"]');
-      if (prev) prev.remove();
-    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
-
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'LeiaPR';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
-
-    toastShort('✔️ Leia PR carregado!');
-
-    // --- remover fundo/overlay se existir ---
-    try {
-      if (typeof fundo !== "undefined" && fundo) {
-        fundo.remove();
-        if (debug) console.log("✅ Fundo removido");
-      }
-    } catch (e) {
-      if (debug) console.warn("Erro removendo fundo:", e.message);
-    }
-
-    // --- garantir criação do painel (mesmo que atrase um pouco) ---
-    let tentativas = 0;
-    const interval = setInterval(() => {
-      tentativas++;
-      if (typeof criarBotaoFlutuante === "function") {
         try {
-          criarBotaoFlutuante();
-          if (debug) console.log("✅ Botão flutuante recriado");
+          const prev = document.querySelector('script[data-injected-by="LeiaPR"]');
+          if (prev) prev.remove();
+        } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'LeiaPR';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        toastShort('✔️ Leia PR carregado!');
+
+        // --- remover fundo/overlay se existir ---
+        try {
+          if (typeof fundo !== "undefined" && fundo) {
+            fundo.remove();
+            if (debug) console.log("✅ Fundo removido");
+          }
         } catch (e) {
-          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+          if (debug) console.warn("Erro removendo fundo:", e.message);
         }
-        clearInterval(interval);
-      } else if (tentativas > 10) {
-        clearInterval(interval);
-        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+
+        // --- garantir criação do painel (mesmo que atrase um pouco) ---
+        let tentativas = 0;
+        const interval = setInterval(() => {
+          tentativas++;
+          if (typeof criarBotaoFlutuante === "function") {
+            try {
+              criarBotaoFlutuante();
+              if (debug) console.log("✅ Botão flutuante recriado");
+            } catch (e) {
+              if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
+            }
+            clearInterval(interval);
+          } else if (tentativas > 10) {
+            clearInterval(interval);
+            if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
+          }
+        }, 500);
+
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar Leia PR:', err);
+        toastLong('❌ Erro ao carregar Leia PR. Verifique o console.');
+        if (debug) console.error('Debug info:', err);
+        return false;
       }
-    }, 500);
-
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar Leia PR:', err);
-    toastLong('❌ Erro ao carregar Leia PR. Verifique o console.');
-    if (debug) console.error('Debug info:', err);
-    return false;
-  }
-};
-
-    // ===== NOVA FUNÇÃO: WayGroundX =====
-const wayGroundX = async (opts = {}) => {
-  const debug = !!opts.debug;
-  const toastShort = (m) => sendToast(m, 3000);
-  const toastLong = (m) => sendToast(m, 5000);
-
-  toastShort('⌛ Carregando WayGroundX...');
-
-  const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js?' + Date.now();
-
-  const sleep = ms => new Promise(res => setTimeout(res, ms));
-
-  const looksLikeHtmlError = (txt) => {
-    if (!txt || typeof txt !== 'string') return true;
-    const t = txt.trim().toLowerCase();
-    if (t.length < 40) return true;
-    return (
-      t.includes('<!doctype') ||
-      t.includes('<html') ||
-      t.includes('not found') ||
-      t.includes('404') ||
-      t.includes('access denied') ||
-      t.includes('you have been blocked')
-    );
-  };
-
-  const fetchWithTimeout = (resource, timeout = 15000) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
-  };
-
-  const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
-    let lastErr = null;
-    for (let i = 0; i < urls.length; i++) {
-      const u = urls[i];
-      for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
-        try {
-          if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
-          const res = await fetchWithTimeout(u, timeout);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const txt = await res.text();
-          if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
-          return txt;
-        } catch (err) {
-          lastErr = err;
-          if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
-          await sleep(backoff * attempt);
-        }
-      }
-      await sleep(200);
-    }
-    throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
-  };
-
-  try {
-    const urlsToTry = [primaryURL, fallbackURL];
-
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
-
-    if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
-
-    try {
-      const prev = document.querySelector('script[data-injected-by="WayGroundX"]');
-      if (prev) prev.remove();
-    } catch (e) { if (debug) console.warn('Remover antigo falhou:', e.message); }
-
-    const scriptEl = document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.dataset.injectedBy = 'WayGroundX';
-    scriptEl.textContent = scriptContent;
-    document.head.appendChild(scriptEl);
-
-    toastShort('✔️ WayGroundX carregado!');
-
-    // --- remover fundo/overlay se existir ---
-    try {
-      if (typeof fundo !== "undefined" && fundo) {
-        fundo.remove();
-        if (debug) console.log("✅ Fundo removido");
-      }
-    } catch (e) {
-      if (debug) console.warn("Erro removendo fundo:", e.message);
-    }
-
-    // --- garantir criação do painel (mesmo que atrase um pouco) ---
-    let tentativas = 0;
-    const interval = setInterval(() => {
-      tentativas++;
-      if (typeof criarBotaoFlutuante === "function") {
-        try {
-          criarBotaoFlutuante();
-          if (debug) console.log("✅ Botão flutuante recriado");
-        } catch (e) {
-          if (debug) console.warn("Erro chamando criarBotaoFlutuante:", e.message);
-        }
-        clearInterval(interval);
-      } else if (tentativas > 10) {
-        clearInterval(interval);
-        if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
-      }
-    }, 500);
-
-    return true;
-  } catch (err) {
-    console.error('Erro ao carregar WayGroundX:', err);
-    toastLong('❌ Erro ao carregar WayGroundX. Verifique o console.');
-    if (debug) console.error('Debug info:', err);
-    return false;
-  }
-};
+    };
     
 //semhasaaaa
 let senhasCarregadas = false;
@@ -1117,8 +1028,18 @@ let senhasCarregadas = false;
 const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
 
-  const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?' + Date.now();
-  const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js?' + Date.now();
+  // OBS: removi a ofuscação e deixei as URLs claras abaixo.
+  /*
+  original primaryParts (ofuscado):
+  ['yL6MHc0RHa','0l2ZucXYy9','mclNXdiVHa','uQnblRnbvN','2boR0Lt92Y','ycjMuFGdh5','mbvhGZvIjN','lh2Yt4WY0F','Wah12LzRXY','FGauV2cv4','==wPzpmLz']
+  original fallbackParts (ofuscado):
+  ['yL6MHc0RHa','kNnau4GZj9','mbuIndpxWZ','oR0Lod2L0V','jMuFGdh52b','vhGZvIjNyc','2Yt4WY0Fmb','h1GQzRXYlh','GauV2cv4Wa','==wPzpmLzF']
+  */
+
+  const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js' + Date.now();
+  const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js' + Date.now();
+
+  const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
 
   const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -1218,6 +1139,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
                 { nome: 'Khan Academy', func: khanAcademy },
                 { nome: 'Leia PR', func: leiaPR },
+                // === NOVO botão WayGroundX ===
                 { nome: 'WayGroundX', func: wayGroundX }
             ],
             textos: [
@@ -1601,7 +1523,7 @@ Object.assign(botoesContainer.style, {
     overflowX: 'auto',
     paddingBottom: '5px',
     scrollbarWidth: 'thin',
-    scrollbarColor = '#888 #333'
+    scrollbarColor: '#888 #333'
 });
 botoesContainer.style.msOverflowStyle = 'auto';
 botoesContainer.style.overflowY = 'hidden';
@@ -1747,6 +1669,95 @@ botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpaine
 
         document.body.append(b);
     };
+
+    // ---------- NOVA FUNÇÃO: WayGroundX (puxa quizziz.js) ----------
+    async function wayGroundX(opts = {}) {
+      const debug = !!opts.debug;
+      const toastShort = (m) => sendToast(m, 3000);
+      const toastLong = (m) => sendToast(m, 5000);
+
+      toastShort('⌛ Carregando WayGroundX (quizziz.js)...');
+
+      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js' + '?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js' + '?' + Date.now();
+
+      const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+      const looksLikeHtmlError = (txt) => {
+        if (!txt || typeof txt !== 'string') return true;
+        const t = txt.trim().toLowerCase();
+        if (t.length < 40) return true;
+        return (
+          t.includes('<!doctype') ||
+          t.includes('<html') ||
+          t.includes('not found') ||
+          t.includes('404') ||
+          t.includes('access denied') ||
+          t.includes('you have been blocked')
+        );
+      };
+
+      const fetchWithTimeout = (resource, timeout = 15000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        return fetch(resource, { signal: controller.signal }).finally(() => clearTimeout(id));
+      };
+
+      const tryFetchText = async (urls, { attemptsPerUrl = 2, timeout = 15000, backoff = 600 } = {}) => {
+        let lastErr = null;
+        for (let i = 0; i < urls.length; i++) {
+          const u = urls[i];
+          for (let attempt = 1; attempt <= attemptsPerUrl; attempt++) {
+            try {
+              if (debug) console.info(`Tentando fetch (${i+1}/${urls.length}) tentativa ${attempt}`);
+              const res = await fetchWithTimeout(u, timeout);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              const txt = await res.text();
+              if (looksLikeHtmlError(txt)) throw new Error('Resposta parece HTML/erro (403/404/CORS)');
+              return txt;
+            } catch (err) {
+              lastErr = err;
+              if (debug) console.warn(`Falha (url ${i+1}, tentativa ${attempt}):`, err.message);
+              await sleep(backoff * attempt);
+            }
+          }
+          await sleep(200);
+        }
+        throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
+      };
+
+      try {
+        const urlsToTry = [primaryURL, fallbackURL];
+
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+
+        if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
+
+        try {
+          const prev = document.querySelector('script[data-injected-by="WayGroundX"]');
+          if (prev) prev.remove();
+        } catch (e) { if (debug) console.warn('Falha ao remover script anterior WayGroundX:', e.message); }
+
+        const scriptEl = document.createElement('script');
+        scriptEl.type = 'text/javascript';
+        scriptEl.dataset.injectedBy = 'WayGroundX';
+        scriptEl.textContent = scriptContent;
+        document.head.appendChild(scriptEl);
+
+        toastShort('✔️ WayGroundX carregado!');
+
+        // fechar menu se aberto e recriar botão flutuante
+        try { if (fundo) fundo.remove(); } catch(e) {}
+        try { if (typeof criarBotaoFlutuante === 'function') criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro criarBotaoFlutuante após WayGroundX:', e.message); }
+
+        return true;
+      } catch (err) {
+        console.error('Erro ao carregar WayGroundX:', err);
+        toastLong('❌ Erro ao carregar WayGroundX. Veja console.');
+        if (debug) console.error('Debug info:', err);
+        return false;
+      }
+    }
 
     // Iniciar o botão flutuante
     criarBotaoFlutuante();
