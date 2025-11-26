@@ -695,6 +695,7 @@
         }
     }
 
+        // --- FUNÇÃO CORRIGIDA OBTER RESPOSTA DA IA ---
         async function obterRespostaDaIA(quizData) {
             lastAiResponse = '';
             const viewResponseBtn = document.getElementById('view-raw-response-btn');
@@ -718,13 +719,36 @@
                     const droppables = quizData.dropZones.map(item => `- "${item.text}"`).join('\n');
                     formattedOptions = `Itens para Arrastar:\n${draggables}\n\nLocais para Soltar:\n${droppables}`;
                     break;
-                case 'multi_drag_into_blank': promptDeInstrucao = `Esta é uma questão de combinar múltiplas sentenças com suas expressões corretas. Responda com os pares no formato EXATO: 'Sentença da pergunta -> Expressão da opção', com cada par em uma nova linha.`; const prompts = quizData.dropZones.map(item => `- "${item.prompt}"`).join('\n'); const options = quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); formattedOptions = `Sentenças:\n${prompts}\n\nExpressões (Opções):\n${options}`; break;
-                case 'equation': promptDeInstrucao = `Resolva a seguinte equação ou inequação. Forneça apenas a expressão final simplificada (ex: x = 5, ou y > 3).`; formattedOptions = `EQUAÇÃO: "${quizData.questionText}"`; break;
-                case 'dropdown': case 'single_choice': promptDeInstrucao = `Responda APENAS com o texto exato da ÚNICA alternativa correta.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
-                case 'reorder': promptDeInstrucao = `A tarefa é: "${quizData.questionText}". Forneça a ordem correta listando os textos dos itens, um por linha, do primeiro ao último.`; formattedOptions = "Itens para ordenar:\n" + quizData.draggableItems.map(item => `- "${item.text}"`).join('\n'); break;
-                case 'drag_into_blank': promptDeInstrucao = `Responda APENAS com o texto da ÚNICA opção correta que preenche a lacuna.`; formattedOptions = "Opções para arrastar:\n" + quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); break;
-                case 'open_ended': promptDeInstrucao = `Responda APENAS com a palavra ou frase curta que preenche a lacuna.`; break;
-                case 'multiple_choice': promptDeInstrucao = `Responda APENAS com os textos exatos de TODAS as alternativas corretas, separando cada uma em uma NOVA LINHA.`; formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); break;
+                case 'multi_drag_into_blank': 
+                    promptDeInstrucao = `Esta é uma questão de combinar múltiplas sentenças com suas expressões corretas. Responda com os pares no formato EXATO: 'Sentença da pergunta -> Expressão da opção', com cada par em uma nova linha.`; 
+                    const prompts = quizData.dropZones.map(item => `- "${item.prompt}"`).join('\n'); 
+                    const options = quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); 
+                    formattedOptions = `Sentenças:\n${prompts}\n\nExpressões (Opções):\n${options}`; 
+                    break;
+                case 'equation': 
+                    promptDeInstrucao = `Resolva a seguinte equação ou inequação. Forneça apenas a expressão final simplificada (ex: x = 5, ou y > 3).`; 
+                    formattedOptions = `EQUAÇÃO: "${quizData.questionText}"`; 
+                    break;
+                case 'dropdown': 
+                case 'single_choice': 
+                    promptDeInstrucao = `Responda APENAS com o texto exato da ÚNICA alternativa correta.`; 
+                    formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); 
+                    break;
+                case 'reorder': 
+                    promptDeInstrucao = `A tarefa é: "${quizData.questionText}". Forneça a ordem correta listando os textos dos itens, um por linha, do primeiro ao último.`; 
+                    formattedOptions = "Itens para ordenar:\n" + quizData.draggableItems.map(item => `- "${item.text}"`).join('\n'); 
+                    break;
+                case 'drag_into_blank': 
+                    promptDeInstrucao = `Responda APENAS com o texto da ÚNICA opção correta que preenche a lacuna.`; 
+                    formattedOptions = "Opções para arrastar:\n" + quizData.draggableOptions.map(item => `- "${item.text}"`).join('\n'); 
+                    break;
+                case 'open_ended': 
+                    promptDeInstrucao = `Responda APENAS com a palavra ou frase curta que preenche a lacuna.`; 
+                    break;
+                case 'multiple_choice': 
+                    promptDeInstrucao = `Responda APENAS com os textos exatos de TODAS as alternativas corretas, separando cada uma em uma NOVA LINHA.`; 
+                    formattedOptions = "OPÇÕES:\n" + quizData.options.map(opt => `- "${opt.text}"`).join('\n'); 
+                    break;
             }
             let textPrompt = `${promptDeInstrucao}\n\n---\nPERGUNTA: "${quizData.questionText}"\n---\n${formattedOptions}`;
 
@@ -776,6 +800,8 @@
                 if (currentAiProvider === 'gemini') {
                     console.log("Usando Provedor: Gemini");
                     let geminiKeyFailed = false;
+                    
+                    // Tentar todas as chaves Gemini disponíveis
                     for (let i = 0; i < GEMINI_API_KEYS.length; i++) {
                         const currentKey = GEMINI_API_KEYS[currentApiKeyIndex];
                         if (!currentKey || currentKey.includes("SUA_") || currentKey.length < 30) {
@@ -783,58 +809,107 @@
                             currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
                             continue;
                         }
-                        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`;
+
+                        // CORREÇÃO: URL atualizada para o modelo correto do Gemini
+                        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`;
 
                         let promptParts = [{ text: textPrompt }];
 
+                        // Adicionar imagem principal se existir
                         if (base64Image) {
                             const [header, data] = base64Image.split(',');
                             let mimeType = header.match(/:(.*?);/)[1];
                             if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
-                            promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
+                            promptParts.push({ 
+                                inline_data: { 
+                                    mime_type: mimeType, 
+                                    data: data 
+                                } 
+                            });
                         }
 
+                        // Adicionar imagens dos itens arrastáveis se for o caso
                         if (quizData.questionType === 'match_image_to_text') {
                             promptParts.push({ text: "\n\nIMAGENS (Itens para Arrastar):\n" });
                             for (const item of quizData.draggableItems) {
-                                 const base64 = await imageUrlToBase64(item.imageUrl);
-                                 if (base64) {
+                                const base64 = await imageUrlToBase64(item.imageUrl);
+                                if (base64) {
                                     const [header, data] = base64.split(',');
                                     let mimeType = header.match(/:(.*?);/)[1];
                                     if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) mimeType = 'image/jpeg';
-                                    promptParts.push({ inline_data: { mime_type: mimeType, data: data } });
-                                    promptParts.push({ text: `- ${item.id}` }); // Envia " - IMAGEM 1"
-                                 }
+                                    promptParts.push({ 
+                                        inline_data: { 
+                                            mime_type: mimeType, 
+                                            data: data 
+                                        } 
+                                    });
+                                    promptParts.push({ text: `- ${item.id}` });
+                                }
                             }
                         }
 
                         try {
                             const response = await fetchWithTimeout(API_URL, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ contents: [{ parts: promptParts }] })
-                            });
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ 
+                                    contents: [{ 
+                                        parts: promptParts 
+                                    }],
+                                    generationConfig: {
+                                        temperature: 0.1,
+                                        maxOutputTokens: 2048
+                                    }
+                                })
+                            }, 30000); // Timeout de 30 segundos para Gemini
+
                             if (response.ok) {
                                 const data = await response.json();
-                                aiResponseText = data.candidates[0].content.parts[0].text;
-                                console.log(`Sucesso com a Chave API Gemini #${currentApiKeyIndex + 1}.`);
-                                break;
+                                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                                    aiResponseText = data.candidates[0].content.parts[0].text;
+                                    console.log(`✅ Sucesso com a Chave API Gemini #${currentApiKeyIndex + 1}.`);
+                                    break;
+                                } else {
+                                    console.warn(`Resposta inválida da API Gemini #${currentApiKeyIndex + 1}:`, data);
+                                    lastAiResponse = `Resposta inválida da Chave Gemini #${currentApiKeyIndex + 1}`;
+                                }
+                            } else {
+                                const errorText = await response.text();
+                                let errorMessage;
+                                try {
+                                    const errorData = JSON.parse(errorText);
+                                    errorMessage = errorData.error?.message || `Erro ${response.status}: ${errorText.substring(0, 100)}`;
+                                } catch {
+                                    errorMessage = `Erro ${response.status}: ${errorText.substring(0, 100)}`;
+                                }
+                                
+                                console.warn(`❌ Chave API Gemini #${currentApiKeyIndex + 1} falhou: ${errorMessage}`);
+                                lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${errorMessage}`;
+                                
+                                // Se for erro de quota ou chave inválida, pular para próxima chave
+                                if (response.status === 429 || response.status === 403) {
+                                    console.log(`Chave #${currentApiKeyIndex + 1} com problemas de quota/acesso. Tentando próxima...`);
+                                }
                             }
-                            const errorData = await response.json();
-                            const errorMessage = errorData.error?.message || `Erro ${response.status}`;
-                            console.warn(`Chave API Gemini #${currentApiKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
-                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${errorMessage}`;
                         } catch (error) {
-                            console.warn(`Erro na requisição com a Chave API Gemini #${currentApiKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
-                            lastAiResponse = `Falha na Chave Gemini #${currentApiKeyIndex + 1}: ${error.message}`;
+                            console.warn(`🌐 Erro na requisição com a Chave API Gemini #${currentApiKeyIndex + 1}: ${error.message}`);
+                            lastAiResponse = `Erro de rede na Chave Gemini #${currentApiKeyIndex + 1}: ${error.message}`;
                         }
+                        
+                        // Avançar para próxima chave
                         currentApiKeyIndex = (currentApiKeyIndex + 1) % GEMINI_API_KEYS.length;
+                        
+                        // Se tentou todas as chaves sem sucesso
                         if (i === GEMINI_API_KEYS.length - 1) {
-                             geminiKeyFailed = true;
+                            geminiKeyFailed = true;
                         }
                     }
+                    
                     if (!aiResponseText && geminiKeyFailed) {
-                        throw new Error("Todas as chaves de API do Gemini falharam.");
+                        throw new Error("Todas as chaves de API do Gemini falharam. Verifique suas chaves e quotas.");
                     }
 
                 } else if (currentAiProvider === 'deepseek') {
@@ -871,18 +946,18 @@
                             if (response.ok) {
                                 const data = await response.json();
                                 aiResponseText = data.choices[0].message.content;
-                                console.log(`Sucesso com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}.`);
+                                console.log(`✅ Sucesso com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}.`);
                                 break;
                             }
 
                             const errorData = await response.json();
                             const errorMessage = errorData.error?.message || `Erro ${response.status}`;
-                            console.warn(`Chave OpenRouter #${currentOpenRouterKeyIndex + 1} falhou: ${errorMessage}. Tentando a próxima...`);
+                            console.warn(`❌ Chave OpenRouter #${currentOpenRouterKeyIndex + 1} falhou: ${errorMessage}`);
                             lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${errorMessage}`;
 
                         } catch (error) {
-                             console.warn(`Erro na requisição com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}. Tentando a próxima...`);
-                             lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}`;
+                            console.warn(`🌐 Erro na requisição com a Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}`);
+                            lastAiResponse = `Falha na Chave OpenRouter #${currentOpenRouterKeyIndex + 1}: ${error.message}`;
                         }
 
                         currentOpenRouterKeyIndex = (currentOpenRouterKeyIndex + 1) % OPENROUTER_API_KEYS.length;
@@ -897,17 +972,16 @@
                 }
 
                 // --- 4. Retorno ---
-                console.log("Resposta bruta da IA:", aiResponseText);
+                console.log("📝 Resposta bruta da IA:", aiResponseText);
                 lastAiResponse = aiResponseText;
                 return aiResponseText;
 
             } catch (error) {
-                console.error(`Falha ao obter resposta da IA (${currentAiProvider}):`, error.message);
+                console.error(`💥 Falha ao obter resposta da IA (${currentAiProvider}):`, error.message);
                 lastAiResponse = `Erro: ${error.message}`;
                 throw error;
             }
         }
-
 
         async function performAction(aiAnswerText, quizData) {
         if (!aiAnswerText) return;
@@ -1400,97 +1474,98 @@
             });
         }
 
+        // --- FUNÇÃO makeDraggable CORRIGIDA ---
         function makeDraggable(panel, handle) {
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
 
-    // Eventos para desktop
-    handle.addEventListener('mousedown', dragStart);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', dragEnd);
+            // Eventos para desktop
+            handle.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
 
-    // Eventos para mobile
-    handle.addEventListener('touchstart', dragStart);
-    document.addEventListener('touchmove', drag);
-    document.addEventListener('touchend', dragEnd);
+            // Eventos para mobile
+            handle.addEventListener('touchstart', dragStart);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('touchend', dragEnd);
 
-    function dragStart(e) {
-        if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+            function dragStart(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
-        if (e.type === 'touchstart') {
-            initialX = e.touches[0].clientX - xOffset;
-            initialY = e.touches[0].clientY - yOffset;
-        } else {
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+
+                // Converte posição bottom/right para top/left se necessário
+                if (panel.style.bottom || panel.style.right) {
+                    const rect = panel.getBoundingClientRect();
+                    panel.style.bottom = 'auto';
+                    panel.style.right = 'auto';
+                    panel.style.top = rect.top + 'px';
+                    panel.style.left = rect.left + 'px';
+                }
+
+                // Obtém a posição atual
+                currentX = parseFloat(panel.style.left) || 0;
+                currentY = parseFloat(panel.style.top) || 0;
+
+                isDragging = true;
+                panel.style.transition = 'none';
+                handle.style.cursor = 'grabbing';
+                
+                e.preventDefault();
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+
+                if (e.type === 'touchmove') {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                // Limita o movimento dentro da tela
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+
+                currentX = Math.max(0, Math.min(currentX, maxX));
+                currentY = Math.max(0, Math.min(currentY, maxY));
+
+                setTranslate(currentX, currentY, panel);
+                
+                e.preventDefault();
+            }
+
+            function dragEnd() {
+                if (!isDragging) return;
+                
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                handle.style.cursor = 'grab';
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.left = xPos + 'px';
+                el.style.top = yPos + 'px';
+            }
         }
-
-        // Converte posição bottom/right para top/left se necessário
-        if (panel.style.bottom || panel.style.right) {
-            const rect = panel.getBoundingClientRect();
-            panel.style.bottom = 'auto';
-            panel.style.right = 'auto';
-            panel.style.top = rect.top + 'px';
-            panel.style.left = rect.left + 'px';
-        }
-
-        // Obtém a posição atual
-        currentX = parseFloat(panel.style.left) || 0;
-        currentY = parseFloat(panel.style.top) || 0;
-
-        isDragging = true;
-        panel.style.transition = 'none';
-        handle.style.cursor = 'grabbing';
-        
-        e.preventDefault();
-    }
-
-    function drag(e) {
-        if (!isDragging) return;
-
-        if (e.type === 'touchmove') {
-            currentX = e.touches[0].clientX - initialX;
-            currentY = e.touches[0].clientY - initialY;
-        } else {
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-        }
-
-        xOffset = currentX;
-        yOffset = currentY;
-
-        // Limita o movimento dentro da tela
-        const maxX = window.innerWidth - panel.offsetWidth;
-        const maxY = window.innerHeight - panel.offsetHeight;
-
-        currentX = Math.max(0, Math.min(currentX, maxX));
-        currentY = Math.max(0, Math.min(currentY, maxY));
-
-        setTranslate(currentX, currentY, panel);
-        
-        e.preventDefault();
-    }
-
-    function dragEnd() {
-        if (!isDragging) return;
-        
-        initialX = currentX;
-        initialY = currentY;
-        isDragging = false;
-        panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-        handle.style.cursor = 'grab';
-    }
-
-    function setTranslate(xPos, yPos, el) {
-        el.style.left = xPos + 'px';
-        el.style.top = yPos + 'px';
-    }
-}
 
         function criarFloatingPanel() {
             if (document.getElementById('mlk-mau-floating-panel')) return;
