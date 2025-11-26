@@ -264,7 +264,7 @@
             });
             
             const openRouterTitle = document.createElement('h3');
-            openRouterTitle.innerText = 'OpenRouter API Keys';
+            openRouterTitle.innerText = 'OpenRouter API Keys (DeepSeek)';
             Object.assign(openRouterTitle.style, {
                 color: '#a78bfa',
                 margin: '0',
