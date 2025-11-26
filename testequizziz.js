@@ -1,4 +1,3 @@
-
 (function() {
     'use strict';
 
@@ -9,6 +8,7 @@
     let OPENROUTER_API_KEYS = [];
     let currentAiProvider = 'gemini';
     const DEEPSEEK_MODEL_NAME = "deepseek/deepseek-chat";
+    let rgbEnabled = true; // Variável para controlar o estado do RGB
 
     // Função para verificar quais provedores estão disponíveis
     function getAvailableProviders() {
@@ -698,8 +698,6 @@
 
         async function obterRespostaDaIA(quizData) {
             lastAiResponse = '';
-            const viewResponseBtn = document.getElementById('view-raw-response-btn');
-            if (viewResponseBtn) viewResponseBtn.style.display = 'none';
 
             // --- 1. Lógica de Prompt ---
             let promptDeInstrucao = "", formattedOptions = "";
@@ -1292,10 +1290,6 @@
                 alert("Ocorreu um erro: " + error.message);
             }
         } finally {
-            const viewResponseBtn = document.getElementById('view-raw-response-btn');
-            if (viewResponseBtn && lastAiResponse) {
-                viewResponseBtn.style.display = 'block';
-            }
             button.disabled = false;
             button.innerText = "Puxar Resposta";
             button.style.transform = 'scale(1)';
@@ -1487,6 +1481,21 @@
             });
         }
 
+        function updateButtonStyle() {
+            const button = document.getElementById('ai-solver-button');
+            if (!button) return;
+
+            if (rgbEnabled) {
+                button.style.background = 'linear-gradient(90deg, #cc0000, #cc6600, #cccc00, #00cc00, #00cccc, #0000cc, #6600cc, #cc00cc, #cc0000)';
+                button.style.backgroundSize = '400% 400%';
+                button.style.animation = 'rgbFlow 3s linear infinite';
+            } else {
+                button.style.background = '#8b5cf6';
+                button.style.backgroundSize = 'auto';
+                button.style.animation = 'none';
+            }
+        }
+
         function criarFloatingPanel() {
             if (document.getElementById('mlk-mau-floating-panel')) return;
             
@@ -1513,56 +1522,6 @@
                 cursor: 'grab',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
             });
-
-            const responseViewer = document.createElement('div');
-            responseViewer.id = 'ai-response-viewer';
-            Object.assign(responseViewer.style, {
-                display: 'none', 
-                position: 'absolute', 
-                bottom: 'calc(100% + 10px)', 
-                right: '0',
-                width: '300px', 
-                maxHeight: '200px', 
-                overflowY: 'auto',
-                background: 'rgba(10, 10, 15, 0.95)', 
-                backdropFilter: 'blur(5px)',
-                borderRadius: '8px', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                padding: '12px', 
-                color: '#f0f0f0', 
-                fontSize: '12px',
-                fontFamily: 'monospace', 
-                whiteSpace: 'pre-wrap', 
-                wordBreak: 'break-all',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-                textAlign: 'left'
-            });
-            panel.appendChild(responseViewer);
-
-            const viewResponseBtn = document.createElement('button');
-            viewResponseBtn.id = 'view-raw-response-btn';
-            Object.assign(viewResponseBtn.style, {
-                background: 'none', 
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'rgba(255, 255, 255, 0.6)', 
-                cursor: 'pointer',
-                fontSize: '11px', 
-                padding: '4px 8px', 
-                borderRadius: '6px',
-                display: 'none', 
-                transition: 'all 0.2s ease',
-                marginBottom: '4px'
-            });
-            viewResponseBtn.innerText = 'Ultimada Resposta Obtida';
-            viewResponseBtn.addEventListener('click', () => {
-                if (responseViewer.style.display === 'block') {
-                    responseViewer.style.display = 'none';
-                } else {
-                    responseViewer.innerText = lastAiResponse || "Nenhuma resposta da IA foi recebida ainda.";
-                    responseViewer.style.display = 'block';
-                }
-            });
-            panel.appendChild(viewResponseBtn);
 
             // --- CONTROLES ---
             const controlsContainer = document.createElement('div');
@@ -1703,6 +1662,52 @@
                 panel.appendChild(aiIndicator);
             }
 
+            // --- BOTÃO TOGGLE RGB ---
+            const rgbToggleContainer = document.createElement('div');
+            Object.assign(rgbToggleContainer.style, {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '8px',
+                gap: '8px'
+            });
+
+            const rgbToggleLabel = document.createElement('span');
+            rgbToggleLabel.innerText = 'RGB:';
+            Object.assign(rgbToggleLabel.style, {
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '11px',
+                fontWeight: '500'
+            });
+
+            const rgbToggle = document.createElement('button');
+            rgbToggle.id = 'rgb-toggle-btn';
+            rgbToggle.innerText = rgbEnabled ? 'ON' : 'OFF';
+            Object.assign(rgbToggle.style, {
+                background: rgbEnabled ? '#8b5cf6' : 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: rgbEnabled ? 'white' : 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                fontSize: '11px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease',
+                minWidth: '40px'
+            });
+
+            rgbToggle.addEventListener('click', () => {
+                rgbEnabled = !rgbEnabled;
+                rgbToggle.innerText = rgbEnabled ? 'ON' : 'OFF';
+                rgbToggle.style.background = rgbEnabled ? '#8b5cf6' : 'rgba(255, 255, 255, 0.1)';
+                rgbToggle.style.color = rgbEnabled ? 'white' : 'rgba(255, 255, 255, 0.6)';
+                
+                updateButtonStyle();
+            });
+
+            rgbToggleContainer.appendChild(rgbToggleLabel);
+            rgbToggleContainer.appendChild(rgbToggle);
+            panel.appendChild(rgbToggleContainer);
+
             // --- BOTÃO PRINCIPAL DE RESOLVER QUESTÃO ---
             const button = document.createElement('button');
             button.id = 'ai-solver-button';
@@ -1769,8 +1774,8 @@
 
             // --- LÓGICA DE MINIMIZAR ---
             const contentToToggle = [
-                'view-raw-response-btn',
                 'ai-toggle-btn',
+                'rgb-toggle-btn',
                 'ai-solver-button',
                 'mlk-mau-watermark'
             ];
@@ -1795,7 +1800,6 @@
                     });
                     panel.style.padding = '8px';
                     panel.style.gap = '5px';
-                    responseViewer.style.display = 'none';
                 } else {
                     minimizeBtn.innerHTML = '−';
                     contentToToggle.forEach(id => {
@@ -1804,9 +1808,6 @@
                     });
                     panel.style.padding = '12px';
                     panel.style.gap = '10px';
-                    if (!lastAiResponse) {
-                        document.getElementById('view-raw-response-btn').style.display = 'none';
-                    }
                 }
             });
 
