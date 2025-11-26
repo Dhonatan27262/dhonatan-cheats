@@ -1,4 +1,3 @@
-
 (function() {
     'use strict';
 
@@ -1402,90 +1401,96 @@
         }
 
         function makeDraggable(panel, handle) {
-            let offsetX = 0, offsetY = 0, isDragging = false;
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
 
-            handle.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
+    // Eventos para desktop
+    handle.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
 
-                isDragging = true;
-                const rect = panel.getBoundingClientRect();
+    // Eventos para mobile
+    handle.addEventListener('touchstart', dragStart);
+    document.addEventListener('touchmove', drag);
+    document.addEventListener('touchend', dragEnd);
 
-                if (panel.style.bottom || panel.style.right) {
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    panel.style.top = rect.top + 'px';
-                    panel.style.left = rect.left + 'px';
-                }
+    function dragStart(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
 
-                offsetX = e.clientX - panel.getBoundingClientRect().left;
-                offsetY = e.clientY - panel.getBoundingClientRect().top;
-
-                panel.style.transition = 'none';
-                handle.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-
-                let newX = e.clientX - offsetX;
-                let newY = e.clientY - offsetY;
-
-                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
-
-                panel.style.top = newY + 'px';
-                panel.style.left = newX + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-                handle.style.cursor = 'grab';
-            });
-
-            handle.addEventListener('touchstart', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('a')) return;
-
-                isDragging = true;
-                const rect = panel.getBoundingClientRect();
-                const touch = e.touches[0];
-
-                if (panel.style.bottom || panel.style.right) {
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    panel.style.top = rect.top + 'px';
-                    panel.style.left = rect.left + 'px';
-                }
-
-                offsetX = touch.clientX - panel.getBoundingClientRect().left;
-                offsetY = touch.clientY - panel.getBoundingClientRect().top;
-
-                panel.style.transition = 'none';
-                e.preventDefault();
-            });
-
-            document.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-
-                const touch = e.touches[0];
-                let newX = touch.clientX - offsetX;
-                let newY = touch.clientY - offsetY;
-
-                newX = Math.max(0, Math.min(newX, window.innerWidth - panel.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - panel.offsetHeight));
-
-                panel.style.top = newY + 'px';
-                panel.style.left = newX + 'px';
-                e.preventDefault();
-            });
-
-            document.addEventListener('touchend', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-            });
+        if (e.type === 'touchstart') {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
         }
+
+        // Converte posição bottom/right para top/left se necessário
+        if (panel.style.bottom || panel.style.right) {
+            const rect = panel.getBoundingClientRect();
+            panel.style.bottom = 'auto';
+            panel.style.right = 'auto';
+            panel.style.top = rect.top + 'px';
+            panel.style.left = rect.left + 'px';
+        }
+
+        // Obtém a posição atual
+        currentX = parseFloat(panel.style.left) || 0;
+        currentY = parseFloat(panel.style.top) || 0;
+
+        isDragging = true;
+        panel.style.transition = 'none';
+        handle.style.cursor = 'grabbing';
+        
+        e.preventDefault();
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+
+        if (e.type === 'touchmove') {
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+        } else {
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+        }
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        // Limita o movimento dentro da tela
+        const maxX = window.innerWidth - panel.offsetWidth;
+        const maxY = window.innerHeight - panel.offsetHeight;
+
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+
+        setTranslate(currentX, currentY, panel);
+        
+        e.preventDefault();
+    }
+
+    function dragEnd() {
+        if (!isDragging) return;
+        
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        panel.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+        handle.style.cursor = 'grab';
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.left = xPos + 'px';
+        el.style.top = yPos + 'px';
+    }
+}
 
         function criarFloatingPanel() {
             if (document.getElementById('mlk-mau-floating-panel')) return;
