@@ -1,3 +1,4 @@
+
 (function() {
     'use strict';
 
@@ -1644,7 +1645,6 @@
             if (availableProviders.length > 1) {
                 // Frame acima do botão de IA
                 const aiInstruction = document.createElement('div');
-                aiInstruction.id = 'ai-instruction-text';
                 aiInstruction.innerHTML = 'Escolha abaixo a IA que você configurou.';
                 Object.assign(aiInstruction.style, {
                     color: 'rgba(255, 255, 255, 0.7)',
@@ -1793,11 +1793,6 @@
                         const el = document.getElementById(id);
                         if (el) el.style.display = 'none';
                     });
-                    // Alterar o texto da instrução para "PAINEL WAYGROUND" quando minimizado
-                    const aiInstruction = document.getElementById('ai-instruction-text');
-                    if (aiInstruction) {
-                        aiInstruction.innerText = 'PAINEL WAYGROUND';
-                    }
                     panel.style.padding = '8px';
                     panel.style.gap = '5px';
                     responseViewer.style.display = 'none';
@@ -1807,11 +1802,6 @@
                         const el = document.getElementById(id);
                         if (el) el.style.display = '';
                     });
-                    // Restaurar o texto original quando expandido
-                    const aiInstruction = document.getElementById('ai-instruction-text');
-                    if (aiInstruction) {
-                        aiInstruction.innerText = 'Escolha abaixo a IA que você configurou.';
-                    }
                     panel.style.padding = '12px';
                     panel.style.gap = '10px';
                     if (!lastAiResponse) {
