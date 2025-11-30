@@ -182,19 +182,19 @@ function showWelcomeToasts() {
             fill: currentColor;
         }
 
-        /* GORRO CORRIGIDO - AGORA REALMENTE FORA DO PAINEL */
+        /* GORRO CORRIGIDO - AGORA NA JANELA MAS PARA FORA */
         .gorro-natal {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 80px;
-            height: 80px;
+            position: absolute;
+            top: -35px;
+            right: -25px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,0.15);
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             object-fit: cover;
             background: rgba(255,255,255,0.05);
-            z-index: 1000000;
+            z-index: 1001;
             transform: rotate(15deg);
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
             animation: balancarGorro 3s ease-in-out infinite;
@@ -212,10 +212,10 @@ function showWelcomeToasts() {
             .sidebar-nav-btn{ font-size:13px; padding:10px; }
             .dh-btn{ font-size:13px; padding:8px 10px; }
             .gorro-natal {
-                width: 60px;
-                height: 60px;
-                top: 5px;
-                right: 5px;
+                width: 50px;
+                height: 50px;
+                top: -25px;
+                right: -15px;
             }
         }
         `;
@@ -244,10 +244,12 @@ function showWelcomeToasts() {
             border: '1px solid rgba(255,255,255,0.04)',
             maxWidth: '900px',
             width: '94%',
-            textAlign: 'center'
+            textAlign: 'center',
+            position: 'relative' // IMPORTANTE: para o gorro posicionar corretamente
         });
     };
 
+    // ... (o resto das funções permanecem EXATAMENTE como estavam no seu código original)
     // ---------- funções originais (mantidas INTEIRAS do script que você enviou) ----------
     const mostrarInfoDono = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
@@ -347,7 +349,7 @@ function showWelcomeToasts() {
         return { pergunta, alternativas };
     };
 
-    // ---------- encontrarRespostaColar (OFUSCAÇÃO REMOVIDA; URLs expostas abaixo) ----------
+    // ---------- encontrarRespostaColar ----------
     async function encontrarRespostaColar(options = {}) {
       const debug = !!options.debug;
       sendToast('⌛ Carregando script...', 3000);
@@ -460,7 +462,7 @@ function showWelcomeToasts() {
         }
     };
     
-    // ---------- modal do Termo de Responsabilidade (chamar antes de criarMenu) ----------
+    // ---------- modal do Termo de Responsabilidade ----------
 function showTermoResponsabilidade(onAccept, onReject) {
     const modal = document.createElement('div');
     Object.assign(modal.style, {
@@ -856,7 +858,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
       try {
         const urlsToTry = [primaryURL, fallbackURL];
 
-        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout = 15000, backoff: 700 });
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
         if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
@@ -1267,7 +1269,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         }
     }
 
-    // ---------- criarMenu (MODIFICADA COM GORRO FORA DO PAINEL) ----------
+    // ---------- criarMenu (CORRIGIDA - GORRO NA JANELA MAS PARA FORA) ----------
     const criarMenu = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
@@ -1286,14 +1288,14 @@ const carregarSenhasRemotas = async (opts = {}) => {
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
 
-        // GORRO DO PAPAI NOEL - AGORA REALMENTE FORA DO PAINEL
+        // GORRO DO PAPAI NOEL - AGORA NA JANELA MAS POSICIONADO PARA FORA
         const gorroImg = document.createElement('img');
         gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
         gorroImg.alt = 'Gorro de Natal';
         gorroImg.className = 'gorro-natal';
 
-        // Adiciona o gorro diretamente no FUNDO (não na janela)
-        fundo.appendChild(gorroImg);
+        // Adiciona o gorro à JANELA (não ao fundo)
+        janela.appendChild(gorroImg);
 
         // header
         const header = document.createElement('div');
