@@ -1384,33 +1384,30 @@ headerControls.appendChild(btnFecharHeader);
 
 header.appendChild(headerControls);
 
-// ===== 🧢 GORRO REPOSICIONADO (fora do fluxo, maior, inclinado) =====
+// ===== GORRO PENDURADO NA BORDA SUPERIOR =====
 const gorroContainer = document.createElement("div");
 Object.assign(gorroContainer.style, {
     position: "absolute",
-    top: "-16px",       // sobe um pouco para atravessar o topo
-    right: "54px",      // perto dos botões (ajustável)
+    top: "-28px",         // sobe bastante para ficar pendurado
+    right: "-6px",        // encosta na curva da borda
     zIndex: "1000003",
-    width: "76px",
-    height: "76px",
+    width: "82px",
+    height: "82px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    pointerEvents: "none" // evita interferir nos botões
+    pointerEvents: "none" // não bloqueia botões
 });
 
 const gorroImg = document.createElement("img");
 gorroImg.src = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png";
 gorroImg.alt = "Gorro de Natal";
 Object.assign(gorroImg.style, {
-    width: "72px",
-    height: "72px",
-    borderRadius: "50%",
-    border: "3px solid rgba(255,255,255,0.1)",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.45)",
-    objectFit: "cover",
-    background: "rgba(255,255,255,0.05)",
-    transform: "rotate(-12deg) translateY(-3px)"  // inclinação bonita
+    width: "78px",
+    height: "78px",
+    objectFit: "contain",
+    transform: "rotate(-22deg)", // inclinadinho como chapéu pendurado
+    filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.45))"
 });
 
 gorroContainer.appendChild(gorroImg);
