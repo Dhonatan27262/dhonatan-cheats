@@ -48,7 +48,7 @@ function showWelcomeToasts() {
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-    // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estável) ----------
+    // ---------- INJETAR CSS (COM ESTILOS DO GORRO CORRIGIDOS) ----------
     const injectStyles = () => {
         if (document.getElementById('dh-global-styles')) return;
         const style = document.createElement('style');
@@ -182,22 +182,23 @@ function showWelcomeToasts() {
             fill: currentColor;
         }
 
-        /* Estilo para o gorro de natal */
+        /* GORRO CORRIGIDO - AGORA REALMENTE FORA DO PAINEL */
         .gorro-natal {
-            position: absolute;
-            top: -45px;
-            right: -25px;
-            width: 100px;
-            height: 100px;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,0.15);
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             object-fit: cover;
             background: rgba(255,255,255,0.05);
-            z-index: 1001;
+            z-index: 1000000;
             transform: rotate(15deg);
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
             animation: balancarGorro 3s ease-in-out infinite;
+            pointer-events: none;
         }
 
         @keyframes balancarGorro {
@@ -211,10 +212,10 @@ function showWelcomeToasts() {
             .sidebar-nav-btn{ font-size:13px; padding:10px; }
             .dh-btn{ font-size:13px; padding:8px 10px; }
             .gorro-natal {
-                width: 70px;
-                height: 70px;
-                top: -35px;
-                right: -15px;
+                width: 60px;
+                height: 60px;
+                top: 5px;
+                right: 5px;
             }
         }
         `;
@@ -243,8 +244,7 @@ function showWelcomeToasts() {
             border: '1px solid rgba(255,255,255,0.04)',
             maxWidth: '900px',
             width: '94%',
-            textAlign: 'center',
-            position: 'relative' // Adicionado para posicionamento do gorro
+            textAlign: 'center'
         });
     };
 
@@ -856,7 +856,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
       try {
         const urlsToTry = [primaryURL, fallbackURL];
 
-        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+        const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout = 15000, backoff: 700 });
 
         if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
@@ -1267,7 +1267,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         }
     }
 
-    // ---------- criarMenu (MODIFICADA COM GORRO) ----------
+    // ---------- criarMenu (MODIFICADA COM GORRO FORA DO PAINEL) ----------
     const criarMenu = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
@@ -1285,16 +1285,15 @@ const carregarSenhasRemotas = async (opts = {}) => {
         janela.style.height = '56vh';
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
-        janela.style.position = 'relative'; // Importante para o posicionamento do gorro
 
-        // GORRO DO PAPAI NOEL - POSICIONADO NA BORDA SUPERIOR DIREITA
+        // GORRO DO PAPAI NOEL - AGORA REALMENTE FORA DO PAINEL
         const gorroImg = document.createElement('img');
         gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
         gorroImg.alt = 'Gorro de Natal';
         gorroImg.className = 'gorro-natal';
 
-        // Adiciona o gorro diretamente na janela principal
-        janela.appendChild(gorroImg);
+        // Adiciona o gorro diretamente no FUNDO (não na janela)
+        fundo.appendChild(gorroImg);
 
         // header
         const header = document.createElement('div');
