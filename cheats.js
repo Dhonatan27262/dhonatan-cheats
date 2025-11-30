@@ -1334,7 +1334,7 @@ const criarMenu = () => {
 
     // Criar e configurar a imagem do gorro
     const gorroImg = document.createElement('img');
-    gorroImg.src = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/fotocanto.js';
+    gorroImg.src = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/Natal.png';
     gorroImg.alt = 'Gorro de Natal';
     Object.assign(gorroImg.style, {
         width: '36px',
