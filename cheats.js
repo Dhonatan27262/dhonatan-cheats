@@ -1297,101 +1297,133 @@ const criarMenu = () => {
     janela.style.padding = '0';
     janela.style.overflow = 'hidden';
 
-    // header MODIFICADO com imagem do gorro
-    const header = document.createElement('div');
-    Object.assign(header.style, { 
-        height: '56px', 
-        padding: '12px 16px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        borderBottom: '1px solid rgba(255,255,255,0.03)' 
-    });
+    // ===== HEADER COMPLETO COM GORRO REPOSICIONADO =====
+janela.style.position = "relative"; // permite colocar o gorro por cima do header
 
-    const leftHeader = document.createElement('div');
-    leftHeader.style.display = 'flex';
-    leftHeader.style.alignItems = 'center';
-    leftHeader.style.gap = '12px';
+const header = document.createElement('div');
+Object.assign(header.style, { 
+    height: '56px', 
+    padding: '12px 16px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    borderBottom: '1px solid rgba(255,255,255,0.03)' 
+});
 
-    const title = document.createElement('div');
-    title.textContent = 'PAINEL AUXÍLIO';
-    Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
+// LEFT HEADER
+const leftHeader = document.createElement('div');
+leftHeader.style.display = 'flex';
+leftHeader.style.alignItems = 'center';
+leftHeader.style.gap = '12px';
 
-    leftHeader.appendChild(title);
+const title = document.createElement('div');
+title.textContent = 'PAINEL AUXÍLIO';
+Object.assign(title.style, { 
+    fontSize: '16px', 
+    fontWeight: '900', 
+    letterSpacing: '1px', 
+    color: '#fff' 
+});
 
-    relogio = document.createElement('div');
+leftHeader.appendChild(title);
+
+// Relógio
+relogio = document.createElement('div');
+relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+Object.assign(relogio.style, { 
+    fontSize: '13px', 
+    fontFamily: 'monospace', 
+    color: '#fff', 
+    fontWeight: '700', 
+    marginLeft: '8px' 
+});
+setInterval(() => {
     relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
-    setInterval(() => {
-        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    }, 1000);
+}, 1000);
 
-    // Container para a imagem do gorro
-    const rightHeader = document.createElement('div');
-    rightHeader.style.display = 'flex';
-    rightHeader.style.alignItems = 'center';
-    rightHeader.style.gap = '12px';
+// RIGHT HEADER (continua existindo, igual ao seu)
+const rightHeader = document.createElement('div');
+rightHeader.style.display = 'flex';
+rightHeader.style.alignItems = 'center';
+rightHeader.style.gap = '12px';
 
-    // Criar e configurar a imagem do gorro
-    const gorroImg = document.createElement('img');
-    gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
-    gorroImg.alt = 'Gorro de Natal';
-    Object.assign(gorroImg.style, {
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        border: '2px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-        objectFit: 'cover',
-        background: 'rgba(255,255,255,0.05)'
-    });
+// AQUI: O gorro NÃO vai mais dentro do header
+// mas vou manter o rightHeader vazio para não quebrar sua estrutura.
+header.appendChild(leftHeader);
+header.appendChild(rightHeader);
 
-    // Adicionar a imagem ao rightHeader
-    rightHeader.appendChild(gorroImg);
+// HEADER CONTROLS
+const headerControls = document.createElement('div');
+headerControls.className = 'dh-header-controls';
 
-    // header controls
-    const headerControls = document.createElement('div');
-    headerControls.className = 'dh-header-controls';
+const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
 
-    const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-    const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+const btnFecharHeader = document.createElement('button');
+btnFecharHeader.className = 'dh-header-btn';
+btnFecharHeader.innerHTML = svgClose;
+btnFecharHeader.title = 'Fechar';
+btnFecharHeader.onclick = () => {
+    if (fundo) try { fundo.remove(); } catch(e){}
+    const botaoFlutuante = document.getElementById('dhonatanBotao');
+    if (botaoFlutuante) botaoFlutuante.remove();
+};
 
-    const btnFecharHeader = document.createElement('button');
-    btnFecharHeader.className = 'dh-header-btn';
-    btnFecharHeader.innerHTML = svgClose;
-    btnFecharHeader.title = 'Fechar';
-    btnFecharHeader.onclick = () => {
-        if (fundo) try { fundo.remove(); } catch(e){}
-        const botaoFlutuante = document.getElementById('dhonatanBotao');
-        if (botaoFlutuante) botaoFlutuante.remove();
-    };
+const btnMinimHeader = document.createElement('button');
+btnMinimHeader.className = 'dh-header-btn';
+btnMinimHeader.innerHTML = svgMin;
+btnMinimHeader.title = 'Minimizar';
+btnMinimHeader.onclick = () => {
+    if (fundo) try { fundo.remove(); } catch(e){}
+    criarBotaoFlutuante();
+};
 
-    const btnMinimHeader = document.createElement('button');
-    btnMinimHeader.className = 'dh-header-btn';
-    btnMinimHeader.innerHTML = svgMin;
-    btnMinimHeader.title = 'Minimizar';
-    btnMinimHeader.onclick = () => {
-        if (fundo) try { fundo.remove(); } catch(e){}
-        criarBotaoFlutuante();
-    };
+headerControls.appendChild(relogio);
+headerControls.appendChild(btnMinimHeader);
+headerControls.appendChild(btnFecharHeader);
 
-    headerControls.appendChild(relogio);
-    headerControls.appendChild(btnMinimHeader);
-    headerControls.appendChild(btnFecharHeader);
+header.appendChild(headerControls);
 
-    // MODIFICADO: Adiciona todos os elementos ao header na ordem correta
-    header.appendChild(leftHeader);
-    header.appendChild(rightHeader); // Imagem do gorro
-    header.appendChild(headerControls);
+// ===== 🧢 GORRO REPOSICIONADO (fora do fluxo, maior, inclinado) =====
+const gorroContainer = document.createElement("div");
+Object.assign(gorroContainer.style, {
+    position: "absolute",
+    top: "-16px",       // sobe um pouco para atravessar o topo
+    right: "54px",      // perto dos botões (ajustável)
+    zIndex: "1000003",
+    width: "76px",
+    height: "76px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    pointerEvents: "none" // evita interferir nos botões
+});
 
-    // body wrap
-    const bodyWrap = document.createElement('div');
-    Object.assign(bodyWrap.style, { 
-        display: 'flex', 
-        flex: '1 1 auto', 
-        minHeight: '0', 
-        overflow: 'hidden' 
-    });
+const gorroImg = document.createElement("img");
+gorroImg.src = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png";
+gorroImg.alt = "Gorro de Natal";
+Object.assign(gorroImg.style, {
+    width: "72px",
+    height: "72px",
+    borderRadius: "50%",
+    border: "3px solid rgba(255,255,255,0.1)",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.45)",
+    objectFit: "cover",
+    background: "rgba(255,255,255,0.05)",
+    transform: "rotate(-12deg) translateY(-3px)"  // inclinação bonita
+});
+
+gorroContainer.appendChild(gorroImg);
+janela.appendChild(gorroContainer);
+
+// ===== BODY WRAP (mantido exatamente igual) =====
+const bodyWrap = document.createElement('div');
+Object.assign(bodyWrap.style, { 
+    display: 'flex', 
+    flex: '1 1 auto', 
+    minHeight: '0', 
+    overflow: 'hidden' 
+});
 
     // sidebar
     const sidebar = document.createElement('div');
