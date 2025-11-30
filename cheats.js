@@ -1279,107 +1279,164 @@ const fallbackParts = [
     }
 
     // ---------- criarMenu (após login) ----------
-    const criarMenu = () => {
-        if (fundo) try { fundo.remove(); } catch(e){}
-        fundo = document.createElement('div');
-        Object.assign(fundo.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.82)', zIndex: '999999', display: 'flex', alignItems: 'center', justifyContent: 'center'
-        });
+const criarMenu = () => {
+    if (fundo) try { fundo.remove(); } catch(e){}
+    fundo = document.createElement('div');
+    Object.assign(fundo.style, {
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.82)', zIndex: '999999', display: 'flex', alignItems: 'center', justifyContent: 'center'
+    });
 
-        janela = document.createElement('div');
-        aplicarEstiloContainer(janela);
-        janela.style.display = 'flex';
-        janela.style.flexDirection = 'column';
-        janela.style.width = '92%';
-        janela.style.maxWidth = '820px';
-        janela.style.height = '56vh'; // altura reduzida
-        janela.style.padding = '0';
-        janela.style.overflow = 'hidden';
+    janela = document.createElement('div');
+    aplicarEstiloContainer(janela);
+    janela.style.display = 'flex';
+    janela.style.flexDirection = 'column';
+    janela.style.width = '92%';
+    janela.style.maxWidth = '820px';
+    janela.style.height = '56vh';
+    janela.style.padding = '0';
+    janela.style.overflow = 'hidden';
 
-        // header
-        const header = document.createElement('div');
-        Object.assign(header.style, { height: '56px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)' });
+    // header MODIFICADO com imagem do gorro
+    const header = document.createElement('div');
+    Object.assign(header.style, { 
+        height: '56px', 
+        padding: '12px 16px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        borderBottom: '1px solid rgba(255,255,255,0.03)' 
+    });
 
-        const leftHeader = document.createElement('div');
-        leftHeader.style.display = 'flex';
-        leftHeader.style.alignItems = 'center';
-        leftHeader.style.gap = '12px';
+    const leftHeader = document.createElement('div');
+    leftHeader.style.display = 'flex';
+    leftHeader.style.alignItems = 'center';
+    leftHeader.style.gap = '12px';
 
-        const title = document.createElement('div');
-        title.textContent = 'PAINEL AUXÍLIO';
-        Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
+    const title = document.createElement('div');
+    title.textContent = 'PAINEL AUXÍLIO';
+    Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
 
-        leftHeader.appendChild(title);
+    leftHeader.appendChild(title);
 
-        relogio = document.createElement('div');
+    relogio = document.createElement('div');
+    relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
+    setInterval(() => {
         relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
-        setInterval(() => {
-            relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        }, 1000);
+    }, 1000);
 
-        // header controls (close and minimize) - moved to header as requested
-        const headerControls = document.createElement('div');
-        headerControls.className = 'dh-header-controls';
+    // Container para a imagem do gorro
+    const rightHeader = document.createElement('div');
+    rightHeader.style.display = 'flex';
+    rightHeader.style.alignItems = 'center';
+    rightHeader.style.gap = '12px';
 
-        const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-        const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+    // Criar e configurar a imagem do gorro
+    const gorroImg = document.createElement('img');
+    gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/fotocanto.js';
+    gorroImg.alt = 'Gorro de Natal';
+    Object.assign(gorroImg.style, {
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        border: '2px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+        objectFit: 'cover',
+        background: 'rgba(255,255,255,0.05)'
+    });
 
-        const btnFecharHeader = document.createElement('button');
-        btnFecharHeader.className = 'dh-header-btn';
-        btnFecharHeader.innerHTML = svgClose;
-        btnFecharHeader.title = 'Fechar';
-        btnFecharHeader.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            const botaoFlutuante = document.getElementById('dhonatanBotao');
-            if (botaoFlutuante) botaoFlutuante.remove();
-        };
+    // Adicionar a imagem ao rightHeader
+    rightHeader.appendChild(gorroImg);
 
-        const btnMinimHeader = document.createElement('button');
-        btnMinimHeader.className = 'dh-header-btn';
-        btnMinimHeader.innerHTML = svgMin;
-        btnMinimHeader.title = 'Minimizar';
-        btnMinimHeader.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            criarBotaoFlutuante();
-        };
+    // header controls
+    const headerControls = document.createElement('div');
+    headerControls.className = 'dh-header-controls';
 
-        headerControls.appendChild(relogio);
-        headerControls.appendChild(btnMinimHeader);
-        headerControls.appendChild(btnFecharHeader);
+    const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+    const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
 
-        header.appendChild(leftHeader);
-        header.appendChild(headerControls);
-
-        // body wrap
-        const bodyWrap = document.createElement('div');
-        Object.assign(bodyWrap.style, { display: 'flex', flex: '1 1 auto', minHeight: '0', overflow: 'hidden' });
-
-        // sidebar
-        const sidebar = document.createElement('div');
-        Object.assign(sidebar.style, { width: '220px', background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding: '14px', borderRight: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' });
-
-        // texto MENU (restaurado)
-        const sidebarTitle = document.createElement('div');
-        sidebarTitle.textContent = 'MENU';
-        Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '8px', fontWeight: '800' });
-        sidebar.appendChild(sidebarTitle);
-
-        // main panel
-        const mainPanel = document.createElement('div');
-        Object.assign(mainPanel.style, { flex: '1 1 auto', padding: '18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' });
-
-        bodyWrap.appendChild(sidebar);
-        bodyWrap.appendChild(mainPanel);
-
-        janela.appendChild(header);
-        janela.appendChild(bodyWrap);
-        fundo.appendChild(janela);
-        document.body.appendChild(fundo);
-
-        criarAbasInterface(sidebar, mainPanel);
+    const btnFecharHeader = document.createElement('button');
+    btnFecharHeader.className = 'dh-header-btn';
+    btnFecharHeader.innerHTML = svgClose;
+    btnFecharHeader.title = 'Fechar';
+    btnFecharHeader.onclick = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        const botaoFlutuante = document.getElementById('dhonatanBotao');
+        if (botaoFlutuante) botaoFlutuante.remove();
     };
+
+    const btnMinimHeader = document.createElement('button');
+    btnMinimHeader.className = 'dh-header-btn';
+    btnMinimHeader.innerHTML = svgMin;
+    btnMinimHeader.title = 'Minimizar';
+    btnMinimHeader.onclick = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        criarBotaoFlutuante();
+    };
+
+    headerControls.appendChild(relogio);
+    headerControls.appendChild(btnMinimHeader);
+    headerControls.appendChild(btnFecharHeader);
+
+    // MODIFICADO: Adiciona todos os elementos ao header na ordem correta
+    header.appendChild(leftHeader);
+    header.appendChild(rightHeader); // Imagem do gorro
+    header.appendChild(headerControls);
+
+    // body wrap
+    const bodyWrap = document.createElement('div');
+    Object.assign(bodyWrap.style, { 
+        display: 'flex', 
+        flex: '1 1 auto', 
+        minHeight: '0', 
+        overflow: 'hidden' 
+    });
+
+    // sidebar
+    const sidebar = document.createElement('div');
+    Object.assign(sidebar.style, { 
+        width: '220px', 
+        background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', 
+        padding: '14px', 
+        borderRight: '1px solid rgba(255,255,255,0.03)', 
+        display: 'flex', 
+        flexDirection: 'column' 
+    });
+
+    // texto MENU
+    const sidebarTitle = document.createElement('div');
+    sidebarTitle.textContent = 'MENU';
+    Object.assign(sidebarTitle.style, { 
+        fontSize: '12px', 
+        color: '#bdbdbd', 
+        marginBottom: '8px', 
+        fontWeight: '800' 
+    });
+    sidebar.appendChild(sidebarTitle);
+
+    // main panel
+    const mainPanel = document.createElement('div');
+    Object.assign(mainPanel.style, { 
+        flex: '1 1 auto', 
+        padding: '18px', 
+        overflowY: 'auto', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '8px', 
+        alignItems: 'stretch' 
+    });
+
+    bodyWrap.appendChild(sidebar);
+    bodyWrap.appendChild(mainPanel);
+
+    janela.appendChild(header);
+    janela.appendChild(bodyWrap);
+    fundo.appendChild(janela);
+    document.body.appendChild(fundo);
+
+    criarAbasInterface(sidebar, mainPanel);
+};
 
     // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
     const criarInterface = () => {
