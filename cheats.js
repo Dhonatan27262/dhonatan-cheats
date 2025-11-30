@@ -217,6 +217,31 @@ function showWelcomeToasts() {
             textAlign: 'center'
         });
     };
+    
+            // --- CONFIG: carregar URL da imagem do canto (pode vir de fotocanto.js externo) ---
+    async function loadScriptUrl(src) {
+        return new Promise((resolve) => {
+            if (!src) return resolve(false);
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.onload = () => resolve(true);
+            s.onerror = () => resolve(false); // não quebra o fluxo
+            document.head.appendChild(s);
+        });
+    }
+
+    // URL recomendada: use CDN jsDelivr para melhor compatibilidade/caching.
+    // Substitua "auxpainel/2050" / "fotocanto.js" pelo seu repo/arquivo se for o caso.
+    const FOTO_CANTO_JS_URL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/fotocanto.js';
+
+    // tenta carregar (com cache-buster para garantir atualização ao editar o fotocanto.js)
+    await loadScriptUrl(FOTO_CANTO_JS_URL + '?_=' + Date.now());
+
+    // valor final (prioriza window.fotoCantoURL definido externamente)
+    const FOTO_CANTO_SRC = (window.fotoCantoURL && String(window.fotoCantoURL).trim())
+        // fallback: URL de imagem real (troque pela sua imagem)
+        || 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/gorro-papai-noel.png';
 
     // ---------- funções originais (mantidas INTEIRAS do script que você enviou) ----------
     const mostrarInfoDono = () => {
@@ -1319,67 +1344,101 @@ const fallbackParts = [
             relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         }, 1000);
 
-        // header controls (close and minimize) - moved to header as requested
-        const headerControls = document.createElement('div');
-        headerControls.className = 'dh-header-controls';
+        // header controls (close, minimize + GORRO)
+const headerControls = document.createElement('div');
+headerControls.className = 'dh-header-controls';
 
-        const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-        const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+/* ================= GORRO NO CANTO ================= */
+if (FOTO_CANTO_SRC) {
+    const imgCanto = document.createElement('img');
+    imgCanto.id = 'dh-foto-canto';
+    imgCanto.src = FOTO_CANTO_SRC;
+    imgCanto.alt = 'Gorro';
+    imgCanto.loading = 'lazy';
 
-        const btnFecharHeader = document.createElement('button');
-        btnFecharHeader.className = 'dh-header-btn';
-        btnFecharHeader.innerHTML = svgClose;
-        btnFecharHeader.title = 'Fechar';
-        btnFecharHeader.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            const botaoFlutuante = document.getElementById('dhonatanBotao');
-            if (botaoFlutuante) botaoFlutuante.remove();
-        };
+    Object.assign(imgCanto.style, {
+        width: '44px',
+        height: '44px',
+        objectFit: 'contain',
+        borderRadius: '8px',
+        marginRight: '10px',
+        cursor: 'pointer',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 6px 18px rgba(0,0,0,0.45)',
+        background: 'rgba(255,255,255,0.02)'
+    });
 
-        const btnMinimHeader = document.createElement('button');
-        btnMinimHeader.className = 'dh-header-btn';
-        btnMinimHeader.innerHTML = svgMin;
-        btnMinimHeader.title = 'Minimizar';
-        btnMinimHeader.onclick = () => {
-            if (fundo) try { fundo.remove(); } catch(e){}
-            criarBotaoFlutuante();
-        };
+    // se falhar ao carregar, remove para não ficar quebrado visualmente
+    imgCanto.onerror = () => { try { imgCanto.remove(); } catch(e){} };
 
-        headerControls.appendChild(relogio);
-        headerControls.appendChild(btnMinimHeader);
-        headerControls.appendChild(btnFecharHeader);
+    // ação ao clicar (opcional)
+    imgCanto.addEventListener('click', () => {
+        sendToast('🎅 Ho ho ho!', 1500);
+    });
 
-        header.appendChild(leftHeader);
-        header.appendChild(headerControls);
+    // INSERE O GORRO ANTES DOS BOTÕES
+    headerControls.appendChild(imgCanto);
+}
+/* ==================================================== */
 
-        // body wrap
-        const bodyWrap = document.createElement('div');
-        Object.assign(bodyWrap.style, { display: 'flex', flex: '1 1 auto', minHeight: '0', overflow: 'hidden' });
+const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
 
-        // sidebar
-        const sidebar = document.createElement('div');
-        Object.assign(sidebar.style, { width: '220px', background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding: '14px', borderRight: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' });
+const btnFecharHeader = document.createElement('button');
+btnFecharHeader.className = 'dh-header-btn';
+btnFecharHeader.innerHTML = svgClose;
+btnFecharHeader.title = 'Fechar';
+btnFecharHeader.onclick = () => {
+    if (fundo) try { fundo.remove(); } catch(e){}
+    const botaoFlutuante = document.getElementById('dhonatanBotao');
+    if (botaoFlutuante) botaoFlutuante.remove();
+};
 
-        // texto MENU (restaurado)
-        const sidebarTitle = document.createElement('div');
-        sidebarTitle.textContent = 'MENU';
-        Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '8px', fontWeight: '800' });
-        sidebar.appendChild(sidebarTitle);
+const btnMinimHeader = document.createElement('button');
+btnMinimHeader.className = 'dh-header-btn';
+btnMinimHeader.innerHTML = svgMin;
+btnMinimHeader.title = 'Minimizar';
+btnMinimHeader.onclick = () => {
+    if (fundo) try { fundo.remove(); } catch(e){}
+    criarBotaoFlutuante();
+};
 
-        // main panel
-        const mainPanel = document.createElement('div');
-        Object.assign(mainPanel.style, { flex: '1 1 auto', padding: '18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' });
+// RELÓGIO e BOTÕES FICAM DEPOIS DO GORRO
+headerControls.appendChild(relogio);
+headerControls.appendChild(btnMinimHeader);
+headerControls.appendChild(btnFecharHeader);
 
-        bodyWrap.appendChild(sidebar);
-        bodyWrap.appendChild(mainPanel);
+// monta estrutura final
+header.appendChild(leftHeader);
+header.appendChild(headerControls);
 
-        janela.appendChild(header);
-        janela.appendChild(bodyWrap);
-        fundo.appendChild(janela);
-        document.body.appendChild(fundo);
+// body wrap
+const bodyWrap = document.createElement('div');
+Object.assign(bodyWrap.style, { display: 'flex', flex: '1 1 auto', minHeight: '0', overflow: 'hidden' });
 
-        criarAbasInterface(sidebar, mainPanel);
-    };
+// sidebar
+const sidebar = document.createElement('div');
+Object.assign(sidebar.style, { width: '220px', background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding: '14px', borderRight: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' });
+
+// texto MENU (restaurado)
+const sidebarTitle = document.createElement('div');
+sidebarTitle.textContent = 'MENU';
+Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '8px', fontWeight: '800' });
+sidebar.appendChild(sidebarTitle);
+
+// main panel
+const mainPanel = document.createElement('div');
+Object.assign(mainPanel.style, { flex: '1 1 auto', padding: '18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' });
+
+bodyWrap.appendChild(sidebar);
+bodyWrap.appendChild(mainPanel);
+
+janela.appendChild(header);
+janela.appendChild(bodyWrap);
+fundo.appendChild(janela);
+document.body.appendChild(fundo);
+
+criarAbasInterface(sidebar, mainPanel);
 
     // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
     const criarInterface = () => {
