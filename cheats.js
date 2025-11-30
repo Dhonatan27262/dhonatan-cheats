@@ -1349,8 +1349,8 @@ rightHeader.style.gap = '12px';
 
 // AQUI: O gorro NÃO vai mais dentro do header
 // mas vou manter o rightHeader vazio para não quebrar sua estrutura.
-janela.appendChild(gorro);
-janela.appendChild(gorro);
+header.appendChild(gorro);
+header.appendChild(gorro);
 
 // HEADER CONTROLS
 const headerControls = document.createElement('div');
