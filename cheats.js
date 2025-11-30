@@ -1296,131 +1296,102 @@ const criarMenu = () => {
     janela.style.height = '56vh';
     janela.style.padding = '0';
     janela.style.overflow = 'hidden';
+    janela.style.position = 'relative'; // Adicionado para posicionamento absoluto do gorro
 
-    // ===== HEADER COMPLETO COM GORRO REPOSICIONADO =====
-janela.style.position = "relative"; // permite colocar o gorro por cima do header
+    // header
+    const header = document.createElement('div');
+    Object.assign(header.style, { 
+        height: '56px', 
+        padding: '12px 16px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        borderBottom: '1px solid rgba(255,255,255,0.03)' 
+    });
 
-const header = document.createElement('div');
-Object.assign(header.style, { 
-    height: '56px', 
-    padding: '12px 16px', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    borderBottom: '1px solid rgba(255,255,255,0.03)' 
-});
+    const leftHeader = document.createElement('div');
+    leftHeader.style.display = 'flex';
+    leftHeader.style.alignItems = 'center';
+    leftHeader.style.gap = '12px';
 
-// LEFT HEADER
-const leftHeader = document.createElement('div');
-leftHeader.style.display = 'flex';
-leftHeader.style.alignItems = 'center';
-leftHeader.style.gap = '12px';
+    const title = document.createElement('div');
+    title.textContent = 'PAINEL AUXÍLIO';
+    Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
 
-const title = document.createElement('div');
-title.textContent = 'PAINEL AUXÍLIO';
-Object.assign(title.style, { 
-    fontSize: '16px', 
-    fontWeight: '900', 
-    letterSpacing: '1px', 
-    color: '#fff' 
-});
+    leftHeader.appendChild(title);
 
-leftHeader.appendChild(title);
-
-// Relógio
-relogio = document.createElement('div');
-relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-Object.assign(relogio.style, { 
-    fontSize: '13px', 
-    fontFamily: 'monospace', 
-    color: '#fff', 
-    fontWeight: '700', 
-    marginLeft: '8px' 
-});
-setInterval(() => {
+    relogio = document.createElement('div');
     relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-}, 1000);
+    Object.assign(relogio.style, { fontSize: '13px', fontFamily: 'monospace', color: '#fff', fontWeight: '700', marginLeft: '8px' });
+    setInterval(() => {
+        relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    }, 1000);
 
-// RIGHT HEADER (continua existindo, igual ao seu)
-const rightHeader = document.createElement('div');
-rightHeader.style.display = 'flex';
-rightHeader.style.alignItems = 'center';
-rightHeader.style.gap = '12px';
+    // header controls
+    const headerControls = document.createElement('div');
+    headerControls.className = 'dh-header-controls';
 
-// AQUI: O gorro NÃO vai mais dentro do header
-// mas vou manter o rightHeader vazio para não quebrar sua estrutura.
-header.appendChild(gorro);
-header.appendChild(gorro);
+    const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+    const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
 
-// HEADER CONTROLS
-const headerControls = document.createElement('div');
-headerControls.className = 'dh-header-controls';
+    const btnFecharHeader = document.createElement('button');
+    btnFecharHeader.className = 'dh-header-btn';
+    btnFecharHeader.innerHTML = svgClose;
+    btnFecharHeader.title = 'Fechar';
+    btnFecharHeader.onclick = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        const botaoFlutuante = document.getElementById('dhonatanBotao');
+        if (botaoFlutuante) botaoFlutuante.remove();
+    };
 
-const svgClose = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-const svgMin = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+    const btnMinimHeader = document.createElement('button');
+    btnMinimHeader.className = 'dh-header-btn';
+    btnMinimHeader.innerHTML = svgMin;
+    btnMinimHeader.title = 'Minimizar';
+    btnMinimHeader.onclick = () => {
+        if (fundo) try { fundo.remove(); } catch(e){}
+        criarBotaoFlutuante();
+    };
 
-const btnFecharHeader = document.createElement('button');
-btnFecharHeader.className = 'dh-header-btn';
-btnFecharHeader.innerHTML = svgClose;
-btnFecharHeader.title = 'Fechar';
-btnFecharHeader.onclick = () => {
-    if (fundo) try { fundo.remove(); } catch(e){}
-    const botaoFlutuante = document.getElementById('dhonatanBotao');
-    if (botaoFlutuante) botaoFlutuante.remove();
-};
+    headerControls.appendChild(relogio);
+    headerControls.appendChild(btnMinimHeader);
+    headerControls.appendChild(btnFecharHeader);
 
-const btnMinimHeader = document.createElement('button');
-btnMinimHeader.className = 'dh-header-btn';
-btnMinimHeader.innerHTML = svgMin;
-btnMinimHeader.title = 'Minimizar';
-btnMinimHeader.onclick = () => {
-    if (fundo) try { fundo.remove(); } catch(e){}
-    criarBotaoFlutuante();
-};
+    // Adiciona os elementos ao header
+    header.appendChild(leftHeader);
+    header.appendChild(headerControls);
 
-headerControls.appendChild(relogio);
-headerControls.appendChild(btnMinimHeader);
-headerControls.appendChild(btnFecharHeader);
+    // GORRO DO PAPAI NOEL - POSICIONADO FORA DO HEADER
+    const gorroImg = document.createElement('img');
+    gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/fotocanto.js';
+    gorroImg.alt = 'Gorro de Natal';
+    Object.assign(gorroImg.style, {
+        position: 'absolute',
+        top: '-25px', // Posiciona para fora do container
+        right: '-15px', // Posiciona para fora do container
+        width: '80px', // Tamanho maior
+        height: '80px', // Tamanho maior
+        borderRadius: '50%',
+        border: '3px solid rgba(255,255,255,0.15)',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.6)',
+        objectFit: 'cover',
+        background: 'rgba(255,255,255,0.05)',
+        zIndex: '1001',
+        transform: 'rotate(15deg)', // Leve inclinação para efeito de pendurado
+        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
+    });
 
-header.appendChild(headerControls);
+    // Adiciona o gorro diretamente na janela principal (não no header)
+    janela.appendChild(gorroImg);
 
-// ===== GORRO PENDURADO NA BORDA SUPERIOR =====
-const gorroContainer = document.createElement("div");
-Object.assign(gorroContainer.style, {
-    position: "absolute",
-    top: "-28px",         // sobe bastante para ficar pendurado
-    right: "-6px",        // encosta na curva da borda
-    zIndex: "1000003",
-    width: "82px",
-    height: "82px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    pointerEvents: "none" // não bloqueia botões
-});
-
-const gorroImg = document.createElement("img");
-gorroImg.src = "https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png";
-gorroImg.alt = "Gorro de Natal";
-Object.assign(gorroImg.style, {
-    width: "78px",
-    height: "78px",
-    objectFit: "contain",
-    transform: "rotate(-22deg)", // inclinadinho como chapéu pendurado
-    filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.45))"
-});
-
-gorroContainer.appendChild(gorroImg);
-janela.appendChild(gorroContainer);
-
-// ===== BODY WRAP (mantido exatamente igual) =====
-const bodyWrap = document.createElement('div');
-Object.assign(bodyWrap.style, { 
-    display: 'flex', 
-    flex: '1 1 auto', 
-    minHeight: '0', 
-    overflow: 'hidden' 
-});
+    // body wrap
+    const bodyWrap = document.createElement('div');
+    Object.assign(bodyWrap.style, { 
+        display: 'flex', 
+        flex: '1 1 auto', 
+        minHeight: '0', 
+        overflow: 'hidden' 
+    });
 
     // sidebar
     const sidebar = document.createElement('div');
