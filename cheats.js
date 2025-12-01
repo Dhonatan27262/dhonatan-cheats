@@ -211,6 +211,18 @@ function showWelcomeToasts() {
             box-shadow: none !important;
             object-fit: contain;
             display: block;
+            /* EFEITO DE BALANÇO ADICIONADO */
+            animation: hatSwing 3s ease-in-out infinite;
+            transform-origin: top center;
+        }
+
+        /* ANIMAÇÃO DE BALANÇO DO GORRO */
+        @keyframes hatSwing {
+            0% { transform: rotate(-8deg); }
+            25% { transform: rotate(-12deg); }
+            50% { transform: rotate(-4deg); }
+            75% { transform: rotate(-14deg); }
+            100% { transform: rotate(-8deg); }
         }
 
         /* garantias caso alguma regra global force círculo */
