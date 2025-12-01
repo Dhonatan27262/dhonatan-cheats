@@ -1503,29 +1503,42 @@ const textoBaixo = document.createElement('div');
 textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
 aplicarEstiloTexto(textoBaixo, '17px');
 
-// 🔮 Texto de AVISO com fundo roxo gradiente
+// 🔮 AVISO estilizado no tema Instagram
 const textoaviso = document.createElement('div');
-textoaviso.textContent = 'Entre em nosso grupo de WhatsApp e Sigam nossa pagina do Instagram para ficar por dentro das novidades🫡';
+textoaviso.textContent = 'Entre em nosso grupo de WhatsApp e siga nossa página no Instagram através dos botões abaixo para ficar por dentro das novidades do painel';
+
+// Estilo base
 aplicarEstiloTexto(textoaviso, '19px', 'bold');
-textoaviso.style.padding = '8px 12px';
-textoaviso.style.margin = '6px 0';
-textoaviso.style.border = '2px solid #a85cff';
-textoaviso.style.borderRadius = '10px';
-
-// Fundo roxo em degradê suave e moderno
-textoaviso.style.background = 'linear-gradient(90deg, #5b00ff, #9b4dff, #5b00ff)';
-
+textoaviso.style.padding = '14px 18px';
+textoaviso.style.margin = '10px 0';
+textoaviso.style.borderRadius = '16px';
+textoaviso.style.border = '1.5px solid rgba(255,255,255,0.25)';
 textoaviso.style.color = 'white';
-textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8)';
-textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
+textoaviso.style.backdropFilter = 'blur(8px)';
+textoaviso.style.webkitBackdropFilter = 'blur(8px)';
+textoaviso.style.textAlign = 'center';
 
-// Animação de brilho suave
+// 🌈 Gradiente inspirado no Instagram
+textoaviso.style.background =
+  'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)';
+
+// 🎇 Glow delicado ao redor
+textoaviso.style.boxShadow =
+  '0 0 15px rgba(255, 0, 150, 0.45), 0 0 25px rgba(255, 80, 180, 0.25)';
+
+// ✨ Animação suave
+textoaviso.style.animation = 'pulseInsta 3s ease-in-out infinite';
+
+// 🔥 Textura de brilho interno
+textoaviso.style.textShadow = '0 0 12px rgba(255,255,255,0.9)';
+
+// ---- ANIMAÇÃO CSS ----
 const estiloAnimacao = document.createElement('style');
 estiloAnimacao.textContent = `
-@keyframes brilhoAviso {
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.15); }
-  100% { filter: brightness(1); }
+@keyframes pulseInsta {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.03); filter: brightness(1.18); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 `;
 document.head.appendChild(estiloAnimacao)
