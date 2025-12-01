@@ -1,3 +1,5 @@
+Cheats.js logo Natal
+
 // ===== [SISTEMA DE TOAST NOTIFICATIONS] ===== //
 async function loadToastify() {
     if (typeof Toastify !== 'undefined') return Promise.resolve();
@@ -733,7 +735,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
         // --- criar botão/painel flutuante (se função existir) ---
         try {
           if (typeof criarBotaoFlutuante === "function") {
-            try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro chamando criarBotaoFlutuante:', e.message); }
+            try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
           }
         } catch (e) {
           if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message);
@@ -939,7 +941,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
             }
             clearInterval(interval);
           } else if (tentativas > 10) {
-            // para de tentar após ~10 vezes (cerca de 5s if intervalo=500ms)
+            // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
             clearInterval(interval);
             if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
           }
@@ -1558,12 +1560,12 @@ setInterval(() => {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
-        // Botão principal "Acessar"
+// Botão principal "Acessar"
         let botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        // Botão do Instagram (NOVO) - ao lado direito do botão Acessar
+       // Botão do Instagram (NOVO) - ao lado direito do botão Acessar
         const btnInstagram = document.createElement('button');
         btnInstagram.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px; flex-shrink:0; fill:currentColor">
