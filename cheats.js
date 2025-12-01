@@ -198,7 +198,7 @@ function showWelcomeToasts() {
         }
         .dh-o-wrapper .dh-hat-img {
             position: absolute;
-            top: -0.9em;      /* desloca o gorro para cima da letra O (ajuste fino) */
+            top: -1.3em;      /* desloca o gorro para cima da letra O (ajuste fino) */
             right: -2.0em;    /* posiciona levemente para fora do O à direita */
             width: 4.1em;     /* tamanho relativo ao font-size da palavra */
             height: auto;
@@ -1377,7 +1377,7 @@ const fallbackParts = [
                 hatImg.className = 'dh-hat-img';
                 // estilos inline de fallback caso o CSS externo não aplique em algum contexto
                 hatImg.style.position = 'absolute';
-                hatImg.style.top = '-0.9em';
+                hatImg.style.top = '-1.3em';
                 hatImg.style.right = '-2.0em';
                 hatImg.style.width = '4.1em';
                 hatImg.style.height = 'auto';
