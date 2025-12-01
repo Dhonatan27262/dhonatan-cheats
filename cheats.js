@@ -1655,7 +1655,7 @@ botoesContainer.style.overflowY = 'hidden';
 botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
-botoesContainer.append(botao, , btnInstagram, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+botoesContainer.append(botao, btnInstagram, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
