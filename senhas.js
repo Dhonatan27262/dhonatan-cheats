@@ -4,6 +4,7 @@ window.verificarSenha = function(senha) {
         "tainara",
         "rick",
         "013179",
+        "1911",//vitalicio
         "A10121605",//8do12
         "Pedro123",//05do12
         "Victor30012010",//04do12
