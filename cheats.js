@@ -97,7 +97,7 @@ function showWelcomeToasts() {
 
         /* main button (Efeito CodePen 24 refeito para não vazar) */
         .main-btn {
-    background: linear-gradient(180deg,#36143b,#4b0f5f); /* roxo */
+            background: linear-gradient(180deg,#36143b,#4b0f5f); /* roxo */
             color:#f0dede;
             padding: 8px 14px;
             border-radius: 10px;
@@ -117,29 +117,29 @@ function showWelcomeToasts() {
         /* quatro spans que animam ao redor do botão (dentro) */
         .main-btn .edge { position:absolute; pointer-events:none; opacity:0.9; border-radius:2px; }
         .main-btn .edge.top {
-    left: 0; right: 0; top: 0; height: 2px;
-    transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent);
-    animation: edgeTop 2.2s linear infinite;
-}
-.main-btn .edge.right {
-    top: 0; bottom: 0; right: 0; width: 2px;
-    transform: translateY(-100%);
-    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
-    animation: edgeRight 2.2s linear .55s infinite;
-}
-.main-btn .edge.bottom {
-    left: 0; right: 0; bottom: 0; height: 2px;
-    transform: translateX(100%);
-    background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent);
-    animation: edgeBottom 2.2s linear .95s infinite;
-}
-.main-btn .edge.left {
-    top: 0; bottom: 0; left: 0; width: 2px;
-    transform: translateY(100%);
-    background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
-    animation: edgeLeft 2.2s linear 1.5s infinite;
-}
+            left: 0; right: 0; top: 0; height: 2px;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(168,85,247,0.95), transparent);
+            animation: edgeTop 2.2s linear infinite;
+        }
+        .main-btn .edge.right {
+            top: 0; bottom: 0; right: 0; width: 2px;
+            transform: translateY(-100%);
+            background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+            animation: edgeRight 2.2s linear .55s infinite;
+        }
+        .main-btn .edge.bottom {
+            left: 0; right: 0; bottom: 0; height: 2px;
+            transform: translateX(100%);
+            background: linear-gradient(270deg, transparent, rgba(168,85,247,0.95), transparent);
+            animation: edgeBottom 2.2s linear .95s infinite;
+        }
+        .main-btn .edge.left {
+            top: 0; bottom: 0; left: 0; width: 2px;
+            transform: translateY(100%);
+            background: linear-gradient(180deg, transparent, rgba(147,51,234,0.95), transparent);
+            animation: edgeLeft 2.2s linear 1.5s infinite;
+        }
 
         @keyframes edgeTop { 0% { transform: translateX(-100%);} 50% { transform: translateX(0%);} 100% { transform: translateX(100%);} }
         @keyframes edgeRight { 0% { transform: translateY(-100%);} 50% { transform: translateY(0%);} 100% { transform: translateY(100%);} }
@@ -187,6 +187,40 @@ function showWelcomeToasts() {
             .main-btn { width:100%; box-sizing:border-box; min-width: unset; font-size:14px; }
             .sidebar-nav-btn{ font-size:13px; padding:10px; }
             .dh-btn{ font-size:13px; padding:8px 10px; }
+        }
+
+        /* --- ESTILOS DO "O" e GORRO (NOVO) --- */
+        .dh-o-wrapper {
+            position: relative;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        .dh-o-wrapper .dh-hat-img {
+            position: absolute;
+            top: -0.62em;      /* desloca o gorro para cima da letra O (ajuste fino) */
+            right: -0.06em;    /* posiciona levemente para fora do O à direita */
+            width: 1.35em;     /* tamanho relativo ao font-size da palavra */
+            height: auto;
+            pointer-events: none;
+            transform: rotate(-8deg);
+            z-index: 3;
+            border-radius: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* garantias caso alguma regra global force círculo */
+        .dh-hat-img, .dh-o-wrapper img {
+            border-radius: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            -webkit-mask-image: none !important;
+            mask-image: none !important;
         }
         `;
         document.head.appendChild(style);
@@ -1108,7 +1142,7 @@ const fallbackParts = [
 
     const urlsToTry = [primaryURL, fallbackURL];
 
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout = 15000, backoff: 700 });
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
 
     if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
@@ -1296,61 +1330,61 @@ const fallbackParts = [
         janela.style.height = '56vh'; // altura reduzida
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
-        janela.style.position = 'relative'; // Adicionado para posicionamento do gorro
 
         // header
         const header = document.createElement('div');
-        Object.assign(header.style, { 
-            height: '56px', 
-            padding: '12px 16px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            borderBottom: '1px solid rgba(255,255,255,0.03)' 
-        });
+        Object.assign(header.style, { height: '56px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.03)' });
 
         const leftHeader = document.createElement('div');
         leftHeader.style.display = 'flex';
         leftHeader.style.alignItems = 'center';
         leftHeader.style.gap = '12px';
-        leftHeader.style.position = 'relative'; // Para posicionamento do gorro
-
-        // Título com container para o gorro
-        const titleContainer = document.createElement('div');
-        titleContainer.style.position = 'relative';
-        titleContainer.style.display = 'inline-block';
 
         const title = document.createElement('div');
-        title.textContent = 'PAINEL AUXÍLIO';
-        Object.assign(title.style, { 
-            fontSize: '16px', 
-            fontWeight: '900', 
-            letterSpacing: '1px', 
-            color: '#fff',
-            position: 'relative',
-            zIndex: '1'
-        });
+        // NOTE: a letra "O" final foi envolvida em um wrapper (.dh-o-wrapper),
+        // para podermos posicionar o gorro exatamente na borda superior-direita do "O".
+        title.innerHTML = 'PAINEL AUXÍLI<span class="dh-o-wrapper">O</span>';
+        Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff', position: 'relative' });
 
-        // GORRO DO PAPAI NOEL - POSICIONADO NA LETRA "O" DO "AUXÍLIO"
-        const gorroImg = document.createElement('img');
-        gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
-        gorroImg.alt = 'Gorro de Natal';
-        Object.assign(gorroImg.style, {
-            position: 'absolute',
-            top: '-35px', // Posiciona acima do texto
-            right: '-8px', // Alinha com a letra "O" do "AUXÍLIO"
-            width: '45px', // Tamanho ajustado para encaixar na letra
-            height: '45px',
-            objectFit: 'contain',
-            zIndex: '2',
-            transform: 'rotate(-15deg)', // Leve inclinação para efeito natural
-            filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
-            pointerEvents: 'none' // Não interfere com cliques
-        });
+        leftHeader.appendChild(title);
 
-        titleContainer.appendChild(title);
-        titleContainer.appendChild(gorroImg);
-        leftHeader.appendChild(titleContainer);
+        // criar o gorro dentro do wrapper do "O"
+        try {
+            const oWrap = title.querySelector('.dh-o-wrapper');
+            if (oWrap) {
+                // estilo inline adicional (garantia)
+                oWrap.style.position = 'relative';
+                oWrap.style.display = 'inline-block';
+                oWrap.style.lineHeight = '1';
+                oWrap.style.verticalAlign = 'middle';
+
+                // imagem do gorro (remova o círculo forçado com border-radius/mascara)
+                const hatImg = document.createElement('img');
+                hatImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
+                hatImg.alt = 'Gorro';
+                hatImg.className = 'dh-hat-img';
+                // estilos inline de fallback caso o CSS externo não aplique em algum contexto
+                hatImg.style.position = 'absolute';
+                hatImg.style.top = '-0.62em';
+                hatImg.style.right = '-0.06em';
+                hatImg.style.width = '1.35em';
+                hatImg.style.height = 'auto';
+                hatImg.style.pointerEvents = 'none';
+                hatImg.style.transform = 'rotate(-8deg)';
+                hatImg.style.zIndex = '3';
+                hatImg.style.borderRadius = '0';
+                hatImg.style.border = 'none';
+                hatImg.style.background = 'transparent';
+                hatImg.style.boxShadow = 'none';
+                hatImg.style.objectFit = 'contain';
+                // prevenir carregamento quebrado impactando layout: onerror hide
+                hatImg.onerror = () => { try { hatImg.style.display = 'none'; } catch(e){} };
+                // append ao wrapper
+                oWrap.appendChild(hatImg);
+            }
+        } catch (e) {
+            console.warn('Falha ao inserir gorro no título:', e);
+        }
 
         relogio = document.createElement('div');
         relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
