@@ -1601,25 +1601,6 @@ btnWhatsApp.onclick = () => {
     window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
 };
 
-// Botão do YouTube Manorick
-const btnmenor = document.createElement('button');
-btnmenor.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-        8.568v6.864L15.818 12 9.545 8.568z"/>
-    </svg> Canal ManoRick
-`;
-aplicarEstiloBotao(btnmenor);
-btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-btnmenor.onclick = () => {
-    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
-};
-
 // Botão do YouTube Mlk Mau
 const btncriadorpainel = document.createElement('button');
 btncriadorpainel.innerHTML = `
@@ -1657,7 +1638,7 @@ botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
 // OBS: Instagram foi posicionado imediatamente à direita do botão "Acessar"
-botoesContainer.append(botao, btnInstagram, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+botoesContainer.append(botao, btnInstagram, btnDiscord, btnWhatsApp, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
