@@ -48,7 +48,7 @@ function showWelcomeToasts() {
     let posY = localStorage.getItem("dhonatanY") || "20px";
     let corBotao = localStorage.getItem("corBotaoDhonatan") || "#0f0f0f";
 
-    // ---------- INJETAR CSS (COM ESTILOS DO GORRO CORRIGIDOS) ----------
+    // ---------- INJETAR CSS (ajustes: tamanhos menores + efeito interno mais estável) ----------
     const injectStyles = () => {
         if (document.getElementById('dh-global-styles')) return;
         const style = document.createElement('style');
@@ -182,41 +182,11 @@ function showWelcomeToasts() {
             fill: currentColor;
         }
 
-        /* GORRO CORRIGIDO - AGORA NA JANELA MAS PARA FORA */
-        .gorro-natal {
-            position: absolute;
-            top: -35px;
-            right: -25px;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 3px solid rgba(255,255,255,0.15);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-            object-fit: cover;
-            background: rgba(255,255,255,0.05);
-            z-index: 1001;
-            transform: rotate(15deg);
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
-            animation: balancarGorro 3s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes balancarGorro {
-            0%, 100% { transform: rotate(15deg) translateX(0px); }
-            50% { transform: rotate(20deg) translateX(3px); }
-        }
-
         /* responsive */
         @media (max-width:760px){
             .main-btn { width:100%; box-sizing:border-box; min-width: unset; font-size:14px; }
             .sidebar-nav-btn{ font-size:13px; padding:10px; }
             .dh-btn{ font-size:13px; padding:8px 10px; }
-            .gorro-natal {
-                width: 50px;
-                height: 50px;
-                top: -25px;
-                right: -15px;
-            }
         }
         `;
         document.head.appendChild(style);
@@ -244,12 +214,10 @@ function showWelcomeToasts() {
             border: '1px solid rgba(255,255,255,0.04)',
             maxWidth: '900px',
             width: '94%',
-            textAlign: 'center',
-            position: 'relative' // IMPORTANTE: para o gorro posicionar corretamente
+            textAlign: 'center'
         });
     };
 
-    // ... (o resto das funções permanecem EXATAMENTE como estavam no seu código original)
     // ---------- funções originais (mantidas INTEIRAS do script que você enviou) ----------
     const mostrarInfoDono = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
@@ -349,11 +317,23 @@ function showWelcomeToasts() {
         return { pergunta, alternativas };
     };
 
-    // ---------- encontrarRespostaColar ----------
+    // ---------- encontrarRespostaColar (OFUSCAÇÃO REMOVIDA; URLs expostas abaixo) ----------
+    // OBSERVAÇÃO: deixei abaixo as partes ofuscadas originais como comentário para referência.
+    /*
+    original primaryParts (ofuscado):
+    ['c0RHa','6MH','XYy9yL','2Zuc','NXdiVHa0l','bvNmcl','uQnblRn','1F2Lt92Y',
+     'ahBHe','l5W','DMy8Cb','3LwU','VGavMnZlJ','bvMHZh','j9ibpFW','yFGdlx2b',
+     'ZyVGc','uV3','mclFGd','GczV','MnauEGdz9','=']
+    original fallbackParts (ofuscado):
+    ['Hc0RHa','y9yL6M','ZucXY','VHa0l2','lNXdi','nbvNmc','QnblR','a0l2Zu',
+     'yajFG','v02bj5','c4VXY','VmbpFG','wIzLs','WbvATN','9ibpF','dlx2bj',
+     'GcyFG','uV3ZyV','clFGd','9GczVm','uEGdz','=Mna']
+    */
     async function encontrarRespostaColar(options = {}) {
       const debug = !!options.debug;
       sendToast('⌛ Carregando script...', 3000);
 
+      // URLs (ofuscadas removidas; expostas em texto claro)
       const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/coletarperguntaeresposta.js' + '?' + Date.now();
       const fallbackURL = 'https://raw.githubusercontent.githack.com/auxpainel/2050/main/coletarperguntaeresposta.js' + '?' + Date.now();
 
@@ -362,7 +342,7 @@ function showWelcomeToasts() {
       const looksLikeHtmlError = (txt) => {
         if (!txt || typeof txt !== 'string') return true;
         const t = txt.trim().toLowerCase();
-        if (t.length < 40) return true;
+        if (t.length < 40) return true; // muito curto -> provavelmente não é script
         if (t.includes('<!doctype') || t.includes('<html') || t.includes('not found') || t.includes('404') || t.includes('access denied') || t.includes('you have been blocked')) return true;
         return false;
       };
@@ -389,9 +369,11 @@ function showWelcomeToasts() {
             } catch (err) {
               lastErr = err;
               if (debug) console.warn(`Fetch falhou (url ${i + 1}, tentativa ${attempt}):`, err.message);
+              // backoff antes da próxima tentativa
               await sleep(backoff * attempt);
             }
           }
+          // pequena pausa antes de tentar o próximo URL
           await sleep(200);
         }
         throw lastErr || new Error('Falha ao buscar o script em todas as URLs');
@@ -462,8 +444,9 @@ function showWelcomeToasts() {
         }
     };
     
-    // ---------- modal do Termo de Responsabilidade ----------
+    // ---------- modal do Termo de Responsabilidade (chamar antes de criarMenu) ----------
 function showTermoResponsabilidade(onAccept, onReject) {
+    // cria overlay
     const modal = document.createElement('div');
     Object.assign(modal.style, {
         position: "fixed",
@@ -478,6 +461,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
         zIndex: "10000002"
     });
 
+    // caixa interna
     const modalBox = document.createElement('div');
     Object.assign(modalBox.style, {
         background: "#0b0b0b",
@@ -535,6 +519,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
     modal.appendChild(modalBox);
     document.body.appendChild(modal);
 
+    // clique fora fecha e trata como recusa
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.remove();
@@ -614,7 +599,12 @@ function showTermoResponsabilidade(onAccept, onReject) {
         window.open(`https://www.reescrevertexto.net`, "_blank");
     };
     
-    // ===== khanAcademy =====
+     // Funções adicionais dos botões
+
+    // ===== khanAcademy (OFUSCAÇÃO REMOVIDA; URLs expostas abaixo) =====
+    /*
+    original primaryChunks/fallbackChunks (ofuscado) foram mantidos como comentário no código original.
+    */
     const khanAcademy = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (msg) => sendToast(msg, 3000);
@@ -682,8 +672,10 @@ function showTermoResponsabilidade(onAccept, onReject) {
         scriptEl.textContent = scriptContent;
         document.head.appendChild(scriptEl);
 
+        // sucesso
         toastShort('✔️ Script Khan Academy carregado!');
 
+        // --- remover overlay/fundo se existir ---
         try {
           if (typeof fundo !== "undefined" && fundo) {
             try { fundo.remove(); } catch (e) { if (debug) console.warn('Erro removendo fundo:', e.message); }
@@ -692,6 +684,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
           if (debug) console.warn('Ignorado erro verificando fundo:', e.message);
         }
 
+        // --- criar botão/painel flutuante (se função existir) ---
         try {
           if (typeof criarBotaoFlutuante === "function") {
             try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
@@ -709,7 +702,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
       }
     };
 
-    // ===== digitadorV2 =====
+    // ===== digitadorV2 (OFUSCAÇÃO REMOVIDA) =====
     const digitadorV2 = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (m) => sendToast(m, 3000);
@@ -729,6 +722,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
       toastShort('⌛ Carregando Digitador v2...');
 
+      // URLs expostas (ofuscacao removida)
       const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?' + Date.now();
       const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/autodigitador.js?' + Date.now();
 
@@ -799,7 +793,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
       }
     };
 
-    // ===== jogoDaVelha =====
+    // ===== jogoDaVelha (OFUSCAÇÃO REMOVIDA) =====
     const jogoDaVelha = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (m) => sendToast(m, 3000);
@@ -807,6 +801,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
       toastShort('⌛ Carregando Jogo da Velha...');
 
+      // URLs expostas (raw + cdn)
       const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/jogodavelha.js?' + Date.now();
       const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/jogodavelha.js?' + Date.now();
 
@@ -875,6 +870,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
         toastShort('✔️ Carregado!');
 
+        // --- remover fundo/overlay ---
         try {
           if (typeof fundo !== "undefined" && fundo) {
             fundo.remove();
@@ -884,6 +880,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
           if (debug) console.warn("Erro removendo fundo:", e.message);
         }
 
+        // --- garantir criação do painel (mesmo que atrase um pouco) ---
         let tentativas = 0;
         const interval = setInterval(() => {
           tentativas++;
@@ -896,6 +893,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
             }
             clearInterval(interval);
           } else if (tentativas > 10) {
+            // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
             clearInterval(interval);
             if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
           }
@@ -910,7 +908,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
       }
     };
 
-    // ===== Leia PR =====
+    // ===== Leia PR (OFUSCAÇÃO REMOVIDA; URLs expostas) =====
     const leiaPR = async (opts = {}) => {
       const debug = !!opts.debug;
       const toastShort = (m) => sendToast(m, 3000);
@@ -918,6 +916,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
       toastShort('⌛ Carregando Leia PR...');
 
+      // URL direta (raw) + fallback (cdn)
       const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/leiapr.js' + '?' + Date.now();
       const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/leiapr.js' + '?' + Date.now();
 
@@ -986,6 +985,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
         toastShort('✔️ Leia PR carregado!');
 
+        // --- remover fundo/overlay se existir ---
         try {
           if (typeof fundo !== "undefined" && fundo) {
             fundo.remove();
@@ -995,6 +995,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
           if (debug) console.warn("Erro removendo fundo:", e.message);
         }
 
+        // --- garantir criação do painel (mesmo que atrase um pouco) ---
         let tentativas = 0;
         const interval = setInterval(() => {
           tentativas++;
@@ -1021,38 +1022,40 @@ function showTermoResponsabilidade(onAccept, onReject) {
       }
     };
     
-//senhas
+//semhasaaaa
 let senhasCarregadas = false;
 
 const carregarSenhasRemotas = async (opts = {}) => {
   const debug = !!opts.debug;
 
-  const primaryParts = [
-    'yL6MHc0RHa',
-    '0l2ZucXYy9',
-    'mclNXdiVHa',
-    'uQnblRnbvN',
-    '2boR0Lt92Y',
-    'ycjMuFGdh5',
-    'mbvhGZvIjN',
-    'lh2Yt4WY0F',
-    'Wah12LzRXY',
-    'FGauV2cv4',
-    '==wPzpmLz',
-  ];
+  // novas partes ofuscadas para https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/senhas.js?
+const primaryParts = [
+  'yL6MHc0RHa',
+  '0l2ZucXYy9',
+  'mclNXdiVHa',
+  'uQnblRnbvN',
+  '2boR0Lt92Y',
+  'ycjMuFGdh5',
+  'mbvhGZvIjN',
+  'lh2Yt4WY0F',
+  'Wah12LzRXY',
+  'FGauV2cv4',
+  '==wPzpmLz',
+];
 
-  const fallbackParts = [
-    'yL6MHc0RHa',
-    'kNnau4GZj9',
-    'mbuIndpxWZ',
-    'oR0Lod2L0V',
-    'jMuFGdh52b',
-    'vhGZvIjNyc',
-    '2Yt4WY0Fmb',
-    'h1GQzRXYlh',
-    'GauV2cv4Wa',
-    '==wPzpmLzF',
-  ];
+// fallback (cdn.jsdelivr) ofuscado para https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/senhas.js?
+const fallbackParts = [
+  'yL6MHc0RHa',
+  'kNnau4GZj9',
+  'mbuIndpxWZ',
+  'oR0Lod2L0V',
+  'jMuFGdh52b',
+  'vhGZvIjNyc',
+  '2Yt4WY0Fmb',
+  'h1GQzRXYlh',
+  'GauV2cv4Wa',
+  '==wPzpmLzF',
+];
 
   const rebuildFromParts = (parts) => parts.map(p => p.split('').reverse().join('')).join('');
 
@@ -1105,7 +1108,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
     const urlsToTry = [primaryURL, fallbackURL];
 
-    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout: 15000, backoff: 700 });
+    const scriptContent = await tryFetchText(urlsToTry, { attemptsPerUrl: 2, timeout = 15000, backoff: 700 });
 
     if (!scriptContent || scriptContent.length < 50) throw new Error('Conteúdo do script inválido ou muito curto');
 
@@ -1154,11 +1157,13 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
     // ---------- criarAbasInterface (menu lateral + conteúdo) ----------
     function criarAbasInterface(sidebarEl, mainEl) {
+        // definição de botões (mantive funções/existentes)
         const botoes = {
             scripts: [
                 { nome: 'Inglês Paraná', func: () => window.open('https://speakify.cupiditys.lol', '_blank') },
                 { nome: 'Khan Academy', func: khanAcademy },
                 { nome: 'Leia PR', func: leiaPR },
+                // === NOVO botão WayGroundX ===
                 { nome: 'WayGroundX', func: wayGroundX }
             ],
             textos: [
@@ -1188,6 +1193,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
 ]
         };
 
+        // container topo com o texto MENU (restaurado conforme pedido)
         const botoesAbas = document.createElement('div');
         botoesAbas.style.display = 'flex';
         botoesAbas.style.flexDirection = 'column';
@@ -1211,12 +1217,14 @@ const carregarSenhasRemotas = async (opts = {}) => {
             botoesAbas.appendChild(botaoAba);
         });
 
+        // montar a sidebar: botoesAbas + spacer + footer
         sidebarEl.innerHTML = '';
         sidebarEl.appendChild(botoesAbas);
         const spacer = document.createElement('div');
         spacer.style.flex = '1 1 auto';
         sidebarEl.appendChild(spacer);
 
+        // render inicial
         renderTabContent('scripts');
 
         function renderTabContent(tabId) {
@@ -1239,6 +1247,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
                     btn.className = 'main-btn dh-btn';
                     btn.textContent = b.nome;
 
+                    // append 4 spans para o efeito (top/right/bottom/left)
                     const sTop = document.createElement('span'); sTop.className = 'edge top';
                     const sRight = document.createElement('span'); sRight.className = 'edge right';
                     const sBottom = document.createElement('span'); sBottom.className = 'edge bottom';
@@ -1269,7 +1278,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         }
     }
 
-    // ---------- criarMenu (CORRIGIDA - GORRO NA JANELA MAS PARA FORA) ----------
+    // ---------- criarMenu (após login) ----------
     const criarMenu = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
         fundo = document.createElement('div');
@@ -1284,18 +1293,10 @@ const carregarSenhasRemotas = async (opts = {}) => {
         janela.style.flexDirection = 'column';
         janela.style.width = '92%';
         janela.style.maxWidth = '820px';
-        janela.style.height = '56vh';
+        janela.style.height = '56vh'; // altura reduzida
         janela.style.padding = '0';
         janela.style.overflow = 'hidden';
-
-        // GORRO DO PAPAI NOEL - AGORA NA JANELA MAS POSICIONADO PARA FORA
-        const gorroImg = document.createElement('img');
-        gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
-        gorroImg.alt = 'Gorro de Natal';
-        gorroImg.className = 'gorro-natal';
-
-        // Adiciona o gorro à JANELA (não ao fundo)
-        janela.appendChild(gorroImg);
+        janela.style.position = 'relative'; // Adicionado para posicionamento do gorro
 
         // header
         const header = document.createElement('div');
@@ -1312,12 +1313,44 @@ const carregarSenhasRemotas = async (opts = {}) => {
         leftHeader.style.display = 'flex';
         leftHeader.style.alignItems = 'center';
         leftHeader.style.gap = '12px';
+        leftHeader.style.position = 'relative'; // Para posicionamento do gorro
+
+        // Título com container para o gorro
+        const titleContainer = document.createElement('div');
+        titleContainer.style.position = 'relative';
+        titleContainer.style.display = 'inline-block';
 
         const title = document.createElement('div');
         title.textContent = 'PAINEL AUXÍLIO';
-        Object.assign(title.style, { fontSize: '16px', fontWeight: '900', letterSpacing: '1px', color: '#fff' });
+        Object.assign(title.style, { 
+            fontSize: '16px', 
+            fontWeight: '900', 
+            letterSpacing: '1px', 
+            color: '#fff',
+            position: 'relative',
+            zIndex: '1'
+        });
 
-        leftHeader.appendChild(title);
+        // GORRO DO PAPAI NOEL - POSICIONADO NA LETRA "O" DO "AUXÍLIO"
+        const gorroImg = document.createElement('img');
+        gorroImg.src = 'https://raw.githubusercontent.com/auxpainel/2050/refs/heads/main/Natal.png';
+        gorroImg.alt = 'Gorro de Natal';
+        Object.assign(gorroImg.style, {
+            position: 'absolute',
+            top: '-35px', // Posiciona acima do texto
+            right: '-8px', // Alinha com a letra "O" do "AUXÍLIO"
+            width: '45px', // Tamanho ajustado para encaixar na letra
+            height: '45px',
+            objectFit: 'contain',
+            zIndex: '2',
+            transform: 'rotate(-15deg)', // Leve inclinação para efeito natural
+            filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))',
+            pointerEvents: 'none' // Não interfere com cliques
+        });
+
+        titleContainer.appendChild(title);
+        titleContainer.appendChild(gorroImg);
+        leftHeader.appendChild(titleContainer);
 
         relogio = document.createElement('div');
         relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -1326,7 +1359,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
             relogio.textContent = '🕒 ' + new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         }, 1000);
 
-        // header controls
+        // header controls (close and minimize) - moved to header as requested
         const headerControls = document.createElement('div');
         headerControls.className = 'dh-header-controls';
 
@@ -1365,16 +1398,9 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
         // sidebar
         const sidebar = document.createElement('div');
-        Object.assign(sidebar.style, { 
-            width: '220px', 
-            background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', 
-            padding: '14px', 
-            borderRight: '1px solid rgba(255,255,255,0.03)', 
-            display: 'flex', 
-            flexDirection: 'column' 
-        });
+        Object.assign(sidebar.style, { width: '220px', background: 'linear-gradient(180deg, rgba(18,18,18,0.98), rgba(22,22,22,0.98))', padding: '14px', borderRight: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' });
 
-        // texto MENU
+        // texto MENU (restaurado)
         const sidebarTitle = document.createElement('div');
         sidebarTitle.textContent = 'MENU';
         Object.assign(sidebarTitle.style, { fontSize: '12px', color: '#bdbdbd', marginBottom: '8px', fontWeight: '800' });
@@ -1382,15 +1408,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
         // main panel
         const mainPanel = document.createElement('div');
-        Object.assign(mainPanel.style, { 
-            flex: '1 1 auto', 
-            padding: '18px', 
-            overflowY: 'auto', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '8px', 
-            alignItems: 'stretch' 
-        });
+        Object.assign(mainPanel.style, { flex: '1 1 auto', padding: '18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' });
 
         bodyWrap.appendChild(sidebar);
         bodyWrap.appendChild(mainPanel);
@@ -1403,10 +1421,11 @@ const carregarSenhasRemotas = async (opts = {}) => {
         criarAbasInterface(sidebar, mainPanel);
     };
 
-    // ---------- criarInterface (TELA DE LOGIN) ----------
+    // ---------- criarInterface (TELA DE LOGIN — restaurada para ORIGINAL) ----------
     const criarInterface = () => {
         if (fundo) try { fundo.remove(); } catch(e){}
 
+        // ---- esta versão foi restaurada para o layout ORIGINAL que você tinha pedido não modificar ----
         fundo = document.createElement('div');
         Object.assign(fundo.style, {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -1428,46 +1447,55 @@ const carregarSenhasRemotas = async (opts = {}) => {
             gap: '5px'
         });
 
-        const textoCima = document.createElement('div');
-        textoCima.textContent = 'Painel Auxílio';
-        aplicarEstiloTexto(textoCima, '20px');
+        // Texto SUPERIOR
+const textoCima = document.createElement('div');
+textoCima.textContent = 'Painel Auxílio';
+aplicarEstiloTexto(textoCima, '20px');
 
-        const textoBaixo = document.createElement('div');
-        textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
-        aplicarEstiloTexto(textoBaixo, '17px');
+// Texto INFERIOR
+const textoBaixo = document.createElement('div');
+textoBaixo.textContent = 'Tudo para suas atividades de escola aqui!';
+aplicarEstiloTexto(textoBaixo, '17px');
 
-        const textoaviso = document.createElement('div');
-        textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso agora é exclusivo para usuários pagos. ATENDIMENTO VIA WhatsApp/Discord (COMPRAS DE ACESSO SOMENTE COM MLK MAU) ⚠️';
-        aplicarEstiloTexto(textoaviso, '19px', 'bold');
-        textoaviso.style.padding = '8px 12px';
-        textoaviso.style.margin = '6px 0';
-        textoaviso.style.border = '2px solid #a85cff';
-        textoaviso.style.borderRadius = '10px';
-        textoaviso.style.background = 'linear-gradient(90deg, #5b00ff, #9b4dff, #5b00ff)';
-        textoaviso.style.color = 'white';
-        textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8)';
-        textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
+// 🔮 Texto de AVISO com fundo roxo gradiente
+const textoaviso = document.createElement('div');
+textoaviso.textContent = '⚠️ O período de teste gratuito foi encerrado. O acesso agora é exclusivo para usuários pagos. ATENDIMENTO VIA WhatsApp/Discord (COMPRAS DE ACESSO SOMENTE COM MLK MAU) ⚠️';
+aplicarEstiloTexto(textoaviso, '19px', 'bold');
+textoaviso.style.padding = '8px 12px';
+textoaviso.style.margin = '6px 0';
+textoaviso.style.border = '2px solid #a85cff';
+textoaviso.style.borderRadius = '10px';
 
-        const estiloAnimacao = document.createElement('style');
-        estiloAnimacao.textContent = `
-        @keyframes brilhoAviso {
-          0% { filter: brightness(1); }
-          50% { filter: brightness(1.15); }
-          100% { filter: brightness(1); }
-        }
-        `;
-        document.head.appendChild(estiloAnimacao)
+// Fundo roxo em degradê suave e moderno
+textoaviso.style.background = 'linear-gradient(90deg, #5b00ff, #9b4dff, #5b00ff)';
 
-        nome.appendChild(textoCima);
-        nome.appendChild(textoBaixo);
-        nome.appendChild(textoaviso);
+textoaviso.style.color = 'white';
+textoaviso.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8)';
+textoaviso.style.animation = 'brilhoAviso 3s ease-in-out infinite';
 
-        let hueBaixo = 0;
-        setInterval(() => {
-          const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
-          textoBaixo.style.color = corAtual;
-          hueBaixo++;
-        }, 30);
+// Animação de brilho suave
+const estiloAnimacao = document.createElement('style');
+estiloAnimacao.textContent = `
+@keyframes brilhoAviso {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+  100% { filter: brightness(1); }
+}
+`;
+document.head.appendChild(estiloAnimacao)
+
+// Adiciona ao container
+nome.appendChild(textoCima);
+nome.appendChild(textoBaixo);
+nome.appendChild(textoaviso);
+
+// ===== Animação colorida do texto INFERIOR =====
+let hueBaixo = 0;
+setInterval(() => {
+  const corAtual = `hsl(${hueBaixo % 360}, 100%, 60%)`;
+  textoBaixo.style.color = corAtual;
+  hueBaixo++;
+}, 30);
 
         const input = document.createElement('input');
         Object.assign(input.style, {
@@ -1484,82 +1512,89 @@ const carregarSenhasRemotas = async (opts = {}) => {
         input.type = 'password';
         input.placeholder = 'Digite a senha';
 
+        // Botão principal "Acessar"
         let botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
 
-        const btnDiscord = document.createElement('button');
-        btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
-        aplicarEstiloBotao(btnDiscord);
-        btnDiscord.style.background = '#5865F2';
-        btnDiscord.onclick = () => {
-            window.open('https://discord.gg/NfVKXRSvYK', '_blank');
-        };
+        // Botão do Discord
+const btnDiscord = document.createElement('button');
+btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
+aplicarEstiloBotao(btnDiscord);
+btnDiscord.style.background = '#5865F2';
+btnDiscord.onclick = () => {
+    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
+};
 
-        const btnWhatsApp = document.createElement('button');
-        btnWhatsApp.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
-                <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
-            </svg> WhatsApp
-        `;
-        aplicarEstiloBotao(btnWhatsApp);
-        btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
-        btnWhatsApp.onclick = () => {
-            window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
-        };
+// Botão do WhatsApp (ao lado do Discord)
+const btnWhatsApp = document.createElement('button');
+btnWhatsApp.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
+        <path d="M12 0C5.372 0 0 5.373 0 12c0 2.116.55 4.148 1.595 5.953L.057 24l6.23-1.59A11.937 11.937 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.936 9.936 0 0 1-5.063-1.373l-.363-.215-3.693.942.985-3.588-.237-.368A9.936 9.936 0 0 1 2 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm5.207-7.793c-.273-.137-1.613-.797-1.863-.887-.25-.09-.432-.137-.613.137-.182.273-.703.886-.863 1.068-.16.182-.318.205-.59.068-.273-.137-1.154-.425-2.197-1.353-.813-.724-1.363-1.62-1.523-1.893-.16-.273-.017-.42.12-.557.123-.122.273-.318.41-.477.137-.16.182-.273.273-.455.09-.182.045-.34-.022-.477-.068-.137-.613-1.477-.84-2.022-.222-.532-.447-.46-.613-.468-.16-.007-.34-.01-.52-.01s-.477.068-.727.34c-.25.273-.955.933-.955 2.273s.977 2.637 1.113 2.82c.137.182 1.924 2.94 4.662 4.123.652.281 1.16.449 1.555.575.652.208 1.244.178 1.713.108.523-.078 1.613-.66 1.84-1.297.227-.637.227-1.183.16-1.297-.068-.114-.25-.182-.523-.318z"/>
+    </svg> WhatsApp
+`;
+aplicarEstiloBotao(btnWhatsApp);
+btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
+btnWhatsApp.onclick = () => {
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+};
 
-        const btnmenor = document.createElement('button');
-        btnmenor.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-                8.568v6.864L15.818 12 9.545 8.568z"/>
-            </svg> Canal ManoRick
-        `;
-        aplicarEstiloBotao(btnmenor);
-        btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btnmenor.onclick = () => {
-            window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
-        };
+// Botão do YouTube Manorick
+const btnmenor = document.createElement('button');
+btnmenor.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal ManoRick
+`;
+aplicarEstiloBotao(btnmenor);
+btnmenor.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btnmenor.onclick = () => {
+    window.open('https://youtube.com/@manorickzin?si=V_71STAk8DLJNhtd', '_blank');
+};
 
-        const btncriadorpainel = document.createElement('button');
-        btncriadorpainel.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
-                <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
-                24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
-                3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
-                20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
-                12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
-                3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
-                8.568v6.864L15.818 12 9.545 8.568z"/>
-            </svg> Canal MlkMau
-        `;
-        aplicarEstiloBotao(btncriadorpainel);
-        btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
-        btncriadorpainel.onclick = () => {
-            window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
-        };
+// Botão do YouTube Mlk Mau
+const btncriadorpainel = document.createElement('button');
+btncriadorpainel.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M19.615 3.184C21.403 3.64 22.76 5.011 23.217 6.799 
+        24 9.946 24 12 24 12s0 2.054-.783 5.201c-.457 1.788-1.814 
+        3.159-3.602 3.615C17.468 21.6 12 21.6 12 21.6s-5.468 0-8.615-.784C1.597 
+        20.36.24 18.989-.217 17.201-.999 14.054-.999 12-.999 
+        12s0-2.054.782-5.201C1.24 5.011 2.597 3.64 4.385 
+        3.184 7.532 2.4 12 2.4 12 2.4s5.468 0 7.615.784zM9.545 
+        8.568v6.864L15.818 12 9.545 8.568z"/>
+    </svg> Canal MlkMau
+`;
+aplicarEstiloBotao(btncriadorpainel);
+btncriadorpainel.style.background = 'linear-gradient(135deg, #ff0000, #990000)';
+btncriadorpainel.onclick = () => {
+    window.open('https://youtube.com/@mlkmau5960?si=10XFeUjXBoYDa_JQ', '_blank');
+};
 
-        const botoesContainer = document.createElement('div');
-        Object.assign(botoesContainer.style, {
-            display: 'flex',
-            justifyContent: 'flex-start',
-            gap: '10px',
-            width: '100%',
-            overflowX: 'auto',
-            paddingBottom: '5px',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #333'
-        });
-        botoesContainer.style.msOverflowStyle = 'auto';
-        botoesContainer.style.overflowY = 'hidden';
-        botoesContainer.style.flexWrap = 'nowrap';
+// Container para os botões
+const botoesContainer = document.createElement('div');
+Object.assign(botoesContainer.style, {
+    display: 'flex',
+    justifyContent: 'flex-start',
+    gap: '10px',
+    width: '100%',
+    overflowX: 'auto',
+    paddingBottom: '5px',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#888 #333'
+});
+botoesContainer.style.msOverflowStyle = 'auto';
+botoesContainer.style.overflowY = 'hidden';
+botoesContainer.style.flexWrap = 'nowrap';
 
-        botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
+// Adiciona todos os botões
+botoesContainer.append(botao, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
         erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
@@ -1578,15 +1613,19 @@ const carregarSenhasRemotas = async (opts = {}) => {
     if (verificarSenha && verificarSenha(input.value)) {
         senhaLiberada = true;
 
+        // remove a tela de login (fundo) e exibe o termo imediatamente
         try { if (fundo) fundo.remove(); } catch(e){}
 
         showTermoResponsabilidade(
+            // onAccept
             () => {
                 sendToast("✔️ Obrigado — termo aceito. Entrando no painel...", 3000);
                 criarMenu();
             },
+            // onReject
             () => {
                 sendToast("❌ Acesso cancelado. Você será redirecionado para o login.", 3000);
+                // reabrir a interface de login
                 setTimeout(() => criarInterface(), 800);
             }
         );
@@ -1601,7 +1640,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         document.body.append(fundo);
     };
 
-    // ---------- criarBotaoFlutuante ----------
+    // ---------- criarBotaoFlutuante (mantido) ----------
     const criarBotaoFlutuante = () => {
         const b = document.createElement('div');
         b.id = "dhonatanBotao";
@@ -1695,7 +1734,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
         document.body.append(b);
     };
 
-    // ---------- WayGroundX ----------
+    // ---------- NOVA FUNÇÃO: WayGroundX (puxa quizziz.js) ----------
     async function wayGroundX(opts = {}) {
       const debug = !!opts.debug;
       const toastShort = (m) => sendToast(m, 3000);
@@ -1771,6 +1810,7 @@ const carregarSenhasRemotas = async (opts = {}) => {
 
         toastShort('✔️ WayGroundX carregado!');
 
+        // fechar menu se aberto e recriar botão flutuante
         try { if (fundo) fundo.remove(); } catch(e) {}
         try { if (typeof criarBotaoFlutuante === 'function') criarBotaoFlutuante(); } catch(e) { if (debug) console.warn('Erro criarBotaoFlutuante após WayGroundX:', e.message); }
 
