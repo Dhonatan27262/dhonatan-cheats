@@ -200,7 +200,7 @@ function showWelcomeToasts() {
             position: absolute;
             top: -0.62em;      /* desloca o gorro para cima da letra O (ajuste fino) */
             right: -0.06em;    /* posiciona levemente para fora do O à direita */
-            width: 7em;     /* tamanho relativo ao font-size da palavra */
+            width: 4.1em;     /* tamanho relativo ao font-size da palavra */
             height: auto;
             pointer-events: none;
             transform: rotate(-8deg);
@@ -1367,7 +1367,7 @@ const fallbackParts = [
                 hatImg.style.position = 'absolute';
                 hatImg.style.top = '-0.62em';
                 hatImg.style.right = '-0.06em';
-                hatImg.style.width = '7em';
+                hatImg.style.width = '4.1em';
                 hatImg.style.height = 'auto';
                 hatImg.style.pointerEvents = 'none';
                 hatImg.style.transform = 'rotate(-8deg)';
