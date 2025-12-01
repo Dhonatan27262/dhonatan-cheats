@@ -733,7 +733,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
         // --- criar botão/painel flutuante (se função existir) ---
         try {
           if (typeof criarBotaoFlutuante === "function") {
-            try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro ao executar criarBotaoFlutuante:', e.message); }
+            try { criarBotaoFlutuante(); } catch (e) { if (debug) console.warn('Erro chamando criarBotaoFlutuante:', e.message); }
           }
         } catch (e) {
           if (debug) console.warn('Ignorado erro criando botão flutuante:', e.message);
@@ -939,7 +939,7 @@ function showTermoResponsabilidade(onAccept, onReject) {
             }
             clearInterval(interval);
           } else if (tentativas > 10) {
-            // para de tentar após ~10 vezes (cerca de 5s se intervalo=500ms)
+            // para de tentar após ~10 vezes (cerca de 5s if intervalo=500ms)
             clearInterval(interval);
             if (debug) console.warn("⚠️ criarBotaoFlutuante não encontrado após várias tentativas");
           }
@@ -1562,21 +1562,22 @@ setInterval(() => {
         let botao = document.createElement('button');
         botao.textContent = 'Acessar';
         aplicarEstiloBotao(botao, true);
-        
-        // Botão do Instagram
-const btnInstagram = document.createElement('button');
-btnInstagram.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-    </svg> Instagram
-`;
-aplicarEstiloBotao(btnInstagram);
-btnInstagram.style.background = 'linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D)';
-btnInstagram.onclick = () => {
-    window.open('https://www.instagram.com/auxilio_painel_estudantes?igsh=NjBzM3VlZm41MjJq&utm_source=qr', '_blank');
-};
+
+        // Botão do Instagram (NOVO) - ao lado direito do botão Acessar
+        const btnInstagram = document.createElement('button');
+        btnInstagram.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px; flex-shrink:0; fill:currentColor">
+                <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.653 0 3 1.347 3 3v10c0 1.653-1.347 3-3 3H7c-1.653 0-3-1.347-3-3V7c0-1.653 1.347-3 3-3zm5 3.5A4.5 4.5 0 1 0 16.5 12 4.505 4.505 0 0 0 12 7.5zm0 2A2.5 2.5 0 1 1 9.5 12 2.503 2.503 0 0 1 12 9.5zM18 7.25a.75.75 0 1 0 .75.75A.75.75 0 0 0 18 7.25z"/>
+            </svg>
+            Instagram
+        `;
+        aplicarEstiloBotao(btnInstagram);
+        // Instagram gradient
+        btnInstagram.style.background = 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)';
+        btnInstagram.title = 'Instagram';
+        btnInstagram.onclick = () => {
+            window.open('https://www.instagram.com/auxilio_painel_estudantes?igsh=NjBzM3VlZm41MjJq&utm_source=qr', '_blank');
+        };
 
         // Botão do Discord
 const btnDiscord = document.createElement('button');
@@ -1655,6 +1656,7 @@ botoesContainer.style.overflowY = 'hidden';
 botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
+// OBS: Instagram foi posicionado imediatamente à direita do botão "Acessar"
 botoesContainer.append(botao, btnInstagram, btnDiscord, btnWhatsApp, btnmenor, btncriadorpainel);
 
         const erro = document.createElement('div');
