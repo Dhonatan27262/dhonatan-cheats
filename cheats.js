@@ -1592,16 +1592,7 @@ setInterval(() => {
             window.open('https://www.instagram.com/auxilio_painel_estudantes?igsh=NjBzM3VlZm41MjJq&utm_source=qr', '_blank');
         };
 
-        // Botão do Discord
-const btnDiscord = document.createElement('button');
-btnDiscord.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" style="margin-right:8px"><path fill="currentColor" d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.566-.406.825a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.825.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.05.05 0 0 0-.028.019C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.326a.05.05 0 0 0-.02-.069.07.07 0 0 0-.041-.012 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.043c0-.003.002-.006.005-.009a.05.05 0 0 1 .015-.011c.17-.1.335-.206.495-.32.01-.008.022-.01.033-.003l.006.004c.013.008.02.022.017.035a10.2 10.2 0 0 0 3.172 1.525.05.05 0 0 0 .04-.01 7.96 7.96 0 0 0 3.07-1.525.05.05 0 0 0 .017-.035l.006-.004c.01-.007.022-.005.033.003.16.114.326.22.495.32a.05.05 0 0 1 .015.01c.003.004.005.007.005.01a.05.05 0 0 1-.02.042 8.875 8.875 0 0 1-1.248.595.05.05 0 0 0-.041.012.05.05 0 0 0-.02.07c.236.462.51.905.818 1.325a.05.05 0 0 0 .056.02 13.23 13.23 0 0 0 4.001-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.05.05 0 0 0-.028-.019zM5.525 9.992c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727zm4.95 0c-.889 0-1.613-.774-1.613-1.727 0-.953.724-1.727 1.613-1.727.89 0 1.613.774 1.613 1.727s-.723 1.727-1.613 1.727z"/></svg> Discord';
-aplicarEstiloBotao(btnDiscord);
-btnDiscord.style.background = '#5865F2';
-btnDiscord.onclick = () => {
-    window.open('https://discord.gg/NfVKXRSvYK', '_blank');
-};
-
-// Botão do WhatsApp (ao lado do Discord)
+// Botão do WhatsApp)
 const btnWhatsApp = document.createElement('button');
 btnWhatsApp.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
@@ -1611,7 +1602,7 @@ btnWhatsApp.innerHTML = `
 aplicarEstiloBotao(btnWhatsApp);
 btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
 btnWhatsApp.onclick = () => {
-    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
+    window.open('https://chat.whatsapp.com/KuoGhbbvfoAI7GAxOaltzE?mode=hqrt1', '_blank');
 };
 
 // Botão do YouTube Mlk Mau
@@ -1651,10 +1642,10 @@ botoesContainer.style.flexWrap = 'nowrap';
 
 // Adiciona todos os botões
 // OBS: Instagram foi posicionado imediatamente à direita do botão "Acessar"
-botoesContainer.append(botao, btnInstagram, btnDiscord, btnWhatsApp, btncriadorpainel);
+botoesContainer.append(botao, btnInstagram, btnWhatsApp, btncriadorpainel);
 
         const erro = document.createElement('div');
-        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Whatsapp para suporte.';
         Object.assign(erro.style, {
             display: 'none',
             color: '#ff5555',
