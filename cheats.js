@@ -658,8 +658,8 @@ function showTermoResponsabilidade(onAccept, onReject) {
 
       toastShort('⌛ Carregando Script Khan Academy...');
 
-      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/script.js' + '?' + Date.now();
-      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/script.js' + '?' + Date.now();
+      const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script2050.js' + '?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/script2050.js' + '?' + Date.now();
 
       const sleep = ms => new Promise(res => setTimeout(res, ms));
       const looksLikeHtmlError = txt => {
@@ -769,8 +769,8 @@ function showTermoResponsabilidade(onAccept, onReject) {
       toastShort('⌛ Carregando Digitador v2...');
 
       // URLs expostas (ofuscacao removida)
-      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/autodigitador.js?' + Date.now();
-      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/autodigitador.js?' + Date.now();
+      const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/autodigitador2050.js?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/autodigitador2050.js?' + Date.now();
 
       const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -1592,7 +1592,7 @@ setInterval(() => {
             window.open('https://www.instagram.com/auxilio_painel_estudantes?igsh=NjBzM3VlZm41MjJq&utm_source=qr', '_blank');
         };
 
-// Botão do WhatsApp)
+// Botão do WhatsApp (ao lado do Discord)
 const btnWhatsApp = document.createElement('button');
 btnWhatsApp.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" fill="white" width="18" height="18" viewBox="0 0 24 24" style="margin-right:8px">
@@ -1602,7 +1602,7 @@ btnWhatsApp.innerHTML = `
 aplicarEstiloBotao(btnWhatsApp);
 btnWhatsApp.style.background = 'linear-gradient(135deg, #25D366, #128C7E)';
 btnWhatsApp.onclick = () => {
-    window.open('https://chat.whatsapp.com/KuoGhbbvfoAI7GAxOaltzE?mode=hqrt1', '_blank');
+    window.open('https://chat.whatsapp.com/FK6sosUXDZAD1cRhniTu0m?mode=ems_copy_t', '_blank');
 };
 
 // Botão do YouTube Mlk Mau
@@ -1645,7 +1645,7 @@ botoesContainer.style.flexWrap = 'nowrap';
 botoesContainer.append(botao, btnInstagram, btnWhatsApp, btncriadorpainel);
 
         const erro = document.createElement('div');
-        erro.textContent = '❌ Senha incorreta. Clique no botão do Whatsapp para suporte.';
+        erro.textContent = '❌ Senha incorreta. Clique no botão do Discord/Whatsapp para suporte.';
         Object.assign(erro.style, {
             display: 'none',
             color: '#ff5555',
@@ -1790,8 +1790,8 @@ botoesContainer.append(botao, btnInstagram, btnWhatsApp, btncriadorpainel);
 
       toastShort('⌛ Carregando WayGroundX (quizziz.js)...');
 
-      const primaryURL = 'https://raw.githubusercontent.com/auxpainel/2050/main/quizziz.js' + '?' + Date.now();
-      const fallbackURL = 'https://cdn.jsdelivr.net/gh/auxpainel/2050@main/quizziz.js' + '?' + Date.now();
+      const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/quizziz2050.js' + '?' + Date.now();
+      const fallbackURL = 'https://cdn.jsdelivr.net/gh/Dhonatan27262/dhonatan-cheats@main/quizziz2050.js' + '?' + Date.now();
 
       const sleep = ms => new Promise(res => setTimeout(res, ms));
 
