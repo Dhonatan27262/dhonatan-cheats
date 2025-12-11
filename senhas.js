@@ -3,6 +3,7 @@ window.verificarSenha = function(senha) {
     const senhasValidas = [
         "tainara",
         "013179",
+        "mateus4299"//282
         "1911"//vitalicio
 ];
     // Verifica a senha exatamente como digitada (case sensitive)
