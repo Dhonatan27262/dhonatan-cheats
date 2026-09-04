@@ -1,363 +1,499 @@
-// ======================================================
-// KHAN DEBUGGER — DIAGNÓSTICO VISUAL
-// Mostra a estrutura das respostas de rede na própria tela
-// ======================================================
-
 (() => {
-  "use strict";
+    "use strict";
 
-  if (window.__KHAN_DEBUGGER__) {
-    alert("Debugger já está ativo.");
-    return;
-  }
+    // =========================================================
+    // KHAN STRUCTURE DEBUGGER
+    // Compatível com GitHub -> Atalho -> eval()
+    // =========================================================
 
-  window.__KHAN_DEBUGGER__ = true;
+    const FLAG = "__KHAN_DEBUGGER_V2__";
+    const RELOAD_FLAG = "__KHAN_DEBUGGER_RELOADED__";
 
-  // -------------------------------
-  // PAINEL
-  // -------------------------------
+    if (window[FLAG]) return;
+    window[FLAG] = true;
 
-  const panel = document.createElement("div");
+    // ---------------------------------------------------------
+    // PAINEL
+    // ---------------------------------------------------------
 
-  panel.style.cssText = `
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    z-index: 2147483647;
-    background: #111;
-    color: #eee;
-    border: 2px solid #666;
-    border-radius: 12px;
-    padding: 12px;
-    font-family: monospace;
-    font-size: 12px;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-  `;
+    const panel = document.createElement("div");
 
-  const title = document.createElement("div");
-
-  title.textContent = "🔎 KHAN DEBUGGER";
-
-  title.style.cssText = `
-    font-size: 17px;
-    font-weight: bold;
-    margin-bottom: 10px;
-  `;
-
-  const output = document.createElement("textarea");
-
-  output.readOnly = true;
-
-  output.style.cssText = `
-    flex: 1;
-    width: 100%;
-    resize: none;
-    box-sizing: border-box;
-    background: #000;
-    color: #00ff88;
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 10px;
-    font-family: monospace;
-    font-size: 11px;
-    line-height: 1.4;
-  `;
-
-  const buttons = document.createElement("div");
-
-  buttons.style.cssText = `
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-  `;
-
-  function makeButton(text) {
-    const b = document.createElement("button");
-
-    b.textContent = text;
-
-    b.style.cssText = `
-      flex: 1;
-      padding: 10px;
-      border: 0;
-      border-radius: 8px;
-      background: #333;
-      color: white;
-      font-weight: bold;
+    panel.style.cssText = `
+        position:fixed;
+        inset:8px;
+        z-index:2147483647;
+        background:#0b0b0b;
+        color:#e8e8e8;
+        border:2px solid #555;
+        border-radius:14px;
+        display:flex;
+        flex-direction:column;
+        overflow:hidden;
+        font-family:monospace;
+        box-shadow:0 10px 40px rgba(0,0,0,.7);
     `;
 
-    return b;
-  }
+    const header = document.createElement("div");
 
-  const copyButton = makeButton("📋 Copiar");
+    header.style.cssText = `
+        padding:12px;
+        background:#181818;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        font-family:Arial,sans-serif;
+        font-weight:bold;
+    `;
 
-  const clearButton = makeButton("🗑 Limpar");
+    header.innerHTML = `
+        <span>🔎 KHAN DEBUGGER V2</span>
+        <span id="khan-status" style="color:#00ff88">
+            ● ATIVO
+        </span>
+    `;
 
-  const closeButton = makeButton("✖ Fechar");
+    const output = document.createElement("textarea");
 
-  buttons.append(copyButton, clearButton, closeButton);
+    output.readOnly = true;
 
-  panel.append(title, output, buttons);
+    output.style.cssText = `
+        flex:1;
+        width:100%;
+        border:0;
+        outline:0;
+        resize:none;
+        box-sizing:border-box;
+        padding:12px;
+        background:#050505;
+        color:#00ff88;
+        font-family:monospace;
+        font-size:11px;
+        line-height:1.45;
+    `;
 
-  document.documentElement.appendChild(panel);
+    const footer = document.createElement("div");
 
-  // -------------------------------
-  // LOG
-  // -------------------------------
+    footer.style.cssText = `
+        display:flex;
+        gap:6px;
+        padding:8px;
+        background:#181818;
+    `;
 
-  const logs = [];
+    function button(text) {
+        const b = document.createElement("button");
 
-  function log(...args) {
-    const line = args.map(value => {
-      if (typeof value === "string") return value;
+        b.textContent = text;
 
-      try {
-        return JSON.stringify(value, null, 2);
-      } catch {
-        return String(value);
-      }
-    }).join(" ");
+        b.style.cssText = `
+            flex:1;
+            padding:11px 5px;
+            border:0;
+            border-radius:8px;
+            background:#303030;
+            color:white;
+            font-weight:bold;
+            font-size:12px;
+        `;
 
-    logs.push(line);
-
-    // Limita o tamanho para não travar o iPhone
-    if (logs.length > 2000) {
-      logs.splice(0, logs.length - 2000);
+        return b;
     }
 
-    output.value = logs.join("\n\n");
+    const copyBtn = button("📋 COPIAR");
+    const clearBtn = button("🗑 LIMPAR");
+    const closeBtn = button("✖ FECHAR");
 
-    output.scrollTop = output.scrollHeight;
-  }
+    footer.append(copyBtn, clearBtn, closeBtn);
+    panel.append(header, output, footer);
 
-  log("✅ Debugger iniciado.");
-  log("Abra ou recarregue uma questão do Khan Academy.");
-  log("Aguardando requisições relacionadas a exercícios...");
+    document.documentElement.appendChild(panel);
 
-  // -------------------------------
-  // COPIAR
-  // -------------------------------
+    // ---------------------------------------------------------
+    // LOG
+    // ---------------------------------------------------------
 
-  copyButton.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(output.value);
-      copyButton.textContent = "✅ Copiado!";
-      setTimeout(() => {
-        copyButton.textContent = "📋 Copiar";
-      }, 1500);
-    } catch {
-      output.select();
-      document.execCommand("copy");
-    }
-  };
+    let logs = [];
 
-  clearButton.onclick = () => {
-    logs.length = 0;
-    log("🧹 Diagnóstico limpo.");
-  };
+    function log(title, data = "") {
 
-  closeButton.onclick = () => {
-    panel.remove();
-    window.__KHAN_DEBUGGER__ = false;
-  };
+        const time = new Date().toLocaleTimeString();
 
-  // -------------------------------
-  // FUNÇÃO PARA LISTAR CAMINHOS
-  // -------------------------------
+        let text = "";
 
-  function getPaths(obj, maxDepth = 8) {
-    const result = [];
-
-    function walk(value, path, depth) {
-      if (depth > maxDepth) return;
-
-      if (!value || typeof value !== "object") return;
-
-      for (const key of Object.keys(value)) {
-        const current = path
-          ? `${path}.${key}`
-          : key;
-
-        result.push(current);
-
-        try {
-          walk(value[key], current, depth + 1);
-        } catch {}
-      }
-    }
-
-    walk(obj, "", 0);
-
-    return result;
-  }
-
-  // -------------------------------
-  // ANALISAR JSON
-  // -------------------------------
-
-  function inspectJSON(url, data) {
-    log("========================================");
-    log("📡 REQUISIÇÃO ENCONTRADA");
-    log("========================================");
-
-    log("URL:");
-    log(url);
-
-    log("Estrutura principal:");
-
-    const paths = getPaths(data);
-
-    log(paths.join("\n"));
-
-    log("========================================");
-    log("📦 JSON RECEBIDO");
-    log("========================================");
-
-    try {
-      log(JSON.stringify(data, null, 2));
-    } catch {
-      log("Não foi possível converter o JSON.");
-    }
-  }
-
-  // -------------------------------
-  // INTERCEPTAR FETCH
-  // -------------------------------
-
-  const originalFetch = window.fetch;
-
-  window.fetch = async function(...args) {
-
-    const response = await originalFetch.apply(this, args);
-
-    try {
-
-      const request = args[0];
-
-      const url =
-        request instanceof Request
-          ? request.url
-          : String(request);
-
-      // Apenas requisições potencialmente relacionadas
-      // a exercícios/questões.
-      if (
-        /assessment/i.test(url) ||
-        /problem/i.test(url) ||
-        /exercise/i.test(url) ||
-        /question/i.test(url)
-      ) {
-
-        const clone = response.clone();
-
-        const text = await clone.text();
-
-        try {
-
-          const json = JSON.parse(text);
-
-          inspectJSON(url, json);
-
-        } catch {
-
-          log("========================================");
-          log("📡 RESPOSTA NÃO JSON");
-          log("========================================");
-
-          log("URL:");
-          log(url);
-
-          log("Conteúdo inicial:");
-          log(text.slice(0, 5000));
+        if (typeof data === "string") {
+            text = data;
+        } else {
+            try {
+                text = JSON.stringify(data, null, 2);
+            } catch {
+                text = String(data);
+            }
         }
-      }
 
-    } catch (error) {
+        logs.push(
+            `[${time}] ${title}\n${text}`
+        );
 
-      log("⚠️ Erro ao analisar requisição:");
-      log(String(error));
+        // Evita memória excessiva no iPhone
+        if (logs.length > 100) {
+            logs = logs.slice(-100);
+        }
 
+        output.value = logs.join("\n\n");
+        output.scrollTop = output.scrollHeight;
     }
 
-    return response;
-  };
+    // ---------------------------------------------------------
+    // IDENTIFICAR REQUISIÇÕES
+    // ---------------------------------------------------------
 
-  // -------------------------------
-  // XMLHttpRequest
-  // Algumas páginas usam XHR em vez
-  // de fetch.
-  // -------------------------------
+    function isInteresting(url, body = "") {
 
-  const OriginalXHR = XMLHttpRequest;
+        const value = (
+            String(url || "") +
+            " " +
+            String(body || "")
+        ).toLowerCase();
 
-  XMLHttpRequest.prototype.open =
-    function(method, url, ...rest) {
+        return (
+            value.includes("assessment") ||
+            value.includes("assessmentitem") ||
+            value.includes("getassessmentitem") ||
+            value.includes("graphql") ||
+            value.includes("exercise") ||
+            value.includes("problem")
+        );
+    }
 
-      this.__khanDebugURL = String(url);
+    // ---------------------------------------------------------
+    // LISTAR ESTRUTURA SEM ALTERAR A RESPOSTA
+    // ---------------------------------------------------------
 
-      return OriginalXHR.prototype.open.call(
-        this,
-        method,
-        url,
-        ...rest
-      );
-    };
+    function getStructure(value, maxDepth = 7) {
 
-  XMLHttpRequest.prototype.addEventListener;
+        const paths = [];
 
-  const originalSend =
-    XMLHttpRequest.prototype.send;
+        function walk(obj, path, depth) {
 
-  XMLHttpRequest.prototype.send =
-    function(...args) {
+            if (depth > maxDepth) return;
 
-      this.addEventListener("load", function() {
+            if (
+                obj === null ||
+                typeof obj !== "object"
+            ) {
+                return;
+            }
+
+            for (const key of Object.keys(obj)) {
+
+                const current =
+                    path
+                        ? `${path}.${key}`
+                        : key;
+
+                paths.push(current);
+
+                try {
+                    walk(
+                        obj[key],
+                        current,
+                        depth + 1
+                    );
+                } catch {}
+            }
+        }
+
+        walk(value, "", 0);
+
+        return paths;
+    }
+
+    function inspect(url, data) {
+
+        log(
+            "📡 REQUISIÇÃO DE QUESTÃO DETECTADA",
+            url
+        );
+
+        const structure = getStructure(data);
+
+        log(
+            "📂 CAMINHOS DA ESTRUTURA",
+            structure.join("\n")
+        );
+
+        // Mostra somente um resumo das chaves de alto nível
+        // para facilitar a leitura no iPhone.
+
+        if (
+            data &&
+            typeof data === "object"
+        ) {
+
+            log(
+                "🔑 CHAVES PRINCIPAIS",
+                Object.keys(data).join("\n")
+            );
+        }
+
+        log(
+            "✅ JSON RECEBIDO",
+            "A estrutura acima foi capturada sem modificar a resposta."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // FETCH
+    // ---------------------------------------------------------
+
+    const originalFetch = window.fetch;
+
+    window.fetch = async function(...args) {
+
+        let url = "";
 
         try {
 
-          const url = this.__khanDebugURL || "";
+            const request = args[0];
 
-          if (
-            /assessment/i.test(url) ||
-            /problem/i.test(url) ||
-            /exercise/i.test(url) ||
-            /question/i.test(url)
-          ) {
+            if (request instanceof Request) {
+                url = request.url;
+            } else {
+                url = String(request);
+            }
 
-            const text = this.responseText;
+        } catch {}
+
+        let body = "";
+
+        try {
+
+            const request = args[0];
+            const init = args[1];
+
+            if (request instanceof Request) {
+                body = await request.clone().text();
+            } else if (init && init.body) {
+                body = String(init.body);
+            }
+
+        } catch {}
+
+        const response =
+            await originalFetch.apply(this, args);
+
+        if (isInteresting(url, body)) {
 
             try {
 
-              const json = JSON.parse(text);
+                const clone = response.clone();
 
-              inspectJSON(url, json);
+                const text =
+                    await clone.text();
 
-            } catch {
+                try {
 
-              log("XHR não JSON:");
-              log(url);
-              log(text.slice(0, 5000));
+                    const json =
+                        JSON.parse(text);
 
+                    inspect(url, json);
+
+                } catch {
+
+                    log(
+                        "📄 RESPOSTA NÃO JSON",
+                        text.slice(0, 4000)
+                    );
+                }
+
+            } catch (error) {
+
+                log(
+                    "⚠️ ERRO AO LER FETCH",
+                    String(error)
+                );
             }
-          }
-
-        } catch (error) {
-
-          log("Erro XHR:");
-          log(String(error));
-
         }
 
-      });
-
-      return originalSend.apply(this, args);
+        return response;
     };
 
-  log("🟢 Interceptação ativada.");
-  log("Agora abra uma questão.");
+    // ---------------------------------------------------------
+    // XHR
+    // ---------------------------------------------------------
+
+    const OriginalXHR = window.XMLHttpRequest;
+
+    const originalOpen =
+        OriginalXHR.prototype.open;
+
+    const originalSend =
+        OriginalXHR.prototype.send;
+
+    OriginalXHR.prototype.open =
+        function(method, url, ...rest) {
+
+            this.__khanDebugURL =
+                String(url);
+
+            this.__khanDebugMethod =
+                String(method);
+
+            return originalOpen.call(
+                this,
+                method,
+                url,
+                ...rest
+            );
+        };
+
+    OriginalXHR.prototype.send =
+        function(body) {
+
+            const xhr = this;
+
+            xhr.addEventListener(
+                "load",
+                function() {
+
+                    const url =
+                        xhr.__khanDebugURL || "";
+
+                    if (!isInteresting(url, body)) {
+                        return;
+                    }
+
+                    try {
+
+                        const text =
+                            xhr.responseText;
+
+                        try {
+
+                            const json =
+                                JSON.parse(text);
+
+                            inspect(url, json);
+
+                        } catch {
+
+                            log(
+                                "📄 XHR NÃO JSON",
+                                text.slice(0, 4000)
+                            );
+                        }
+
+                    } catch (error) {
+
+                        log(
+                            "⚠️ ERRO XHR",
+                            String(error)
+                        );
+                    }
+                }
+            );
+
+            return originalSend.call(
+                this,
+                body
+            );
+        };
+
+    // ---------------------------------------------------------
+    // PERFORMANCE OBSERVER
+    // Descobre requisições mesmo quando não conseguimos
+    // acessar o corpo da resposta.
+    // ---------------------------------------------------------
+
+    try {
+
+        const observer =
+            new PerformanceObserver(list => {
+
+                for (const entry of list.getEntries()) {
+
+                    if (
+                        entry.name &&
+                        isInteresting(entry.name)
+                    ) {
+
+                        log(
+                            "🌐 RECURSO DETECTADO",
+                            entry.name
+                        );
+                    }
+                }
+            });
+
+        observer.observe({
+            type: "resource",
+            buffered: true
+        });
+
+    } catch {}
+
+    // ---------------------------------------------------------
+    // BOTÕES
+    // ---------------------------------------------------------
+
+    copyBtn.onclick = async () => {
+
+        try {
+
+            await navigator.clipboard.writeText(
+                output.value
+            );
+
+            copyBtn.textContent = "✅ COPIADO";
+
+            setTimeout(() => {
+                copyBtn.textContent = "📋 COPIAR";
+            }, 1500);
+
+        } catch {
+
+            output.focus();
+            output.select();
+            document.execCommand("copy");
+        }
+    };
+
+    clearBtn.onclick = () => {
+
+        logs = [];
+
+        log(
+            "🧹 LIMPO",
+            "Aguardando nova questão..."
+        );
+    };
+
+    closeBtn.onclick = () => {
+
+        panel.remove();
+
+        try {
+            delete window[FLAG];
+        } catch {}
+    };
+
+    // ---------------------------------------------------------
+    // INICIALIZAÇÃO
+    // ---------------------------------------------------------
+
+    log(
+        "🚀 DEBUGGER V2 INICIADO",
+        "Interceptor instalado."
+    );
+
+    log(
+        "📱 MODO IPHONE",
+        "Monitorando Fetch + XHR + Performance."
+    );
+
+    log(
+        "⏳ AGUARDANDO",
+        "Abra/recarregue uma questão."
+    );
 
 })();
