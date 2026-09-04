@@ -1,322 +1,294 @@
 (() => {
     "use strict";
 
-    if (window.__ASSISTENTE_ESTUDOS_V4__) {
+    if (window.__ESTUDOS_AI_V5__) {
         alert("Assistente já está carregado.");
         return;
     }
 
-    window.__ASSISTENTE_ESTUDOS_V4__ = true;
+    window.__ESTUDOS_AI_V5__ = true;
 
-    const ID = "assistente-estudos-v4";
+    const ID = "estudos-ai-v5";
+    let textoCapturado = "";
+    let imagemCapturada = null;
 
     // =========================================================
-    // CSS
+    // ESTILO
     // =========================================================
 
     const style = document.createElement("style");
 
     style.textContent = `
-        #${ID} {
-            position: fixed;
-            right: 12px;
-            bottom: 105px;
-            width: 260px;
-            max-width: calc(100vw - 24px);
-            z-index: 2147483647;
-            background: #111827;
-            color: #fff;
-            border-radius: 16px;
-            padding: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,.4);
-            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        #${ID}{
+            position:fixed;
+            right:10px;
+            bottom:90px;
+            width:275px;
+            max-width:calc(100vw - 20px);
+            z-index:2147483647;
+            background:#111827;
+            color:white;
+            border-radius:16px;
+            padding:11px;
+            box-shadow:0 8px 30px rgba(0,0,0,.45);
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
         }
 
-        #${ID} * {
-            box-sizing: border-box;
+        #${ID} *{
+            box-sizing:border-box;
         }
 
-        #${ID} .cabecalho {
+        #${ID} .cabecalho{
             display:flex;
             align-items:center;
             justify-content:space-between;
-            margin-bottom:9px;
+            margin-bottom:8px;
         }
 
-        #${ID} .titulo {
+        #${ID} .titulo{
+            font-size:14px;
             font-weight:700;
-            font-size:15px;
         }
 
-        #${ID} .btn-x {
-            background:none;
+        #${ID} .min{
             border:0;
+            background:none;
             color:white;
-            font-size:21px;
+            font-size:20px;
             cursor:pointer;
-            padding:0 3px;
         }
 
         #${ID} input,
-        #${ID} select {
+        #${ID} select{
             width:100%;
+            padding:9px;
+            margin-bottom:6px;
+            border-radius:8px;
+            border:1px solid #374151;
             background:#1f2937;
             color:white;
-            border:1px solid #374151;
-            border-radius:9px;
-            padding:10px;
-            margin-bottom:7px;
-            font-size:12px;
+            font-size:11px;
             outline:none;
         }
 
-        #${ID} button.acao {
+        #${ID} button.acao{
             width:100%;
             border:0;
-            border-radius:9px;
-            padding:10px;
-            margin-top:6px;
-            color:white;
+            border-radius:8px;
+            padding:9px;
+            margin-top:5px;
             background:#374151;
+            color:white;
             font-weight:700;
-            font-size:12px;
+            font-size:11px;
             cursor:pointer;
         }
 
-        #${ID} button.acao:active {
-            transform:scale(.98);
-        }
-
-        #${ID} .btn-ia {
+        #${ID} .ia{
             background:#4f46e5 !important;
         }
 
-        #${ID} .status {
-            margin-top:8px;
-            color:#cbd5e1;
-            font-size:11px;
-            line-height:1.35;
+        #${ID} .imagem{
+            width:100%;
+            max-height:110px;
+            object-fit:contain;
+            margin-top:7px;
+            border-radius:8px;
+            display:none;
+            background:#000;
         }
 
-        #${ID} .saida {
+        #${ID} .status{
+            margin-top:7px;
+            color:#cbd5e1;
+            font-size:10px;
+        }
+
+        #${ID} .saida{
             display:none;
-            margin-top:9px;
-            background:#1f2937;
-            border-radius:9px;
-            padding:10px;
+            margin-top:8px;
+            padding:9px;
             max-height:220px;
-            overflow-y:auto;
+            overflow:auto;
+            background:#1f2937;
+            border-radius:8px;
             white-space:pre-wrap;
             word-break:break-word;
-            font-size:12px;
+            font-size:11px;
             line-height:1.45;
         }
 
-        #${ID} .flutuante {
-            width:48px;
-            height:48px;
-            border-radius:50%;
-            border:0;
-            background:#4f46e5;
-            color:#fff;
-            font-size:21px;
-            box-shadow:0 5px 20px rgba(0,0,0,.4);
-            cursor:pointer;
+        #${ID} .link{
+            display:block;
+            text-align:center;
+            margin-top:8px;
+            color:#93c5fd;
+            font-size:10px;
+            text-decoration:none;
         }
 
-        #${ID}.minimizado {
+        #${ID} .flutuante{
+            width:45px;
+            height:45px;
+            border:0;
+            border-radius:50%;
+            background:#4f46e5;
+            color:white;
+            font-size:20px;
+            cursor:pointer;
+            box-shadow:0 5px 20px rgba(0,0,0,.4);
+        }
+
+        #${ID}.mini{
             width:auto;
             padding:0;
             background:transparent;
             box-shadow:none;
         }
 
-        #${ID}.minimizado .conteudo {
+        #${ID}.mini .conteudo{
             display:none;
         }
 
-        #${ID}:not(.minimizado) .flutuante {
+        #${ID}:not(.mini) .flutuante{
             display:none;
         }
 
-        #${ID}.minimizado .flutuante {
+        #${ID}.mini .flutuante{
             display:block;
-        }
-
-        #${ID} .contador {
-            font-size:10px;
-            color:#94a3b8;
-            margin-top:5px;
         }
     `;
 
     document.head.appendChild(style);
 
     // =========================================================
-    // HTML
+    // INTERFACE
     // =========================================================
 
     const painel = document.createElement("div");
-
     painel.id = ID;
 
     painel.innerHTML = `
         <div class="conteudo">
 
             <div class="cabecalho">
-                <div class="titulo">📚 Assistente de Estudos</div>
-
-                <button class="btn-x" id="minimizar">
-                    −
-                </button>
+                <div class="titulo">📚 Assistente IA</div>
+                <button class="min" id="min">−</button>
             </div>
 
+            <select id="provedor">
+                <option value="openai">🤖 OpenAI</option>
+                <option value="gemini">✨ Gemini</option>
+            </select>
+
             <input
-                id="apiKey"
+                id="api"
                 type="password"
-                placeholder="🔑 Chave OpenRouter"
+                placeholder="🔑 Cole sua API Key"
                 autocomplete="off"
             >
 
-            <select id="modelo">
-
-                <option value="openai/gpt-5">
-                    GPT-5
-                </option>
-
-                <option value="openai/gpt-5.3-chat">
-                    GPT-5.3 Chat
-                </option>
-
-                <option value="openai/gpt-chat-latest">
-                    GPT Chat Latest
-                </option>
-
-            </select>
-
-            <button
-                class="acao"
-                id="capturar"
-            >
-                📋 CAPTURAR QUESTÃO
+            <button class="acao" id="capturar">
+                📋 Capturar questão
             </button>
 
-            <button
-                class="acao btn-ia"
-                id="analisar"
-            >
-                🧠 ANALISAR COM IA
+            <button class="acao" id="imagemBtn">
+                📸 Capturar imagem
             </button>
 
-            <div
-                class="status"
-                id="status"
+            <input
+                id="arquivo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style="display:none"
             >
-                Nenhuma questão capturada.
+
+            <img id="preview" class="imagem">
+
+            <button class="acao ia" id="analisar">
+                🧠 Analisar com IA
+            </button>
+
+            <div class="status" id="status">
+                Pronto.
             </div>
 
-            <div
-                class="saida"
-                id="saida"
-            ></div>
+            <div class="saida" id="saida"></div>
 
-            <div
-                class="contador"
-                id="contador"
-            ></div>
+            <a
+                class="link"
+                id="linkApi"
+                target="_blank"
+                rel="noopener"
+            >
+                🔗 Criar API Key
+            </a>
 
         </div>
 
-        <button
-            class="flutuante"
-            id="abrir"
-        >
+        <button class="flutuante" id="abrir">
             📚
         </button>
     `;
 
     document.body.appendChild(painel);
 
-    // =========================================================
-    // ELEMENTOS
-    // =========================================================
-
-    const apiKeyInput =
-        painel.querySelector("#apiKey");
-
-    const modelo =
-        painel.querySelector("#modelo");
-
-    const btnCapturar =
-        painel.querySelector("#capturar");
-
-    const btnAnalisar =
-        painel.querySelector("#analisar");
-
-    const btnMinimizar =
-        painel.querySelector("#minimizar");
-
-    const btnAbrir =
-        painel.querySelector("#abrir");
-
-    const status =
-        painel.querySelector("#status");
-
-    const saida =
-        painel.querySelector("#saida");
-
-    const contador =
-        painel.querySelector("#contador");
+    const provedor = painel.querySelector("#provedor");
+    const api = painel.querySelector("#api");
+    const capturarBtn = painel.querySelector("#capturar");
+    const imagemBtn = painel.querySelector("#imagemBtn");
+    const arquivo = painel.querySelector("#arquivo");
+    const preview = painel.querySelector("#preview");
+    const analisarBtn = painel.querySelector("#analisar");
+    const status = painel.querySelector("#status");
+    const saida = painel.querySelector("#saida");
+    const min = painel.querySelector("#min");
+    const abrir = painel.querySelector("#abrir");
+    const linkApi = painel.querySelector("#linkApi");
 
     // =========================================================
-    // MEMÓRIA
+    // LINKS DAS APIs
     // =========================================================
 
-    let questaoAtual = "";
+    function atualizarLink() {
 
-    // =========================================================
-    // TEXTOS DE INTERFACE PARA IGNORAR
-    // =========================================================
+        if (provedor.value === "openai") {
+            linkApi.href =
+                "https://platform.openai.com/api-keys";
 
-    const IGNORAR = new Set([
-        "Pular",
-        "Verificar",
-        "Relatar um problema",
-        "Continuar",
-        "Tentar novamente",
-        "Próximo",
-        "Anterior",
-        "Enviar",
-        "Cancelar",
-        "Ajuda",
-        "Mostrar dica"
-    ]);
+            linkApi.textContent =
+                "🔗 Criar API Key da OpenAI";
+        } else {
 
-    // =========================================================
-    // VISIBILIDADE
-    // =========================================================
+            linkApi.href =
+                "https://aistudio.google.com/apikey";
 
-    function visivel(el) {
-
-        if (!el) return false;
-
-        const r =
-            el.getBoundingClientRect();
-
-        const s =
-            getComputedStyle(el);
-
-        return (
-            r.width > 0 &&
-            r.height > 0 &&
-            s.display !== "none" &&
-            s.visibility !== "hidden" &&
-            s.opacity !== "0"
-        );
+            linkApi.textContent =
+                "🔗 Criar API Key do Gemini";
+        }
     }
 
+    provedor.addEventListener(
+        "change",
+        atualizarLink
+    );
+
+    atualizarLink();
+
     // =========================================================
-    // LIMPEZA
+    // MINIMIZAR
+    // =========================================================
+
+    min.onclick = () => {
+        painel.classList.add("mini");
+    };
+
+    abrir.onclick = () => {
+        painel.classList.remove("mini");
+    };
+
+    // =========================================================
+    // LIMPEZA DE TEXTO
     // =========================================================
 
     function limpar(texto) {
@@ -324,195 +296,73 @@
         return (texto || "")
             .replace(/\u00a0/g, " ")
             .replace(/[ \t]+/g, " ")
-            .replace(/\n[ \t]+/g, "\n")
             .replace(/\n{3,}/g, "\n\n")
             .trim();
     }
 
     // =========================================================
-    // EXTRAI TEXTO
+    // CAPTURA DE TEXTO
     // =========================================================
 
-    function extrair(container) {
+    function capturarQuestao() {
 
-        if (!container) return "";
-
-        const clone =
-            container.cloneNode(true);
-
-        // Nosso próprio painel
-        clone
-            .querySelectorAll(`#${ID}`)
-            .forEach(el => el.remove());
-
-        // Interface
-        clone
-            .querySelectorAll(`
-                button,
-                input,
-                textarea,
-                select,
-                header,
-                nav,
-                footer,
-                aside,
-                [role="button"]
-            `)
-            .forEach(el => el.remove());
-
-        let texto =
-            limpar(clone.innerText);
-
-        const linhas =
-            texto
-                .split("\n")
-                .map(x => limpar(x))
-                .filter(Boolean)
-                .filter(x => !IGNORAR.has(x));
-
-        return linhas.join("\n");
-    }
-
-    // =========================================================
-    // ENCONTRA O CONTAINER
-    // =========================================================
-
-    function encontrarContainer() {
+        status.textContent =
+            "🔎 Procurando conteúdo da questão...";
 
         const seletores = [
             '[data-testid*="exercise"]',
             '[data-testid*="question"]',
             '[data-testid*="problem"]',
             'main',
-            '[role="main"]',
-            '[class*="exercise"]',
-            '[class*="question"]',
-            '[class*="problem"]'
+            '[role="main"]'
         ];
 
-        const candidatos = [];
+        let melhor = null;
 
         for (const seletor of seletores) {
 
-            let elementos;
+            const elementos =
+                document.querySelectorAll(seletor);
 
-            try {
-                elementos =
-                    document.querySelectorAll(seletor);
-            } catch {
-                continue;
-            }
+            for (const elemento of elementos) {
 
-            for (const el of elementos) {
+                if (
+                    elemento.closest(`#${ID}`)
+                ) continue;
 
-                if (!visivel(el)) continue;
+                const rect =
+                    elemento.getBoundingClientRect();
 
-                if (el.closest(`#${ID}`))
-                    continue;
+                if (
+                    rect.width <= 0 ||
+                    rect.height <= 0
+                ) continue;
+
+                const clone =
+                    elemento.cloneNode(true);
+
+                clone
+                    .querySelectorAll(
+                        "button,input,textarea,select,nav,header,footer"
+                    )
+                    .forEach(x => x.remove());
 
                 const texto =
-                    extrair(el);
+                    limpar(clone.innerText);
 
-                if (texto.length < 30)
-                    continue;
-
-                if (texto.length > 5000)
-                    continue;
-
-                candidatos.push({
-                    el,
-                    texto
-                });
+                if (
+                    texto.length >= 30 &&
+                    texto.length <= 5000
+                ) {
+                    melhor = texto;
+                    break;
+                }
             }
+
+            if (melhor) break;
         }
 
-        if (!candidatos.length)
-            return null;
-
-        // Prioriza conteúdo de tamanho intermediário,
-        // evitando body/main gigantes.
-        candidatos.sort(
-            (a,b) =>
-                Math.abs(a.texto.length - 800) -
-                Math.abs(b.texto.length - 800)
-        );
-
-        return candidatos[0].el;
-    }
-
-    // =========================================================
-    // FALLBACK
-    // =========================================================
-
-    function fallback() {
-
-        const elementos =
-            [...document.querySelectorAll(
-                "p,h1,h2,h3,h4,div,span"
-            )];
-
-        const candidatos = [];
-
-        for (const el of elementos) {
-
-            if (!visivel(el))
-                continue;
-
-            if (el.closest(`#${ID}`))
-                continue;
-
-            if (
-                el.closest("header") ||
-                el.closest("nav") ||
-                el.closest("footer") ||
-                el.closest("aside") ||
-                el.closest("button")
-            ) {
-                continue;
-            }
-
-            const texto =
-                extrair(el);
-
-            if (
-                texto.length >= 30 &&
-                texto.length <= 3000
-            ) {
-                candidatos.push({
-                    el,
-                    texto
-                });
-            }
-        }
-
-        candidatos.sort(
-            (a,b) =>
-                a.texto.length - b.texto.length
-        );
-
-        return candidatos.length
-            ? candidatos[0].el
-            : null;
-    }
-
-    // =========================================================
-    // CAPTURAR
-    // =========================================================
-
-    function capturar() {
-
-        status.textContent =
-            "🔎 Procurando questão...";
-
-        saida.style.display = "none";
-
-        let container =
-            encontrarContainer();
-
-        if (!container)
-            container = fallback();
-
-        if (!container) {
+        if (!melhor) {
 
             status.textContent =
                 "❌ Não encontrei a questão.";
@@ -520,252 +370,362 @@
             return;
         }
 
-        let texto =
-            extrair(container);
+        textoCapturado = melhor;
 
-        if (!texto || texto.length < 20) {
-
-            status.textContent =
-                "❌ Conteúdo insuficiente.";
-
-            return;
-        }
-
-        // Remove linhas duplicadas
-        const linhas =
-            texto
-                .split("\n")
-                .map(x => x.trim())
-                .filter(Boolean);
-
-        const unicas = [];
-
-        for (const linha of linhas) {
-
-            if (!unicas.includes(linha))
-                unicas.push(linha);
-        }
-
-        questaoAtual =
-            unicas.join("\n");
-
-        if (questaoAtual.length > 5000) {
-
-            questaoAtual =
-                questaoAtual.substring(0, 5000);
-        }
-
+        saida.style.display = "block";
         saida.textContent =
-            questaoAtual;
-
-        saida.style.display =
-            "block";
-
-        contador.textContent =
-            `${questaoAtual.length} caracteres`;
+            textoCapturado;
 
         status.textContent =
             "✅ Questão capturada.";
     }
 
+    capturarBtn.onclick =
+        capturarQuestao;
+
     // =========================================================
-    // OPENROUTER
+    // CAPTURA DE IMAGEM
     // =========================================================
 
-    async function analisarComIA() {
+    imagemBtn.onclick = () => {
+        arquivo.click();
+    };
 
-        if (!questaoAtual) {
+    arquivo.addEventListener(
+        "change",
+        () => {
 
-            status.textContent =
-                "⚠️ Primeiro capture a questão.";
+            const file =
+                arquivo.files?.[0];
 
-            return;
+            if (!file)
+                return;
+
+            if (
+                !file.type.startsWith("image/")
+            ) {
+
+                status.textContent =
+                    "❌ Arquivo não é uma imagem.";
+
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = () => {
+
+                imagemCapturada =
+                    reader.result;
+
+                preview.src =
+                    imagemCapturada;
+
+                preview.style.display =
+                    "block";
+
+                status.textContent =
+                    "📸 Imagem capturada.";
+            };
+
+            reader.readAsDataURL(file);
+        }
+    );
+
+    // =========================================================
+    // OPENAI
+    // =========================================================
+
+    async function consultarOpenAI(chave) {
+
+        const content = [];
+
+        content.push({
+            type: "input_text",
+            text: `
+Você é um tutor de estudos.
+
+Analise cuidadosamente o material recebido.
+
+Explique:
+• o que a questão está pedindo;
+• quais dados são importantes;
+• qual método deve ser usado;
+• o raciocínio passo a passo;
+• o resultado final e como verificá-lo.
+
+Não invente dados que não estejam disponíveis.
+
+Questão capturada:
+
+${textoCapturado || "(nenhum texto capturado)"}
+`
+        });
+
+        if (imagemCapturada) {
+
+            content.push({
+                type: "input_image",
+                image_url: imagemCapturada,
+                detail: "high"
+            });
         }
 
-        const chave =
-            apiKeyInput.value.trim();
+        const resposta =
+            await fetch(
+                "https://api.openai.com/v1/responses",
+                {
+                    method: "POST",
 
-        if (!chave) {
+                    headers: {
+                        "Authorization":
+                            `Bearer ${chave}`,
 
-            status.textContent =
-                "⚠️ Coloque sua chave OpenRouter.";
+                        "Content-Type":
+                            "application/json"
+                    },
 
-            apiKeyInput.focus();
+                    body: JSON.stringify({
 
-            return;
+                        model: "gpt-5",
+
+                        input: [
+                            {
+                                role: "user",
+                                content
+                            }
+                        ]
+                    })
+                }
+            );
+
+        const data =
+            await resposta.json();
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                data?.error?.message ||
+                `HTTP ${resposta.status}`
+            );
         }
 
-        status.textContent =
-            "🧠 Analisando...";
+        return (
+            data.output_text ||
+            extrairOutputOpenAI(data)
+        );
+    }
 
-        saida.style.display =
-            "block";
-
-        saida.textContent =
-            "A IA está analisando a questão...";
-
-        btnAnalisar.disabled = true;
+    function extrairOutputOpenAI(data) {
 
         try {
 
-            const prompt = `
-Você é um tutor de matemática.
+            return data.output
+                .flatMap(x => x.content || [])
+                .filter(x => x.type === "output_text")
+                .map(x => x.text)
+                .join("\n");
 
-Analise a questão abaixo com atenção.
+        } catch {
 
-Não invente informações que não estejam no enunciado.
-
-Explique:
-1. O que a questão está pedindo.
-2. Quais dados são importantes.
-3. Qual fórmula ou método deve ser utilizado.
-4. Faça o raciocínio passo a passo.
-5. Faça uma verificação final do raciocínio.
-
-Questão:
-
-${questaoAtual}
-`;
-
-            const resposta =
-                await fetch(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Authorization":
-                                `Bearer ${chave}`,
-
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-
-                            model:
-                                modelo.value,
-
-                            messages: [
-
-                                {
-                                    role: "system",
-
-                                    content:
-                                        "Você é um tutor didático e preciso."
-                                },
-
-                                {
-                                    role: "user",
-
-                                    content: prompt
-                                }
-
-                            ],
-
-                            temperature: 0.1,
-
-                            max_tokens: 1200
-
-                        })
-                    }
-                );
-
-            const data =
-                await resposta.json();
-
-            if (!resposta.ok) {
-
-                throw new Error(
-                    data?.error?.message ||
-                    `Erro HTTP ${resposta.status}`
-                );
-            }
-
-            const texto =
-                data?.choices?.[0]?.message?.content;
-
-            if (!texto) {
-
-                throw new Error(
-                    "A IA não retornou conteúdo."
-                );
-            }
-
-            saida.textContent =
-                texto;
-
-            status.textContent =
-                "✅ Análise concluída.";
-
-        } catch (erro) {
-
-            console.error(
-                "OpenRouter:",
-                erro
-            );
-
-            saida.textContent =
-                "❌ Erro ao consultar a IA.\n\n" +
-                erro.message;
-
-            status.textContent =
-                "❌ Falha na análise.";
-
-        } finally {
-
-            btnAnalisar.disabled =
-                false;
+            return "";
         }
     }
 
     // =========================================================
-    // MINIMIZAR
+    // GEMINI
     // =========================================================
 
-    btnMinimizar.addEventListener(
-        "click",
-        () => {
+    async function consultarGemini(chave) {
 
-            painel.classList.add(
-                "minimizado"
+        const partes = [];
+
+        partes.push({
+            text: `
+Você é um tutor de estudos extremamente cuidadoso.
+
+Analise a questão abaixo.
+
+Explique:
+1. O que está sendo perguntado.
+2. Os dados relevantes.
+3. O método de resolução.
+4. O raciocínio passo a passo.
+5. O resultado final.
+6. Uma verificação para confirmar o resultado.
+
+Não invente informações.
+
+Questão:
+
+${textoCapturado || "(nenhum texto capturado)"}
+`
+        });
+
+        if (imagemCapturada) {
+
+            const base64 =
+                imagemCapturada.split(",")[1];
+
+            const mime =
+                imagemCapturada
+                    .match(/data:(.*?);base64/)?.[1]
+                    || "image/png";
+
+            partes.push({
+
+                inline_data: {
+                    mime_type: mime,
+                    data: base64
+                }
+
+            });
+        }
+
+        const modelo =
+            "gemini-2.5-flash";
+
+        const url =
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${encodeURIComponent(chave)}`;
+
+        const resposta =
+            await fetch(
+                url,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                parts: partes
+                            }
+                        ],
+
+                        generationConfig: {
+                            temperature: 0.1
+                        }
+                    })
+                }
+            );
+
+        const data =
+            await resposta.json();
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                data?.error?.message ||
+                `HTTP ${resposta.status}`
             );
         }
-    );
 
-    btnAbrir.addEventListener(
-        "click",
-        () => {
-
-            painel.classList.remove(
-                "minimizado"
-            );
-        }
-    );
+        return (
+            data?.candidates?.[0]
+                ?.content?.parts
+                ?.map(x => x.text || "")
+                .join("") ||
+            "A IA não retornou texto."
+        );
+    }
 
     // =========================================================
-    // EVENTOS
+    // ANALISAR
     // =========================================================
 
-    btnCapturar.addEventListener(
-        "click",
-        capturar
-    );
+    analisarBtn.onclick =
+        async () => {
 
-    btnAnalisar.addEventListener(
-        "click",
-        analisarComIA
-    );
+            const chave =
+                api.value.trim();
 
-    // =========================================================
-    // INÍCIO
-    // =========================================================
+            if (!chave) {
+
+                status.textContent =
+                    "⚠️ Informe sua API Key.";
+
+                api.focus();
+
+                return;
+            }
+
+            if (
+                !textoCapturado &&
+                !imagemCapturada
+            ) {
+
+                status.textContent =
+                    "⚠️ Capture uma questão ou imagem primeiro.";
+
+                return;
+            }
+
+            analisarBtn.disabled = true;
+
+            saida.style.display =
+                "block";
+
+            saida.textContent =
+                "🧠 Analisando...";
+
+            status.textContent =
+                "⏳ Consultando " +
+                (provedor.value === "openai"
+                    ? "OpenAI..."
+                    : "Gemini...");
+
+            try {
+
+                let resultado;
+
+                if (
+                    provedor.value === "openai"
+                ) {
+
+                    resultado =
+                        await consultarOpenAI(
+                            chave
+                        );
+
+                } else {
+
+                    resultado =
+                        await consultarGemini(
+                            chave
+                        );
+                }
+
+                saida.textContent =
+                    resultado;
+
+                status.textContent =
+                    "✅ Análise concluída.";
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                saida.textContent =
+                    "❌ Erro:\n\n" +
+                    erro.message;
+
+                status.textContent =
+                    "❌ Falha na consulta.";
+
+            } finally {
+
+                analisarBtn.disabled =
+                    false;
+            }
+        };
 
     console.log(
-        "📚 Assistente de Estudos V4 iniciado."
+        "📚 Assistente de Estudos V5 iniciado."
     );
-
-    status.textContent =
-        "Pronto. Abra uma questão e toque em CAPTURAR.";
 
 })();
