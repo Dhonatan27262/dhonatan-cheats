@@ -5,7 +5,7 @@
   // ASSISTENTE DE ESTUDOS
   // TEXTO + IMAGEM + GPT / GEMINI
   // IPHONE / USERSCRIPT
-  // MENU ARRASTÁVEL
+  // MENU INTEIRO ARRASTÁVEL
   // ============================================================
 
   const STORAGE = {
@@ -271,6 +271,9 @@ Se não for possível identificar uma questão válida, responda:
 
       overflow:
         hidden;
+
+      touch-action:
+        none;
     }
 
     #study-header {
@@ -325,6 +328,9 @@ Se não for possível identificar uma questão válida, responda:
 
       gap:
         4px;
+
+      touch-action:
+        manipulation;
     }
 
     .study-head-btn {
@@ -376,6 +382,9 @@ Se não for possível identificar uma questão válida, responda:
 
       -webkit-overflow-scrolling:
         touch;
+
+      touch-action:
+        pan-y;
     }
 
     .study-label {
@@ -421,6 +430,9 @@ Se não for possível identificar uma questão válida, responda:
 
       outline:
         none;
+
+      touch-action:
+        manipulation;
     }
 
     #study-key {
@@ -454,6 +466,9 @@ Se não for possível identificar uma questão válida, responda:
 
       outline:
         none;
+
+      touch-action:
+        manipulation;
     }
 
     .study-button {
@@ -556,6 +571,9 @@ Se não for possível identificar uma questão válida, responda:
 
       outline:
         none;
+
+      touch-action:
+        auto;
     }
 
     #study-preview {
@@ -580,6 +598,9 @@ Se não for possível identificar uma questão válida, responda:
 
       margin-top:
         9px;
+
+      touch-action:
+        none;
     }
 
     #study-result {
@@ -619,6 +640,9 @@ Se não for possível identificar uma questão válida, responda:
 
       -webkit-overflow-scrolling:
         touch;
+
+      touch-action:
+        pan-y;
     }
 
     #study-status {
@@ -655,6 +679,9 @@ Se não for possível identificar uma questão válida, responda:
 
       text-decoration:
         none;
+
+      touch-action:
+        manipulation;
     }
 
     #study-api-link:hover {
@@ -707,7 +734,7 @@ Se não for possível identificar uma questão válida, responda:
         rgba(0,0,0,.4);
 
       touch-action:
-        none;
+        manipulation;
 
       user-select:
         none;
@@ -1801,14 +1828,8 @@ Analise somente o conteúdo relacionado
     };
 
   // ============================================================
-  // ARRASTAR PAINEL
-  // TOUCH + MOUSE
+  // ARRASTAR MENU INTEIRO
   // ============================================================
-
-  const header =
-    document.getElementById(
-      "study-header"
-    );
 
   let dragging =
     false;
@@ -1825,18 +1846,33 @@ Analise somente o conteúdo relacionado
   let panelStartTop =
     0;
 
-  header.style.touchAction =
-    "none";
+  function podeArrastar(event) {
 
-  header.addEventListener(
+    const alvo =
+      event.target;
+
+    // Esses elementos continuam funcionando
+    // normalmente e não iniciam o arraste.
+    const elementoInterativo =
+      alvo.closest(
+        "button, input, textarea, select, a"
+      );
+
+    if (
+      elementoInterativo
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  panel.addEventListener(
     "pointerdown",
     event => {
 
-      // Não arrastar quando tocar nos botões
       if (
-        event.target.closest(
-          "button"
-        )
+        !podeArrastar(event)
       ) {
         return;
       }
@@ -1859,7 +1895,6 @@ Analise somente o conteúdo relacionado
       panelStartTop =
         rect.top;
 
-      // Converter de right/bottom para left/top
       panel.style.left =
         `${panelStartLeft}px`;
 
@@ -1874,7 +1909,7 @@ Analise somente o conteúdo relacionado
 
       try {
 
-        header.setPointerCapture(
+        panel.setPointerCapture(
           event.pointerId
         );
 
@@ -1887,7 +1922,7 @@ Analise somente o conteúdo relacionado
     }
   );
 
-  header.addEventListener(
+  panel.addEventListener(
     "pointermove",
     event => {
 
@@ -1956,9 +1991,7 @@ Analise somente o conteúdo relacionado
     }
   );
 
-  function finalizarArraste(
-    event
-  ) {
+  function finalizarArraste(event) {
 
     if (!dragging) {
       return;
@@ -1971,19 +2004,18 @@ Analise somente o conteúdo relacionado
 
       if (
         event.pointerId !== undefined &&
-        header.hasPointerCapture(
+        panel.hasPointerCapture(
           event.pointerId
         )
       ) {
 
-        header.releasePointerCapture(
+        panel.releasePointerCapture(
           event.pointerId
         );
       }
 
     } catch (e) {}
 
-    // Salvar posição
     localStorage.setItem(
       STORAGE.panelLeft,
       panel.style.left
@@ -1995,18 +2027,18 @@ Analise somente o conteúdo relacionado
     );
   }
 
-  header.addEventListener(
+  panel.addEventListener(
     "pointerup",
     finalizarArraste
   );
 
-  header.addEventListener(
+  panel.addEventListener(
     "pointercancel",
     finalizarArraste
   );
 
   // ============================================================
-  // AJUSTAR POSIÇÃO PARA NÃO SAIR DA TELA
+  // AJUSTAR POSIÇÃO NA TELA
   // ============================================================
 
   function ajustarPosicaoNaTela() {
@@ -2027,12 +2059,6 @@ Analise somente o conteúdo relacionado
     const panelHeight =
       panel.offsetHeight;
 
-    let left =
-      rect.left;
-
-    let top =
-      rect.top;
-
     const maxLeft =
       Math.max(
         5,
@@ -2049,21 +2075,21 @@ Analise somente o conteúdo relacionado
         5
       );
 
-    left =
+    const left =
       Math.min(
         maxLeft,
         Math.max(
           5,
-          left
+          rect.left
         )
       );
 
-    top =
+    const top =
       Math.min(
         maxTop,
         Math.max(
           5,
-          top
+          rect.top
         )
       );
 
@@ -2111,8 +2137,6 @@ Analise somente o conteúdo relacionado
     panel.style.bottom =
       "auto";
 
-    // Depois que o navegador calcular
-    // o tamanho real do painel.
     requestAnimationFrame(
       () => {
 
@@ -2123,7 +2147,7 @@ Analise somente o conteúdo relacionado
   }
 
   // ============================================================
-  // CORRIGIR POSIÇÃO AO GIRAR/REDIMENSIONAR A TELA
+  // CORRIGIR POSIÇÃO AO REDIMENSIONAR/GIRAR
   // ============================================================
 
   window.addEventListener(
