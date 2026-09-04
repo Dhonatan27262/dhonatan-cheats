@@ -1,26 +1,17 @@
-// ============================================================
-// 📚 ASSISTENTE V3 — CAPTURA PRECISA DE QUESTÃO
-// ============================================================
-
 (() => {
     "use strict";
 
-    // Evita carregar duas vezes
-    if (window.__ASSISTENTE_V3__) {
-        console.log("Assistente V3 já está carregado.");
+    if (window.__ASSISTENTE_ESTUDOS_V4__) {
+        alert("Assistente já está carregado.");
         return;
     }
 
-    window.__ASSISTENTE_V3__ = true;
+    window.__ASSISTENTE_ESTUDOS_V4__ = true;
+
+    const ID = "assistente-estudos-v4";
 
     // =========================================================
-    // CONFIGURAÇÃO
-    // =========================================================
-
-    const ID = "assistente-v3";
-
-    // =========================================================
-    // ESTILO
+    // CSS
     // =========================================================
 
     const style = document.createElement("style");
@@ -28,136 +19,217 @@
     style.textContent = `
         #${ID} {
             position: fixed;
-            right: 14px;
+            right: 12px;
             bottom: 105px;
-            width: 250px;
-            max-width: calc(100vw - 28px);
+            width: 260px;
+            max-width: calc(100vw - 24px);
             z-index: 2147483647;
             background: #111827;
-            color: white;
+            color: #fff;
             border-radius: 16px;
             padding: 12px;
-            box-shadow: 0 8px 30px rgba(0,0,0,.35);
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.4);
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
         }
 
         #${ID} * {
             box-sizing: border-box;
         }
 
-        #${ID} .titulo {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 9px;
-            font-weight: 700;
-            font-size: 15px;
+        #${ID} .cabecalho {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            margin-bottom:9px;
         }
 
-        #${ID} .fechar {
-            border: 0;
-            background: transparent;
-            color: #fff;
-            font-size: 20px;
-            padding: 0 3px;
-            cursor: pointer;
+        #${ID} .titulo {
+            font-weight:700;
+            font-size:15px;
+        }
+
+        #${ID} .btn-x {
+            background:none;
+            border:0;
+            color:white;
+            font-size:21px;
+            cursor:pointer;
+            padding:0 3px;
+        }
+
+        #${ID} input,
+        #${ID} select {
+            width:100%;
+            background:#1f2937;
+            color:white;
+            border:1px solid #374151;
+            border-radius:9px;
+            padding:10px;
+            margin-bottom:7px;
+            font-size:12px;
+            outline:none;
         }
 
         #${ID} button.acao {
-            width: 100%;
-            border: 0;
-            border-radius: 10px;
-            padding: 11px 8px;
-            margin-top: 7px;
-            color: white;
-            background: #374151;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
+            width:100%;
+            border:0;
+            border-radius:9px;
+            padding:10px;
+            margin-top:6px;
+            color:white;
+            background:#374151;
+            font-weight:700;
+            font-size:12px;
+            cursor:pointer;
         }
 
         #${ID} button.acao:active {
-            transform: scale(.98);
+            transform:scale(.98);
+        }
+
+        #${ID} .btn-ia {
+            background:#4f46e5 !important;
         }
 
         #${ID} .status {
-            margin-top: 8px;
-            font-size: 12px;
-            line-height: 1.35;
-            color: #d1d5db;
+            margin-top:8px;
+            color:#cbd5e1;
+            font-size:11px;
+            line-height:1.35;
         }
 
-        #${ID} .resultado {
-            display: none;
-            margin-top: 9px;
-            max-height: 220px;
-            overflow-y: auto;
-            background: #1f2937;
-            border-radius: 10px;
-            padding: 10px;
-            white-space: pre-wrap;
-            word-break: break-word;
-            line-height: 1.4;
-            font-size: 12px;
+        #${ID} .saida {
+            display:none;
+            margin-top:9px;
+            background:#1f2937;
+            border-radius:9px;
+            padding:10px;
+            max-height:220px;
+            overflow-y:auto;
+            white-space:pre-wrap;
+            word-break:break-word;
+            font-size:12px;
+            line-height:1.45;
+        }
+
+        #${ID} .flutuante {
+            width:48px;
+            height:48px;
+            border-radius:50%;
+            border:0;
+            background:#4f46e5;
+            color:#fff;
+            font-size:21px;
+            box-shadow:0 5px 20px rgba(0,0,0,.4);
+            cursor:pointer;
         }
 
         #${ID}.minimizado {
-            width: auto;
-            padding: 0;
-            background: transparent;
-            box-shadow: none;
+            width:auto;
+            padding:0;
+            background:transparent;
+            box-shadow:none;
         }
 
         #${ID}.minimizado .conteudo {
-            display: none;
+            display:none;
         }
 
-        #${ID} .botao-flutuante {
-            width: 48px;
-            height: 48px;
-            border: 0;
-            border-radius: 50%;
-            background: #4f46e5;
-            color: white;
-            font-size: 22px;
-            box-shadow: 0 5px 20px rgba(0,0,0,.35);
+        #${ID}:not(.minimizado) .flutuante {
+            display:none;
+        }
+
+        #${ID}.minimizado .flutuante {
+            display:block;
+        }
+
+        #${ID} .contador {
+            font-size:10px;
+            color:#94a3b8;
+            margin-top:5px;
         }
     `;
 
     document.head.appendChild(style);
 
     // =========================================================
-    // PAINEL
+    // HTML
     // =========================================================
 
     const painel = document.createElement("div");
+
     painel.id = ID;
 
     painel.innerHTML = `
         <div class="conteudo">
 
-            <div class="titulo">
-                <span>📚 Assistente V3</span>
-                <button class="fechar" id="fechar-assistente">×</button>
+            <div class="cabecalho">
+                <div class="titulo">📚 Assistente de Estudos</div>
+
+                <button class="btn-x" id="minimizar">
+                    −
+                </button>
             </div>
 
-            <button class="acao" id="capturar-questao">
+            <input
+                id="apiKey"
+                type="password"
+                placeholder="🔑 Chave OpenRouter"
+                autocomplete="off"
+            >
+
+            <select id="modelo">
+
+                <option value="openai/gpt-5">
+                    GPT-5
+                </option>
+
+                <option value="openai/gpt-5.3-chat">
+                    GPT-5.3 Chat
+                </option>
+
+                <option value="openai/gpt-chat-latest">
+                    GPT Chat Latest
+                </option>
+
+            </select>
+
+            <button
+                class="acao"
+                id="capturar"
+            >
                 📋 CAPTURAR QUESTÃO
             </button>
 
-            <div class="status" id="status-assistente">
-                Aguardando captura...
+            <button
+                class="acao btn-ia"
+                id="analisar"
+            >
+                🧠 ANALISAR COM IA
+            </button>
+
+            <div
+                class="status"
+                id="status"
+            >
+                Nenhuma questão capturada.
             </div>
 
-            <div class="resultado" id="resultado-assistente"></div>
+            <div
+                class="saida"
+                id="saida"
+            ></div>
+
+            <div
+                class="contador"
+                id="contador"
+            ></div>
 
         </div>
 
         <button
-            class="botao-flutuante"
-            id="abrir-assistente"
-            style="display:none"
+            class="flutuante"
+            id="abrir"
         >
             📚
         </button>
@@ -169,68 +241,87 @@
     // ELEMENTOS
     // =========================================================
 
-    const btnCapturar =
-        painel.querySelector("#capturar-questao");
+    const apiKeyInput =
+        painel.querySelector("#apiKey");
 
-    const btnFechar =
-        painel.querySelector("#fechar-assistente");
+    const modelo =
+        painel.querySelector("#modelo");
+
+    const btnCapturar =
+        painel.querySelector("#capturar");
+
+    const btnAnalisar =
+        painel.querySelector("#analisar");
+
+    const btnMinimizar =
+        painel.querySelector("#minimizar");
 
     const btnAbrir =
-        painel.querySelector("#abrir-assistente");
+        painel.querySelector("#abrir");
 
     const status =
-        painel.querySelector("#status-assistente");
+        painel.querySelector("#status");
 
-    const resultado =
-        painel.querySelector("#resultado-assistente");
+    const saida =
+        painel.querySelector("#saida");
+
+    const contador =
+        painel.querySelector("#contador");
 
     // =========================================================
-    // ELEMENTOS QUE DEVEM SER IGNORADOS
+    // MEMÓRIA
     // =========================================================
 
-    const textosIgnorados = new Set([
+    let questaoAtual = "";
+
+    // =========================================================
+    // TEXTOS DE INTERFACE PARA IGNORAR
+    // =========================================================
+
+    const IGNORAR = new Set([
         "Pular",
         "Verificar",
         "Relatar um problema",
-        "Próximo",
-        "Anterior",
         "Continuar",
         "Tentar novamente",
-        "Mostrar dica",
-        "Ajuda",
+        "Próximo",
+        "Anterior",
         "Enviar",
-        "Cancelar"
+        "Cancelar",
+        "Ajuda",
+        "Mostrar dica"
     ]);
 
     // =========================================================
-    // VERIFICA SE ELEMENTO ESTÁ VISÍVEL
+    // VISIBILIDADE
     // =========================================================
 
     function visivel(el) {
 
         if (!el) return false;
 
-        const rect = el.getBoundingClientRect();
-        const style = getComputedStyle(el);
+        const r =
+            el.getBoundingClientRect();
+
+        const s =
+            getComputedStyle(el);
 
         return (
-            rect.width > 0 &&
-            rect.height > 0 &&
-            style.display !== "none" &&
-            style.visibility !== "hidden" &&
-            style.opacity !== "0"
+            r.width > 0 &&
+            r.height > 0 &&
+            s.display !== "none" &&
+            s.visibility !== "hidden" &&
+            s.opacity !== "0"
         );
     }
 
     // =========================================================
-    // LIMPEZA DO TEXTO
+    // LIMPEZA
     // =========================================================
 
-    function limparTexto(texto) {
+    function limpar(texto) {
 
-        if (!texto) return "";
-
-        return texto
+        return (texto || "")
             .replace(/\u00a0/g, " ")
             .replace(/[ \t]+/g, " ")
             .replace(/\n[ \t]+/g, "\n")
@@ -239,66 +330,61 @@
     }
 
     // =========================================================
-    // EXTRAI TEXTO DE UM CONTAINER
+    // EXTRAI TEXTO
     // =========================================================
 
-    function extrairTexto(container) {
+    function extrair(container) {
 
         if (!container) return "";
 
-        const clone = container.cloneNode(true);
+        const clone =
+            container.cloneNode(true);
 
-        // Nunca pegar nosso painel
-        clone.querySelectorAll(`#${ID}`).forEach(el => {
-            el.remove();
-        });
+        // Nosso próprio painel
+        clone
+            .querySelectorAll(`#${ID}`)
+            .forEach(el => el.remove());
 
-        // Elementos de interface
-        clone.querySelectorAll(`
-            button,
-            input,
-            textarea,
-            select,
-            header,
-            nav,
-            footer,
-            aside,
-            [role="button"]
-        `).forEach(el => {
-            el.remove();
-        });
+        // Interface
+        clone
+            .querySelectorAll(`
+                button,
+                input,
+                textarea,
+                select,
+                header,
+                nav,
+                footer,
+                aside,
+                [role="button"]
+            `)
+            .forEach(el => el.remove());
 
-        let texto = clone.innerText || "";
+        let texto =
+            limpar(clone.innerText);
 
-        texto = limparTexto(texto);
-
-        const linhas = texto
-            .split("\n")
-            .map(l => limparTexto(l))
-            .filter(Boolean)
-            .filter(linha => !textosIgnorados.has(linha));
+        const linhas =
+            texto
+                .split("\n")
+                .map(x => limpar(x))
+                .filter(Boolean)
+                .filter(x => !IGNORAR.has(x));
 
         return linhas.join("\n");
     }
 
     // =========================================================
-    // ENCONTRA O CONTEÚDO PRINCIPAL
+    // ENCONTRA O CONTAINER
     // =========================================================
 
     function encontrarContainer() {
 
         const seletores = [
-
-            // Estruturas específicas
             '[data-testid*="exercise"]',
             '[data-testid*="question"]',
             '[data-testid*="problem"]',
-
-            // Área principal
             'main',
             '[role="main"]',
-
-            // Possíveis containers do exercício
             '[class*="exercise"]',
             '[class*="question"]',
             '[class*="problem"]'
@@ -321,57 +407,59 @@
 
                 if (!visivel(el)) continue;
 
-                if (el.closest(`#${ID}`)) continue;
+                if (el.closest(`#${ID}`))
+                    continue;
 
-                const texto = extrairTexto(el);
+                const texto =
+                    extrair(el);
 
-                if (texto.length < 30) continue;
+                if (texto.length < 30)
+                    continue;
+
+                if (texto.length > 5000)
+                    continue;
 
                 candidatos.push({
-                    elemento: el,
-                    texto,
-                    tamanho: texto.length
+                    el,
+                    texto
                 });
             }
         }
 
-        if (!candidatos.length) {
+        if (!candidatos.length)
             return null;
-        }
 
-        // Preferimos o menor container que ainda contém
-        // conteúdo suficiente.
-        candidatos.sort((a, b) => {
+        // Prioriza conteúdo de tamanho intermediário,
+        // evitando body/main gigantes.
+        candidatos.sort(
+            (a,b) =>
+                Math.abs(a.texto.length - 800) -
+                Math.abs(b.texto.length - 800)
+        );
 
-            const diferenca =
-                Math.abs(a.tamanho - 800) -
-                Math.abs(b.tamanho - 800);
-
-            return diferenca;
-        });
-
-        return candidatos[0].elemento;
+        return candidatos[0].el;
     }
 
     // =========================================================
-    // FALLBACK MAIS RESTRITO
+    // FALLBACK
     // =========================================================
 
-    function procurarConteudoVisivel() {
+    function fallback() {
 
-        const elementos = [
-            ...document.querySelectorAll(
-                "p, h1, h2, h3, h4, div, span"
-            )
-        ];
+        const elementos =
+            [...document.querySelectorAll(
+                "p,h1,h2,h3,h4,div,span"
+            )];
 
         const candidatos = [];
 
         for (const el of elementos) {
 
-            if (!visivel(el)) continue;
+            if (!visivel(el))
+                continue;
 
-            if (el.closest(`#${ID}`)) continue;
+            if (el.closest(`#${ID}`))
+                continue;
 
             if (
                 el.closest("header") ||
@@ -383,128 +471,265 @@
                 continue;
             }
 
-            const texto = limparTexto(el.innerText);
+            const texto =
+                extrair(el);
 
-            if (texto.length < 30) continue;
-            if (texto.length > 2500) continue;
-
-            candidatos.push({
-                elemento: el,
-                texto
-            });
+            if (
+                texto.length >= 30 &&
+                texto.length <= 3000
+            ) {
+                candidatos.push({
+                    el,
+                    texto
+                });
+            }
         }
 
-        // Quanto menor o elemento, melhor,
-        // evitando pegar toda a página.
-        candidatos.sort((a, b) =>
-            a.texto.length - b.texto.length
+        candidatos.sort(
+            (a,b) =>
+                a.texto.length - b.texto.length
         );
 
         return candidatos.length
-            ? candidatos[0].elemento
+            ? candidatos[0].el
             : null;
     }
 
     // =========================================================
-    // CAPTURA
+    // CAPTURAR
     // =========================================================
 
-    function capturarQuestao() {
+    function capturar() {
 
-        status.textContent = "🔎 Procurando questão...";
+        status.textContent =
+            "🔎 Procurando questão...";
 
-        resultado.style.display = "none";
-        resultado.textContent = "";
+        saida.style.display = "none";
 
         let container =
             encontrarContainer();
 
-        if (!container) {
-            container =
-                procurarConteudoVisivel();
-        }
+        if (!container)
+            container = fallback();
 
         if (!container) {
 
             status.textContent =
-                "❌ Não encontrei o conteúdo da questão.";
+                "❌ Não encontrei a questão.";
 
             return;
         }
 
         let texto =
-            extrairTexto(container);
+            extrair(container);
 
         if (!texto || texto.length < 20) {
 
             status.textContent =
-                "❌ O conteúdo encontrado é insuficiente.";
+                "❌ Conteúdo insuficiente.";
 
             return;
         }
 
-        // =====================================================
-        // REMOVE REPETIÇÕES
-        // =====================================================
-
-        const linhas = texto
-            .split("\n")
-            .map(l => l.trim())
-            .filter(Boolean);
+        // Remove linhas duplicadas
+        const linhas =
+            texto
+                .split("\n")
+                .map(x => x.trim())
+                .filter(Boolean);
 
         const unicas = [];
 
         for (const linha of linhas) {
 
-            if (
-                !unicas.some(
-                    x => x === linha
-                )
-            ) {
+            if (!unicas.includes(linha))
                 unicas.push(linha);
-            }
         }
 
-        texto = unicas.join("\n");
+        questaoAtual =
+            unicas.join("\n");
 
-        // =====================================================
-        // LIMITA PARA EVITAR CAPTURA DA PÁGINA INTEIRA
-        // =====================================================
+        if (questaoAtual.length > 5000) {
 
-        if (texto.length > 3500) {
-
-            texto =
-                texto.substring(0, 3500) +
-                "\n\n[… conteúdo excedente removido]";
+            questaoAtual =
+                questaoAtual.substring(0, 5000);
         }
 
-        // =====================================================
-        // MOSTRA RESULTADO
-        // =====================================================
+        saida.textContent =
+            questaoAtual;
 
-        resultado.textContent = texto;
-        resultado.style.display = "block";
+        saida.style.display =
+            "block";
+
+        contador.textContent =
+            `${questaoAtual.length} caracteres`;
 
         status.textContent =
-            `✅ Questão capturada (${texto.length} caracteres).`;
+            "✅ Questão capturada.";
     }
 
     // =========================================================
-    // BOTÕES
+    // OPENROUTER
     // =========================================================
 
-    btnCapturar.addEventListener(
-        "click",
-        capturarQuestao
-    );
+    async function analisarComIA() {
 
-    btnFechar.addEventListener(
+        if (!questaoAtual) {
+
+            status.textContent =
+                "⚠️ Primeiro capture a questão.";
+
+            return;
+        }
+
+        const chave =
+            apiKeyInput.value.trim();
+
+        if (!chave) {
+
+            status.textContent =
+                "⚠️ Coloque sua chave OpenRouter.";
+
+            apiKeyInput.focus();
+
+            return;
+        }
+
+        status.textContent =
+            "🧠 Analisando...";
+
+        saida.style.display =
+            "block";
+
+        saida.textContent =
+            "A IA está analisando a questão...";
+
+        btnAnalisar.disabled = true;
+
+        try {
+
+            const prompt = `
+Você é um tutor de matemática.
+
+Analise a questão abaixo com atenção.
+
+Não invente informações que não estejam no enunciado.
+
+Explique:
+1. O que a questão está pedindo.
+2. Quais dados são importantes.
+3. Qual fórmula ou método deve ser utilizado.
+4. Faça o raciocínio passo a passo.
+5. Faça uma verificação final do raciocínio.
+
+Questão:
+
+${questaoAtual}
+`;
+
+            const resposta =
+                await fetch(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Authorization":
+                                `Bearer ${chave}`,
+
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            model:
+                                modelo.value,
+
+                            messages: [
+
+                                {
+                                    role: "system",
+
+                                    content:
+                                        "Você é um tutor didático e preciso."
+                                },
+
+                                {
+                                    role: "user",
+
+                                    content: prompt
+                                }
+
+                            ],
+
+                            temperature: 0.1,
+
+                            max_tokens: 1200
+
+                        })
+                    }
+                );
+
+            const data =
+                await resposta.json();
+
+            if (!resposta.ok) {
+
+                throw new Error(
+                    data?.error?.message ||
+                    `Erro HTTP ${resposta.status}`
+                );
+            }
+
+            const texto =
+                data?.choices?.[0]?.message?.content;
+
+            if (!texto) {
+
+                throw new Error(
+                    "A IA não retornou conteúdo."
+                );
+            }
+
+            saida.textContent =
+                texto;
+
+            status.textContent =
+                "✅ Análise concluída.";
+
+        } catch (erro) {
+
+            console.error(
+                "OpenRouter:",
+                erro
+            );
+
+            saida.textContent =
+                "❌ Erro ao consultar a IA.\n\n" +
+                erro.message;
+
+            status.textContent =
+                "❌ Falha na análise.";
+
+        } finally {
+
+            btnAnalisar.disabled =
+                false;
+        }
+    }
+
+    // =========================================================
+    // MINIMIZAR
+    // =========================================================
+
+    btnMinimizar.addEventListener(
         "click",
         () => {
 
-            painel.classList.add("minimizado");
-
-            btnAbrir.style.display = "block";
+            painel.classList.add(
+                "minimizado"
+            );
         }
     );
 
@@ -512,18 +737,35 @@
         "click",
         () => {
 
-            painel.classList.remove("minimizado");
-
-            btnAbrir.style.display = "none";
+            painel.classList.remove(
+                "minimizado"
+            );
         }
     );
 
     // =========================================================
-    // INICIALIZAÇÃO
+    // EVENTOS
+    // =========================================================
+
+    btnCapturar.addEventListener(
+        "click",
+        capturar
+    );
+
+    btnAnalisar.addEventListener(
+        "click",
+        analisarComIA
+    );
+
+    // =========================================================
+    // INÍCIO
     // =========================================================
 
     console.log(
-        "📚 Assistente V3 iniciado."
+        "📚 Assistente de Estudos V4 iniciado."
     );
+
+    status.textContent =
+        "Pronto. Abra uma questão e toque em CAPTURAR.";
 
 })();
