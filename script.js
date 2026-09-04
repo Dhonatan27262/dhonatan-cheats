@@ -751,7 +751,14 @@ function setupMain() {
     const response = await originalFetch.apply(this, arguments);
 
     // GET ASSESSMENT - MODIFICAÇÃO DE QUESTÕES
-    if (correctAnswerSystemEnabled && url.includes('getAssessmentItemById')) {
+
+const isAssessmentRequest =
+
+    url.includes('getAssessmentItem') ||
+
+    url.includes('getAssessmentItemById');
+
+if (correctAnswerSystemEnabled && isAssessmentRequest) {
       try {
         const clone = response.clone();
         const text = await clone.text();
