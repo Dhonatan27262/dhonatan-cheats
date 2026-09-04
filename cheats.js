@@ -5,12 +5,15 @@
   // ASSISTENTE DE ESTUDOS
   // TEXTO + IMAGEM + GPT / GEMINI
   // IPHONE / USERSCRIPT
+  // MENU ARRASTÁVEL
   // ============================================================
 
   const STORAGE = {
     provider: "study_provider",
     openrouterKey: "study_openrouter_key",
-    geminiKey: "study_gemini_key"
+    geminiKey: "study_gemini_key",
+    panelLeft: "study_panel_left",
+    panelTop: "study_panel_top"
   };
 
   let provider =
@@ -244,6 +247,9 @@ Se não for possível identificar uma questão válida, responda:
       max-width:
         calc(100vw - 24px);
 
+      max-height:
+        calc(100vh - 20px);
+
       background:
         rgba(18,18,22,.98);
 
@@ -287,8 +293,17 @@ Se não for possível identificar uma questão válida, responda:
       user-select:
         none;
 
+      -webkit-user-select:
+        none;
+
+      touch-action:
+        none;
+
       cursor:
         move;
+
+      flex-shrink:
+        0;
     }
 
     #study-title {
@@ -298,11 +313,15 @@ Se não for possível identificar uma questão válida, responda:
 
       font-weight:
         700;
+
+      pointer-events:
+        none;
     }
 
     #study-head-buttons {
 
-      display: flex;
+      display:
+        flex;
 
       gap:
         4px;
@@ -333,6 +352,9 @@ Se não for possível identificar uma questão válida, responda:
 
       font-size:
         15px;
+
+      touch-action:
+        manipulation;
     }
 
     .study-head-btn:hover {
@@ -345,6 +367,15 @@ Se não for possível identificar uma questão válida, responda:
 
       padding:
         11px;
+
+      max-height:
+        calc(100vh - 62px);
+
+      overflow-y:
+        auto;
+
+      -webkit-overflow-scrolling:
+        touch;
     }
 
     .study-label {
@@ -453,6 +484,9 @@ Se não for possível identificar uma questão válida, responda:
 
       margin-top:
         6px;
+
+      touch-action:
+        manipulation;
     }
 
     #study-text-button {
@@ -582,6 +616,9 @@ Se não for possível identificar uma questão válida, responda:
 
       white-space:
         pre-wrap;
+
+      -webkit-overflow-scrolling:
+        touch;
     }
 
     #study-status {
@@ -668,6 +705,15 @@ Se não for possível identificar uma questão válida, responda:
       box-shadow:
         0 7px 25px
         rgba(0,0,0,.4);
+
+      touch-action:
+        none;
+
+      user-select:
+        none;
+
+      -webkit-user-select:
+        none;
     }
 
     #study-file {
@@ -1678,6 +1724,8 @@ Analise somente o conteúdo relacionado
 
     panel.style.display =
       "block";
+
+    ajustarPosicaoNaTela();
   }
 
   document
@@ -1754,6 +1802,7 @@ Analise somente o conteúdo relacionado
 
   // ============================================================
   // ARRASTAR PAINEL
+  // TOUCH + MOUSE
   // ============================================================
 
   const header =
@@ -1764,54 +1813,77 @@ Analise somente o conteúdo relacionado
   let dragging =
     false;
 
-  let startX =
+  let dragStartX =
     0;
 
-  let startY =
+  let dragStartY =
     0;
 
-  let originalRight =
+  let panelStartLeft =
     0;
 
-  let originalBottom =
+  let panelStartTop =
     0;
+
+  header.style.touchAction =
+    "none";
 
   header.addEventListener(
     "pointerdown",
     event => {
 
+      // Não arrastar quando tocar nos botões
       if (
         event.target.closest(
           "button"
         )
       ) {
-
         return;
       }
-
-      dragging =
-        true;
 
       const rect =
         panel.getBoundingClientRect();
 
-      startX =
+      dragging =
+        true;
+
+      dragStartX =
         event.clientX;
 
-      startY =
+      dragStartY =
         event.clientY;
 
-      originalRight =
-        window.innerWidth -
-        rect.right;
+      panelStartLeft =
+        rect.left;
 
-      originalBottom =
-        window.innerHeight -
-        rect.bottom;
+      panelStartTop =
+        rect.top;
 
-      header.setPointerCapture(
-        event.pointerId
-      );
+      // Converter de right/bottom para left/top
+      panel.style.left =
+        `${panelStartLeft}px`;
+
+      panel.style.top =
+        `${panelStartTop}px`;
+
+      panel.style.right =
+        "auto";
+
+      panel.style.bottom =
+        "auto";
+
+      try {
+
+        header.setPointerCapture(
+          event.pointerId
+        );
+
+      } catch (e) {}
+
+      event.preventDefault();
+    },
+    {
+      passive: false
     }
   );
 
@@ -1819,46 +1891,247 @@ Analise somente o conteúdo relacionado
     "pointermove",
     event => {
 
-      if (!dragging)
+      if (!dragging) {
         return;
+      }
+
+      event.preventDefault();
 
       const dx =
         event.clientX -
-        startX;
+        dragStartX;
 
       const dy =
         event.clientY -
-        startY;
+        dragStartY;
 
-      panel.style.right =
-        `${Math.max(
-          5,
-          originalRight - dx
-        )}px`;
+      const panelWidth =
+        panel.offsetWidth;
 
-      panel.style.bottom =
-        `${Math.max(
+      const panelHeight =
+        panel.offsetHeight;
+
+      const maxLeft =
+        Math.max(
           5,
-          originalBottom - dy
-        )}px`;
+          window.innerWidth -
+          panelWidth -
+          5
+        );
+
+      const maxTop =
+        Math.max(
+          5,
+          window.innerHeight -
+          panelHeight -
+          5
+        );
+
+      const newLeft =
+        Math.min(
+          maxLeft,
+          Math.max(
+            5,
+            panelStartLeft + dx
+          )
+        );
+
+      const newTop =
+        Math.min(
+          maxTop,
+          Math.max(
+            5,
+            panelStartTop + dy
+          )
+        );
+
+      panel.style.left =
+        `${newLeft}px`;
+
+      panel.style.top =
+        `${newTop}px`;
+    },
+    {
+      passive: false
     }
   );
 
+  function finalizarArraste(
+    event
+  ) {
+
+    if (!dragging) {
+      return;
+    }
+
+    dragging =
+      false;
+
+    try {
+
+      if (
+        event.pointerId !== undefined &&
+        header.hasPointerCapture(
+          event.pointerId
+        )
+      ) {
+
+        header.releasePointerCapture(
+          event.pointerId
+        );
+      }
+
+    } catch (e) {}
+
+    // Salvar posição
+    localStorage.setItem(
+      STORAGE.panelLeft,
+      panel.style.left
+    );
+
+    localStorage.setItem(
+      STORAGE.panelTop,
+      panel.style.top
+    );
+  }
+
   header.addEventListener(
     "pointerup",
-    () => {
-
-      dragging =
-        false;
-    }
+    finalizarArraste
   );
 
   header.addEventListener(
     "pointercancel",
+    finalizarArraste
+  );
+
+  // ============================================================
+  // AJUSTAR POSIÇÃO PARA NÃO SAIR DA TELA
+  // ============================================================
+
+  function ajustarPosicaoNaTela() {
+
+    if (
+      panel.style.display ===
+      "none"
+    ) {
+      return;
+    }
+
+    const rect =
+      panel.getBoundingClientRect();
+
+    const panelWidth =
+      panel.offsetWidth;
+
+    const panelHeight =
+      panel.offsetHeight;
+
+    let left =
+      rect.left;
+
+    let top =
+      rect.top;
+
+    const maxLeft =
+      Math.max(
+        5,
+        window.innerWidth -
+        panelWidth -
+        5
+      );
+
+    const maxTop =
+      Math.max(
+        5,
+        window.innerHeight -
+        panelHeight -
+        5
+      );
+
+    left =
+      Math.min(
+        maxLeft,
+        Math.max(
+          5,
+          left
+        )
+      );
+
+    top =
+      Math.min(
+        maxTop,
+        Math.max(
+          5,
+          top
+        )
+      );
+
+    panel.style.left =
+      `${left}px`;
+
+    panel.style.top =
+      `${top}px`;
+
+    panel.style.right =
+      "auto";
+
+    panel.style.bottom =
+      "auto";
+  }
+
+  // ============================================================
+  // RESTAURAR POSIÇÃO SALVA
+  // ============================================================
+
+  const savedLeft =
+    localStorage.getItem(
+      STORAGE.panelLeft
+    );
+
+  const savedTop =
+    localStorage.getItem(
+      STORAGE.panelTop
+    );
+
+  if (
+    savedLeft &&
+    savedTop
+  ) {
+
+    panel.style.left =
+      savedLeft;
+
+    panel.style.top =
+      savedTop;
+
+    panel.style.right =
+      "auto";
+
+    panel.style.bottom =
+      "auto";
+
+    // Depois que o navegador calcular
+    // o tamanho real do painel.
+    requestAnimationFrame(
+      () => {
+
+        ajustarPosicaoNaTela();
+
+      }
+    );
+  }
+
+  // ============================================================
+  // CORRIGIR POSIÇÃO AO GIRAR/REDIMENSIONAR A TELA
+  // ============================================================
+
+  window.addEventListener(
+    "resize",
     () => {
 
-      dragging =
-        false;
+      ajustarPosicaoNaTela();
+
     }
   );
 
