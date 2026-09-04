@@ -2,55 +2,170 @@
     "use strict";
 
     // =========================================================
-    // KHAN STRUCTURE DEBUGGER
-    // Compatível com GitHub -> Atalho -> eval()
+    // KHAN ACADEMY — DEBUGGER V2
+    // GitHub -> Atalho -> eval()
+    // Painel pequeno / arrastável / minimizável
     // =========================================================
 
     const FLAG = "__KHAN_DEBUGGER_V2__";
-    const RELOAD_FLAG = "__KHAN_DEBUGGER_RELOADED__";
 
-    if (window[FLAG]) return;
+    if (window[FLAG]) {
+        return;
+    }
+
     window[FLAG] = true;
 
-    // ---------------------------------------------------------
+    // =========================================================
+    // CONFIGURAÇÕES
+    // =========================================================
+
+    const MAX_LOGS = 100;
+    const MAX_RESPONSE_TEXT = 6000;
+    const MAX_STRUCTURE_DEPTH = 8;
+
+    // =========================================================
     // PAINEL
-    // ---------------------------------------------------------
+    // =========================================================
 
     const panel = document.createElement("div");
 
     panel.style.cssText = `
-        position:fixed;
-        inset:8px;
-        z-index:2147483647;
-        background:#0b0b0b;
-        color:#e8e8e8;
-        border:2px solid #555;
-        border-radius:14px;
-        display:flex;
-        flex-direction:column;
-        overflow:hidden;
-        font-family:monospace;
-        box-shadow:0 10px 40px rgba(0,0,0,.7);
+        position: fixed;
+        top: 70px;
+        right: 10px;
+        width: 260px;
+        height: 190px;
+        z-index: 2147483647;
+
+        background: rgba(15,15,15,.97);
+        color: #eee;
+
+        border: 1px solid #555;
+        border-radius: 12px;
+
+        display: flex;
+        flex-direction: column;
+
+        overflow: hidden;
+
+        font-family: monospace;
+        font-size: 10px;
+
+        box-shadow:
+            0 5px 25px rgba(0,0,0,.55);
+
+        opacity: .94;
+
+        box-sizing: border-box;
     `;
+
+    // =========================================================
+    // CABEÇALHO
+    // =========================================================
 
     const header = document.createElement("div");
 
     header.style.cssText = `
-        padding:12px;
-        background:#181818;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        font-family:Arial,sans-serif;
-        font-weight:bold;
+        height: 34px;
+        min-height: 34px;
+
+        padding: 0 7px;
+
+        background: #202020;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        font-weight: bold;
+
+        touch-action: none;
+
+        user-select: none;
     `;
 
-    header.innerHTML = `
-        <span>🔎 KHAN DEBUGGER V2</span>
-        <span id="khan-status" style="color:#00ff88">
-            ● ATIVO
-        </span>
+    const title = document.createElement("span");
+
+    title.textContent = "🔎 DEBUG V2";
+
+    const status = document.createElement("span");
+
+    status.textContent = "●";
+
+    status.style.cssText = `
+        color: #00ff88;
+        margin-left: 5px;
     `;
+
+    const titleArea = document.createElement("div");
+
+    titleArea.style.cssText = `
+        display:flex;
+        align-items:center;
+        gap:3px;
+    `;
+
+    titleArea.append(title, status);
+
+    // =========================================================
+    // BOTÕES DO CABEÇALHO
+    // =========================================================
+
+    const headerButtons = document.createElement("div");
+
+    headerButtons.style.cssText = `
+        display:flex;
+        gap:4px;
+    `;
+
+    function createHeaderButton(text) {
+
+        const button = document.createElement("button");
+
+        button.textContent = text;
+
+        button.style.cssText = `
+            width:25px;
+            height:25px;
+
+            border:0;
+            border-radius:6px;
+
+            background:#333;
+            color:white;
+
+            font-size:16px;
+            line-height:20px;
+
+            padding:0;
+
+            touch-action:manipulation;
+        `;
+
+        return button;
+    }
+
+    const minimizeBtn =
+        createHeaderButton("—");
+
+    const closeBtn =
+        createHeaderButton("×");
+
+    headerButtons.append(
+        minimizeBtn,
+        closeBtn
+    );
+
+    header.append(
+        titleArea,
+        headerButtons
+    );
+
+    // =========================================================
+    // ÁREA DE SAÍDA
+    // =========================================================
 
     const output = document.createElement("textarea");
 
@@ -58,102 +173,413 @@
 
     output.style.cssText = `
         flex:1;
+
         width:100%;
+        min-height:0;
+
         border:0;
         outline:0;
+
         resize:none;
+
         box-sizing:border-box;
-        padding:12px;
+
+        padding:7px;
+
         background:#050505;
         color:#00ff88;
+
         font-family:monospace;
-        font-size:11px;
-        line-height:1.45;
+        font-size:9px;
+
+        line-height:1.3;
     `;
+
+    // =========================================================
+    // RODAPÉ
+    // =========================================================
 
     const footer = document.createElement("div");
 
     footer.style.cssText = `
         display:flex;
-        gap:6px;
-        padding:8px;
+        gap:4px;
+
+        padding:5px;
+
         background:#181818;
     `;
 
-    function button(text) {
-        const b = document.createElement("button");
+    function createFooterButton(text) {
 
-        b.textContent = text;
+        const button = document.createElement("button");
 
-        b.style.cssText = `
+        button.textContent = text;
+
+        button.style.cssText = `
             flex:1;
-            padding:11px 5px;
+
+            padding:6px 3px;
+
             border:0;
-            border-radius:8px;
+            border-radius:6px;
+
             background:#303030;
             color:white;
+
+            font-size:10px;
             font-weight:bold;
-            font-size:12px;
+
+            touch-action:manipulation;
         `;
 
-        return b;
+        return button;
     }
 
-    const copyBtn = button("📋 COPIAR");
-    const clearBtn = button("🗑 LIMPAR");
-    const closeBtn = button("✖ FECHAR");
+    const copyBtn =
+        createFooterButton("📋 Copiar");
 
-    footer.append(copyBtn, clearBtn, closeBtn);
-    panel.append(header, output, footer);
+    const clearBtn =
+        createFooterButton("🗑 Limpar");
+
+    footer.append(
+        copyBtn,
+        clearBtn
+    );
+
+    // =========================================================
+    // MONTAR PAINEL
+    // =========================================================
+
+    panel.append(
+        header,
+        output,
+        footer
+    );
 
     document.documentElement.appendChild(panel);
 
-    // ---------------------------------------------------------
-    // LOG
-    // ---------------------------------------------------------
+    // =========================================================
+    // SISTEMA DE LOG
+    // =========================================================
 
     let logs = [];
 
     function log(title, data = "") {
 
-        const time = new Date().toLocaleTimeString();
-
-        let text = "";
+        let text;
 
         if (typeof data === "string") {
+
             text = data;
+
         } else {
+
             try {
-                text = JSON.stringify(data, null, 2);
+
+                text =
+                    JSON.stringify(
+                        data,
+                        null,
+                        2
+                    );
+
             } catch {
-                text = String(data);
+
+                text =
+                    String(data);
             }
         }
+
+        const time =
+            new Date()
+                .toLocaleTimeString();
 
         logs.push(
             `[${time}] ${title}\n${text}`
         );
 
-        // Evita memória excessiva no iPhone
-        if (logs.length > 100) {
-            logs = logs.slice(-100);
+        if (logs.length > MAX_LOGS) {
+
+            logs =
+                logs.slice(-MAX_LOGS);
         }
 
-        output.value = logs.join("\n\n");
-        output.scrollTop = output.scrollHeight;
+        output.value =
+            logs.join("\n\n");
+
+        output.scrollTop =
+            output.scrollHeight;
     }
 
-    // ---------------------------------------------------------
-    // IDENTIFICAR REQUISIÇÕES
-    // ---------------------------------------------------------
+    // =========================================================
+    // INÍCIO
+    // =========================================================
 
-    function isInteresting(url, body = "") {
+    log(
+        "🚀 DEBUGGER INICIADO",
+        "Debugger V2 carregado."
+    );
 
-        const value = (
-            String(url || "") +
-            " " +
-            String(body || "")
-        ).toLowerCase();
+    log(
+        "📱 MODO IPHONE",
+        "Painel visual + Fetch + XHR + Performance."
+    );
+
+    log(
+        "⏳ AGUARDANDO",
+        "Abra ou recarregue uma questão."
+    );
+
+    // =========================================================
+    // MINIMIZAR
+    // =========================================================
+
+    let minimized = false;
+
+    minimizeBtn.addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            minimized =
+                !minimized;
+
+            if (minimized) {
+
+                output.style.display =
+                    "none";
+
+                footer.style.display =
+                    "none";
+
+                panel.style.width =
+                    "125px";
+
+                panel.style.height =
+                    "38px";
+
+                minimizeBtn.textContent =
+                    "+";
+
+            } else {
+
+                output.style.display =
+                    "block";
+
+                footer.style.display =
+                    "flex";
+
+                panel.style.width =
+                    "260px";
+
+                panel.style.height =
+                    "190px";
+
+                minimizeBtn.textContent =
+                    "—";
+            }
+        }
+    );
+
+    // =========================================================
+    // ARRASTAR NO IPHONE
+    // =========================================================
+
+    let dragging = false;
+
+    let startX = 0;
+    let startY = 0;
+
+    let startRight = 10;
+    let startTop = 70;
+
+    header.addEventListener(
+        "touchstart",
+        event => {
+
+            if (
+                event.target.tagName ===
+                "BUTTON"
+            ) {
+                return;
+            }
+
+            const touch =
+                event.touches[0];
+
+            const rect =
+                panel.getBoundingClientRect();
+
+            dragging = true;
+
+            startX =
+                touch.clientX;
+
+            startY =
+                touch.clientY;
+
+            startRight =
+                window.innerWidth -
+                rect.right;
+
+            startTop =
+                rect.top;
+
+        },
+        {
+            passive: true
+        }
+    );
+
+    document.addEventListener(
+        "touchmove",
+        event => {
+
+            if (!dragging) {
+                return;
+            }
+
+            const touch =
+                event.touches[0];
+
+            const dx =
+                touch.clientX -
+                startX;
+
+            const dy =
+                touch.clientY -
+                startY;
+
+            const newRight =
+                Math.max(
+                    5,
+                    startRight - dx
+                );
+
+            const newTop =
+                Math.max(
+                    5,
+                    startTop + dy
+                );
+
+            panel.style.right =
+                `${newRight}px`;
+
+            panel.style.top =
+                `${newTop}px`;
+        },
+        {
+            passive: true
+        }
+    );
+
+    document.addEventListener(
+        "touchend",
+        () => {
+            dragging = false;
+        }
+    );
+
+    // =========================================================
+    // COPIAR
+    // =========================================================
+
+    copyBtn.addEventListener(
+        "click",
+        async () => {
+
+            try {
+
+                await navigator.clipboard.writeText(
+                    output.value
+                );
+
+                copyBtn.textContent =
+                    "✅ Copiado";
+
+                setTimeout(
+                    () => {
+                        copyBtn.textContent =
+                            "📋 Copiar";
+                    },
+                    1500
+                );
+
+            } catch {
+
+                output.focus();
+                output.select();
+
+                try {
+                    document.execCommand("copy");
+                } catch {}
+
+                copyBtn.textContent =
+                    "✅ Copiado";
+
+                setTimeout(
+                    () => {
+                        copyBtn.textContent =
+                            "📋 Copiar";
+                    },
+                    1500
+                );
+            }
+        }
+    );
+
+    // =========================================================
+    // LIMPAR
+    // =========================================================
+
+    clearBtn.addEventListener(
+        "click",
+        () => {
+
+            logs = [];
+
+            log(
+                "🧹 LIMPO",
+                "Aguardando nova requisição..."
+            );
+        }
+    );
+
+    // =========================================================
+    // FECHAR
+    // =========================================================
+
+    closeBtn.addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            panel.remove();
+
+            try {
+                delete window[FLAG];
+            } catch {}
+        }
+    );
+
+    // =========================================================
+    // VERIFICAR URL
+    // =========================================================
+
+    function isInteresting(
+        url,
+        body = ""
+    ) {
+
+        const value =
+            (
+                String(url || "") +
+                " " +
+                String(body || "")
+            ).toLowerCase();
 
         return (
             value.includes("assessment") ||
@@ -161,30 +587,55 @@
             value.includes("getassessmentitem") ||
             value.includes("graphql") ||
             value.includes("exercise") ||
-            value.includes("problem")
+            value.includes("problem") ||
+            value.includes("question")
         );
     }
 
-    // ---------------------------------------------------------
-    // LISTAR ESTRUTURA SEM ALTERAR A RESPOSTA
-    // ---------------------------------------------------------
+    // =========================================================
+    // ESTRUTURA DO JSON
+    // =========================================================
 
-    function getStructure(value, maxDepth = 7) {
+    function getStructure(
+        object,
+        maxDepth = MAX_STRUCTURE_DEPTH
+    ) {
 
         const paths = [];
 
-        function walk(obj, path, depth) {
-
-            if (depth > maxDepth) return;
+        function walk(
+            value,
+            path,
+            depth
+        ) {
 
             if (
-                obj === null ||
-                typeof obj !== "object"
+                depth >
+                maxDepth
             ) {
                 return;
             }
 
-            for (const key of Object.keys(obj)) {
+            if (
+                value === null ||
+                typeof value !== "object"
+            ) {
+                return;
+            }
+
+            let keys;
+
+            try {
+
+                keys =
+                    Object.keys(value);
+
+            } catch {
+
+                return;
+            }
+
+            for (const key of keys) {
 
                 const current =
                     path
@@ -194,144 +645,274 @@
                 paths.push(current);
 
                 try {
+
                     walk(
-                        obj[key],
+                        value[key],
                         current,
                         depth + 1
                     );
+
                 } catch {}
             }
         }
 
-        walk(value, "", 0);
+        walk(
+            object,
+            "",
+            0
+        );
 
         return paths;
     }
 
-    function inspect(url, data) {
+    // =========================================================
+    // ANALISAR JSON
+    // =========================================================
+
+    function inspectJSON(
+        url,
+        data,
+        source
+    ) {
 
         log(
-            "📡 REQUISIÇÃO DE QUESTÃO DETECTADA",
+            "========================================",
+            ""
+        );
+
+        log(
+            "📡 REQUISIÇÃO DETECTADA",
+            source
+        );
+
+        log(
+            "🌐 URL",
             url
         );
 
-        const structure = getStructure(data);
+        // -----------------------------------------------------
+        // CHAVES PRINCIPAIS
+        // -----------------------------------------------------
 
-        log(
-            "📂 CAMINHOS DA ESTRUTURA",
-            structure.join("\n")
-        );
-
-        // Mostra somente um resumo das chaves de alto nível
-        // para facilitar a leitura no iPhone.
-
-        if (
-            data &&
-            typeof data === "object"
-        ) {
+        try {
 
             log(
                 "🔑 CHAVES PRINCIPAIS",
                 Object.keys(data).join("\n")
             );
+
+        } catch {}
+
+        // -----------------------------------------------------
+        // CAMINHOS
+        // -----------------------------------------------------
+
+        const paths =
+            getStructure(data);
+
+        log(
+            "📂 CAMINHOS ENCONTRADOS",
+            paths.join("\n")
+        );
+
+        // -----------------------------------------------------
+        // JSON
+        // -----------------------------------------------------
+
+        try {
+
+            let json =
+                JSON.stringify(
+                    data,
+                    null,
+                    2
+                );
+
+            if (
+                json.length >
+                MAX_RESPONSE_TEXT
+            ) {
+
+                json =
+                    json.slice(
+                        0,
+                        MAX_RESPONSE_TEXT
+                    ) +
+                    "\n\n...[JSON CORTADO]...";
+            }
+
+            log(
+                "📦 JSON",
+                json
+            );
+
+        } catch {
+
+            log(
+                "⚠️ JSON",
+                "Não foi possível converter."
+            );
         }
 
         log(
-            "✅ JSON RECEBIDO",
-            "A estrutura acima foi capturada sem modificar a resposta."
+            "========================================",
+            "Fim da captura."
         );
     }
 
-    // ---------------------------------------------------------
+    // =========================================================
     // FETCH
-    // ---------------------------------------------------------
+    // =========================================================
 
-    const originalFetch = window.fetch;
+    const originalFetch =
+        window.fetch;
 
-    window.fetch = async function(...args) {
+    window.fetch =
+        async function(...args) {
 
-        let url = "";
+            let url = "";
+            let body = "";
 
-        try {
-
-            const request = args[0];
-
-            if (request instanceof Request) {
-                url = request.url;
-            } else {
-                url = String(request);
-            }
-
-        } catch {}
-
-        let body = "";
-
-        try {
-
-            const request = args[0];
-            const init = args[1];
-
-            if (request instanceof Request) {
-                body = await request.clone().text();
-            } else if (init && init.body) {
-                body = String(init.body);
-            }
-
-        } catch {}
-
-        const response =
-            await originalFetch.apply(this, args);
-
-        if (isInteresting(url, body)) {
+            // -------------------------------------------------
+            // URL
+            // -------------------------------------------------
 
             try {
 
-                const clone = response.clone();
+                const request =
+                    args[0];
 
-                const text =
-                    await clone.text();
+                if (
+                    request instanceof Request
+                ) {
+
+                    url =
+                        request.url;
+
+                } else {
+
+                    url =
+                        String(request);
+                }
+
+            } catch {}
+
+            // -------------------------------------------------
+            // BODY
+            // -------------------------------------------------
+
+            try {
+
+                const request =
+                    args[0];
+
+                const init =
+                    args[1];
+
+                if (
+                    request instanceof Request
+                ) {
+
+                    body =
+                        await request
+                            .clone()
+                            .text();
+
+                } else if (
+                    init &&
+                    init.body
+                ) {
+
+                    body =
+                        String(
+                            init.body
+                        );
+                }
+
+            } catch {}
+
+            // -------------------------------------------------
+            // REQUISIÇÃO ORIGINAL
+            // -------------------------------------------------
+
+            const response =
+                await originalFetch.apply(
+                    this,
+                    args
+                );
+
+            // -------------------------------------------------
+            // FILTRO
+            // -------------------------------------------------
+
+            if (
+                isInteresting(
+                    url,
+                    body
+                )
+            ) {
 
                 try {
 
-                    const json =
-                        JSON.parse(text);
+                    const clone =
+                        response.clone();
 
-                    inspect(url, json);
+                    const text =
+                        await clone.text();
 
-                } catch {
+                    try {
+
+                        const json =
+                            JSON.parse(text);
+
+                        inspectJSON(
+                            url,
+                            json,
+                            "FETCH"
+                        );
+
+                    } catch {
+
+                        log(
+                            "📄 FETCH NÃO JSON",
+                            text.slice(
+                                0,
+                                MAX_RESPONSE_TEXT
+                            )
+                        );
+                    }
+
+                } catch (error) {
 
                     log(
-                        "📄 RESPOSTA NÃO JSON",
-                        text.slice(0, 4000)
+                        "⚠️ ERRO FETCH",
+                        String(error)
                     );
                 }
-
-            } catch (error) {
-
-                log(
-                    "⚠️ ERRO AO LER FETCH",
-                    String(error)
-                );
             }
-        }
 
-        return response;
-    };
+            return response;
+        };
 
-    // ---------------------------------------------------------
-    // XHR
-    // ---------------------------------------------------------
+    // =========================================================
+    // XMLHttpRequest
+    // =========================================================
 
-    const OriginalXHR = window.XMLHttpRequest;
+    const XHR =
+        window.XMLHttpRequest;
 
     const originalOpen =
-        OriginalXHR.prototype.open;
+        XHR.prototype.open;
 
     const originalSend =
-        OriginalXHR.prototype.send;
+        XHR.prototype.send;
 
-    OriginalXHR.prototype.open =
-        function(method, url, ...rest) {
+    XHR.prototype.open =
+        function(
+            method,
+            url,
+            ...rest
+        ) {
 
             this.__khanDebugURL =
                 String(url);
@@ -347,39 +928,62 @@
             );
         };
 
-    OriginalXHR.prototype.send =
+    XHR.prototype.send =
         function(body) {
 
-            const xhr = this;
+            const xhr =
+                this;
 
             xhr.addEventListener(
                 "load",
                 function() {
 
-                    const url =
-                        xhr.__khanDebugURL || "";
-
-                    if (!isInteresting(url, body)) {
-                        return;
-                    }
-
                     try {
 
-                        const text =
-                            xhr.responseText;
+                        const url =
+                            xhr.__khanDebugURL ||
+                            "";
+
+                        if (
+                            !isInteresting(
+                                url,
+                                body
+                            )
+                        ) {
+                            return;
+                        }
+
+                        let text = "";
+
+                        try {
+
+                            text =
+                                xhr.responseText;
+
+                        } catch {
+
+                            return;
+                        }
 
                         try {
 
                             const json =
                                 JSON.parse(text);
 
-                            inspect(url, json);
+                            inspectJSON(
+                                url,
+                                json,
+                                "XMLHttpRequest"
+                            );
 
                         } catch {
 
                             log(
                                 "📄 XHR NÃO JSON",
-                                text.slice(0, 4000)
+                                text.slice(
+                                    0,
+                                    MAX_RESPONSE_TEXT
+                                )
                             );
                         }
 
@@ -399,31 +1003,36 @@
             );
         };
 
-    // ---------------------------------------------------------
+    // =========================================================
     // PERFORMANCE OBSERVER
-    // Descobre requisições mesmo quando não conseguimos
-    // acessar o corpo da resposta.
-    // ---------------------------------------------------------
+    // =========================================================
 
     try {
 
         const observer =
-            new PerformanceObserver(list => {
+            new PerformanceObserver(
+                list => {
 
-                for (const entry of list.getEntries()) {
-
-                    if (
-                        entry.name &&
-                        isInteresting(entry.name)
+                    for (
+                        const entry
+                        of list.getEntries()
                     ) {
 
-                        log(
-                            "🌐 RECURSO DETECTADO",
-                            entry.name
-                        );
+                        if (
+                            entry.name &&
+                            isInteresting(
+                                entry.name
+                            )
+                        ) {
+
+                            log(
+                                "🌐 RECURSO DETECTADO",
+                                entry.name
+                            );
+                        }
                     }
                 }
-            });
+            );
 
         observer.observe({
             type: "resource",
@@ -432,68 +1041,13 @@
 
     } catch {}
 
-    // ---------------------------------------------------------
-    // BOTÕES
-    // ---------------------------------------------------------
-
-    copyBtn.onclick = async () => {
-
-        try {
-
-            await navigator.clipboard.writeText(
-                output.value
-            );
-
-            copyBtn.textContent = "✅ COPIADO";
-
-            setTimeout(() => {
-                copyBtn.textContent = "📋 COPIAR";
-            }, 1500);
-
-        } catch {
-
-            output.focus();
-            output.select();
-            document.execCommand("copy");
-        }
-    };
-
-    clearBtn.onclick = () => {
-
-        logs = [];
-
-        log(
-            "🧹 LIMPO",
-            "Aguardando nova questão..."
-        );
-    };
-
-    closeBtn.onclick = () => {
-
-        panel.remove();
-
-        try {
-            delete window[FLAG];
-        } catch {}
-    };
-
-    // ---------------------------------------------------------
-    // INICIALIZAÇÃO
-    // ---------------------------------------------------------
+    // =========================================================
+    // FINAL
+    // =========================================================
 
     log(
-        "🚀 DEBUGGER V2 INICIADO",
-        "Interceptor instalado."
-    );
-
-    log(
-        "📱 MODO IPHONE",
-        "Monitorando Fetch + XHR + Performance."
-    );
-
-    log(
-        "⏳ AGUARDANDO",
-        "Abra/recarregue uma questão."
+        "🟢 MONITORAMENTO ATIVO",
+        "Agora recarregue a atividade e abra uma questão."
     );
 
 })();
