@@ -1,171 +1,79 @@
 (() => {
     "use strict";
 
-    // =========================================================
-    // KHAN ACADEMY — DEBUGGER V2
-    // GitHub -> Atalho -> eval()
-    // Painel pequeno / arrastável / minimizável
-    // =========================================================
+    const FLAG = "__KHAN_ASSESSMENT_DEBUG_V3__";
 
-    const FLAG = "__KHAN_DEBUGGER_V2__";
-
-    if (window[FLAG]) {
-        return;
-    }
-
+    if (window[FLAG]) return;
     window[FLAG] = true;
 
     // =========================================================
-    // CONFIGURAÇÕES
-    // =========================================================
-
-    const MAX_LOGS = 100;
-    const MAX_RESPONSE_TEXT = 6000;
-    const MAX_STRUCTURE_DEPTH = 8;
-
-    // =========================================================
-    // PAINEL
+    // PAINEL PEQUENO
     // =========================================================
 
     const panel = document.createElement("div");
 
     panel.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 10px;
-        width: 260px;
-        height: 190px;
-        z-index: 2147483647;
-
-        background: rgba(15,15,15,.97);
-        color: #eee;
-
-        border: 1px solid #555;
-        border-radius: 12px;
-
-        display: flex;
-        flex-direction: column;
-
-        overflow: hidden;
-
-        font-family: monospace;
-        font-size: 10px;
-
-        box-shadow:
-            0 5px 25px rgba(0,0,0,.55);
-
-        opacity: .94;
-
-        box-sizing: border-box;
+        position:fixed;
+        top:70px;
+        right:10px;
+        width:280px;
+        height:220px;
+        z-index:2147483647;
+        background:#0b0b0b;
+        color:white;
+        border:1px solid #555;
+        border-radius:12px;
+        display:flex;
+        flex-direction:column;
+        overflow:hidden;
+        box-shadow:0 5px 25px rgba(0,0,0,.6);
+        font-family:monospace;
     `;
-
-    // =========================================================
-    // CABEÇALHO
-    // =========================================================
 
     const header = document.createElement("div");
 
     header.style.cssText = `
-        height: 34px;
-        min-height: 34px;
-
-        padding: 0 7px;
-
-        background: #202020;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        font-family: Arial, sans-serif;
-        font-size: 11px;
-        font-weight: bold;
-
-        touch-action: none;
-
-        user-select: none;
-    `;
-
-    const title = document.createElement("span");
-
-    title.textContent = "🔎 DEBUG V2";
-
-    const status = document.createElement("span");
-
-    status.textContent = "●";
-
-    status.style.cssText = `
-        color: #00ff88;
-        margin-left: 5px;
-    `;
-
-    const titleArea = document.createElement("div");
-
-    titleArea.style.cssText = `
+        height:34px;
+        min-height:34px;
+        padding:0 8px;
+        background:#202020;
         display:flex;
         align-items:center;
-        gap:3px;
+        justify-content:space-between;
+        font-family:Arial,sans-serif;
+        font-size:11px;
+        font-weight:bold;
+        touch-action:none;
     `;
 
-    titleArea.append(title, status);
-
-    // =========================================================
-    // BOTÕES DO CABEÇALHO
-    // =========================================================
-
-    const headerButtons = document.createElement("div");
-
-    headerButtons.style.cssText = `
-        display:flex;
-        gap:4px;
+    header.innerHTML = `
+        <span>🔎 ASSESSMENT DEBUG</span>
+        <span style="color:#00ff88">●</span>
     `;
 
-    function createHeaderButton(text) {
+    const controls = document.createElement("div");
 
-        const button = document.createElement("button");
+    const minimize = document.createElement("button");
+    minimize.textContent = "—";
 
-        button.textContent = text;
+    const close = document.createElement("button");
+    close.textContent = "×";
 
-        button.style.cssText = `
+    for (const b of [minimize, close]) {
+        b.style.cssText = `
             width:25px;
             height:25px;
-
+            margin-left:4px;
             border:0;
             border-radius:6px;
-
             background:#333;
             color:white;
-
             font-size:16px;
-            line-height:20px;
-
-            padding:0;
-
-            touch-action:manipulation;
         `;
-
-        return button;
     }
 
-    const minimizeBtn =
-        createHeaderButton("—");
-
-    const closeBtn =
-        createHeaderButton("×");
-
-    headerButtons.append(
-        minimizeBtn,
-        closeBtn
-    );
-
-    header.append(
-        titleArea,
-        headerButtons
-    );
-
-    // =========================================================
-    // ÁREA DE SAÍDA
-    // =========================================================
+    controls.append(minimize, close);
+    header.appendChild(controls);
 
     const output = document.createElement("textarea");
 
@@ -173,515 +81,148 @@
 
     output.style.cssText = `
         flex:1;
-
-        width:100%;
         min-height:0;
-
+        width:100%;
+        box-sizing:border-box;
+        resize:none;
         border:0;
         outline:0;
-
-        resize:none;
-
-        box-sizing:border-box;
-
         padding:7px;
-
         background:#050505;
         color:#00ff88;
-
         font-family:monospace;
         font-size:9px;
-
-        line-height:1.3;
+        line-height:1.35;
     `;
-
-    // =========================================================
-    // RODAPÉ
-    // =========================================================
 
     const footer = document.createElement("div");
 
     footer.style.cssText = `
         display:flex;
         gap:4px;
-
         padding:5px;
-
         background:#181818;
     `;
 
-    function createFooterButton(text) {
+    const copy = document.createElement("button");
+    copy.textContent = "📋 Copiar";
 
-        const button = document.createElement("button");
+    const clear = document.createElement("button");
+    clear.textContent = "🗑 Limpar";
 
-        button.textContent = text;
-
-        button.style.cssText = `
+    for (const b of [copy, clear]) {
+        b.style.cssText = `
             flex:1;
-
-            padding:6px 3px;
-
+            padding:6px;
             border:0;
             border-radius:6px;
-
             background:#303030;
             color:white;
-
             font-size:10px;
             font-weight:bold;
-
-            touch-action:manipulation;
         `;
-
-        return button;
     }
 
-    const copyBtn =
-        createFooterButton("📋 Copiar");
+    footer.append(copy, clear);
 
-    const clearBtn =
-        createFooterButton("🗑 Limpar");
-
-    footer.append(
-        copyBtn,
-        clearBtn
-    );
-
-    // =========================================================
-    // MONTAR PAINEL
-    // =========================================================
-
-    panel.append(
-        header,
-        output,
-        footer
-    );
+    panel.append(header, output, footer);
 
     document.documentElement.appendChild(panel);
 
     // =========================================================
-    // SISTEMA DE LOG
+    // LOG
     // =========================================================
 
     let logs = [];
 
-    function log(title, data = "") {
+    function log(title, value = "") {
 
         let text;
 
-        if (typeof data === "string") {
-
-            text = data;
-
-        } else {
-
-            try {
-
-                text =
-                    JSON.stringify(
-                        data,
-                        null,
-                        2
-                    );
-
-            } catch {
-
-                text =
-                    String(data);
-            }
+        try {
+            text =
+                typeof value === "string"
+                    ? value
+                    : JSON.stringify(value, null, 2);
+        } catch {
+            text = String(value);
         }
-
-        const time =
-            new Date()
-                .toLocaleTimeString();
 
         logs.push(
-            `[${time}] ${title}\n${text}`
+            `[${new Date().toLocaleTimeString()}] ${title}\n${text}`
         );
 
-        if (logs.length > MAX_LOGS) {
-
-            logs =
-                logs.slice(-MAX_LOGS);
+        if (logs.length > 80) {
+            logs = logs.slice(-80);
         }
 
-        output.value =
-            logs.join("\n\n");
-
-        output.scrollTop =
-            output.scrollHeight;
+        output.value = logs.join("\n\n");
+        output.scrollTop = output.scrollHeight;
     }
 
     // =========================================================
-    // INÍCIO
+    // SOMENTE O ENDPOINT DA QUESTÃO
     // =========================================================
 
-    log(
-        "🚀 DEBUGGER INICIADO",
-        "Debugger V2 carregado."
-    );
+    function isTarget(url) {
 
-    log(
-        "📱 MODO IPHONE",
-        "Painel visual + Fetch + XHR + Performance."
-    );
-
-    log(
-        "⏳ AGUARDANDO",
-        "Abra ou recarregue uma questão."
-    );
+        return String(url || "")
+            .includes("getAssessmentItemById");
+    }
 
     // =========================================================
-    // MINIMIZAR
+    // RESUMO DA ESTRUTURA
     // =========================================================
 
-    let minimized = false;
+    function inspect(value, path = "", depth = 0) {
 
-    minimizeBtn.addEventListener(
-        "click",
-        event => {
+        if (depth > 7) return;
 
-            event.stopPropagation();
-
-            minimized =
-                !minimized;
-
-            if (minimized) {
-
-                output.style.display =
-                    "none";
-
-                footer.style.display =
-                    "none";
-
-                panel.style.width =
-                    "125px";
-
-                panel.style.height =
-                    "38px";
-
-                minimizeBtn.textContent =
-                    "+";
-
-            } else {
-
-                output.style.display =
-                    "block";
-
-                footer.style.display =
-                    "flex";
-
-                panel.style.width =
-                    "260px";
-
-                panel.style.height =
-                    "190px";
-
-                minimizeBtn.textContent =
-                    "—";
-            }
+        if (
+            value === null ||
+            typeof value !== "object"
+        ) {
+            return;
         }
-    );
 
-    // =========================================================
-    // ARRASTAR NO IPHONE
-    // =========================================================
+        let keys;
 
-    let dragging = false;
-
-    let startX = 0;
-    let startY = 0;
-
-    let startRight = 10;
-    let startTop = 70;
-
-    header.addEventListener(
-        "touchstart",
-        event => {
-
-            if (
-                event.target.tagName ===
-                "BUTTON"
-            ) {
-                return;
-            }
-
-            const touch =
-                event.touches[0];
-
-            const rect =
-                panel.getBoundingClientRect();
-
-            dragging = true;
-
-            startX =
-                touch.clientX;
-
-            startY =
-                touch.clientY;
-
-            startRight =
-                window.innerWidth -
-                rect.right;
-
-            startTop =
-                rect.top;
-
-        },
-        {
-            passive: true
+        try {
+            keys = Object.keys(value);
+        } catch {
+            return;
         }
-    );
 
-    document.addEventListener(
-        "touchmove",
-        event => {
+        for (const key of keys) {
 
-            if (!dragging) {
-                return;
-            }
-
-            const touch =
-                event.touches[0];
-
-            const dx =
-                touch.clientX -
-                startX;
-
-            const dy =
-                touch.clientY -
-                startY;
-
-            const newRight =
-                Math.max(
-                    5,
-                    startRight - dx
-                );
-
-            const newTop =
-                Math.max(
-                    5,
-                    startTop + dy
-                );
-
-            panel.style.right =
-                `${newRight}px`;
-
-            panel.style.top =
-                `${newTop}px`;
-        },
-        {
-            passive: true
-        }
-    );
-
-    document.addEventListener(
-        "touchend",
-        () => {
-            dragging = false;
-        }
-    );
-
-    // =========================================================
-    // COPIAR
-    // =========================================================
-
-    copyBtn.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                await navigator.clipboard.writeText(
-                    output.value
-                );
-
-                copyBtn.textContent =
-                    "✅ Copiado";
-
-                setTimeout(
-                    () => {
-                        copyBtn.textContent =
-                            "📋 Copiar";
-                    },
-                    1500
-                );
-
-            } catch {
-
-                output.focus();
-                output.select();
-
-                try {
-                    document.execCommand("copy");
-                } catch {}
-
-                copyBtn.textContent =
-                    "✅ Copiado";
-
-                setTimeout(
-                    () => {
-                        copyBtn.textContent =
-                            "📋 Copiar";
-                    },
-                    1500
-                );
-            }
-        }
-    );
-
-    // =========================================================
-    // LIMPAR
-    // =========================================================
-
-    clearBtn.addEventListener(
-        "click",
-        () => {
-
-            logs = [];
+            const current =
+                path
+                    ? `${path}.${key}`
+                    : key;
 
             log(
-                "🧹 LIMPO",
-                "Aguardando nova requisição..."
+                "🔑 CAMPO",
+                current
             );
-        }
-    );
-
-    // =========================================================
-    // FECHAR
-    // =========================================================
-
-    closeBtn.addEventListener(
-        "click",
-        event => {
-
-            event.stopPropagation();
-
-            panel.remove();
 
             try {
-                delete window[FLAG];
+                inspect(
+                    value[key],
+                    current,
+                    depth + 1
+                );
             } catch {}
         }
-    );
-
-    // =========================================================
-    // VERIFICAR URL
-    // =========================================================
-
-    function isInteresting(
-        url,
-        body = ""
-    ) {
-
-        const value =
-            (
-                String(url || "") +
-                " " +
-                String(body || "")
-            ).toLowerCase();
-
-        return (
-            value.includes("assessment") ||
-            value.includes("assessmentitem") ||
-            value.includes("getassessmentitem") ||
-            value.includes("graphql") ||
-            value.includes("exercise") ||
-            value.includes("problem") ||
-            value.includes("question")
-        );
     }
 
-    // =========================================================
-    // ESTRUTURA DO JSON
-    // =========================================================
-
-    function getStructure(
-        object,
-        maxDepth = MAX_STRUCTURE_DEPTH
-    ) {
-
-        const paths = [];
-
-        function walk(
-            value,
-            path,
-            depth
-        ) {
-
-            if (
-                depth >
-                maxDepth
-            ) {
-                return;
-            }
-
-            if (
-                value === null ||
-                typeof value !== "object"
-            ) {
-                return;
-            }
-
-            let keys;
-
-            try {
-
-                keys =
-                    Object.keys(value);
-
-            } catch {
-
-                return;
-            }
-
-            for (const key of keys) {
-
-                const current =
-                    path
-                        ? `${path}.${key}`
-                        : key;
-
-                paths.push(current);
-
-                try {
-
-                    walk(
-                        value[key],
-                        current,
-                        depth + 1
-                    );
-
-                } catch {}
-            }
-        }
-
-        walk(
-            object,
-            "",
-            0
-        );
-
-        return paths;
-    }
-
-    // =========================================================
-    // ANALISAR JSON
-    // =========================================================
-
-    function inspectJSON(
+    function processResponse(
         url,
-        data,
+        text,
         source
     ) {
 
         log(
-            "========================================",
-            ""
-        );
-
-        log(
-            "📡 REQUISIÇÃO DETECTADA",
+            "🎯 getAssessmentItemById DETECTADO",
             source
         );
 
@@ -690,74 +231,55 @@
             url
         );
 
-        // -----------------------------------------------------
-        // CHAVES PRINCIPAIS
-        // -----------------------------------------------------
-
-        try {
+        if (!text) {
 
             log(
-                "🔑 CHAVES PRINCIPAIS",
-                Object.keys(data).join("\n")
+                "⚠️ RESPOSTA VAZIA",
+                ""
             );
 
-        } catch {}
-
-        // -----------------------------------------------------
-        // CAMINHOS
-        // -----------------------------------------------------
-
-        const paths =
-            getStructure(data);
-
-        log(
-            "📂 CAMINHOS ENCONTRADOS",
-            paths.join("\n")
-        );
-
-        // -----------------------------------------------------
-        // JSON
-        // -----------------------------------------------------
+            return;
+        }
 
         try {
 
-            let json =
+            const json =
+                JSON.parse(text);
+
+            log(
+                "✅ JSON RECEBIDO",
+                "A resposta é JSON."
+            );
+
+            // Mostra os caminhos encontrados
+            inspect(json);
+
+            // Mostra uma versão limitada do JSON
+            let raw =
                 JSON.stringify(
-                    data,
+                    json,
                     null,
                     2
                 );
 
-            if (
-                json.length >
-                MAX_RESPONSE_TEXT
-            ) {
-
-                json =
-                    json.slice(
-                        0,
-                        MAX_RESPONSE_TEXT
-                    ) +
-                    "\n\n...[JSON CORTADO]...";
+            if (raw.length > 12000) {
+                raw =
+                    raw.slice(0, 12000) +
+                    "\n\n...[CORTE DE SEGURANÇA]...";
             }
 
             log(
-                "📦 JSON",
-                json
+                "📦 RESPOSTA JSON",
+                raw
             );
 
         } catch {
 
             log(
-                "⚠️ JSON",
-                "Não foi possível converter."
+                "📄 RESPOSTA NÃO JSON",
+                text.slice(0, 5000)
             );
         }
-
-        log(
-            "========================================",
-            "Fim da captura."
-        );
     }
 
     // =========================================================
@@ -771,69 +293,48 @@
         async function(...args) {
 
             let url = "";
-            let body = "";
-
-            // -------------------------------------------------
-            // URL
-            // -------------------------------------------------
+            let requestBody = "";
 
             try {
 
-                const request =
-                    args[0];
+                const request = args[0];
 
                 if (
                     request instanceof Request
                 ) {
 
-                    url =
-                        request.url;
+                    url = request.url;
 
                 } else {
 
-                    url =
-                        String(request);
+                    url = String(request);
                 }
 
             } catch {}
 
-            // -------------------------------------------------
-            // BODY
-            // -------------------------------------------------
-
             try {
 
-                const request =
-                    args[0];
-
-                const init =
-                    args[1];
+                const request = args[0];
+                const init = args[1];
 
                 if (
                     request instanceof Request
                 ) {
 
-                    body =
+                    requestBody =
                         await request
                             .clone()
                             .text();
 
                 } else if (
-                    init &&
-                    init.body
+                    init?.body
                 ) {
 
-                    body =
-                        String(
-                            init.body
-                        );
+                    requestBody =
+                        String(init.body);
                 }
 
             } catch {}
-
-            // -------------------------------------------------
-            // REQUISIÇÃO ORIGINAL
-            // -------------------------------------------------
 
             const response =
                 await originalFetch.apply(
@@ -841,16 +342,7 @@
                     args
                 );
 
-            // -------------------------------------------------
-            // FILTRO
-            // -------------------------------------------------
-
-            if (
-                isInteresting(
-                    url,
-                    body
-                )
-            ) {
+            if (isTarget(url)) {
 
                 try {
 
@@ -860,32 +352,16 @@
                     const text =
                         await clone.text();
 
-                    try {
-
-                        const json =
-                            JSON.parse(text);
-
-                        inspectJSON(
-                            url,
-                            json,
-                            "FETCH"
-                        );
-
-                    } catch {
-
-                        log(
-                            "📄 FETCH NÃO JSON",
-                            text.slice(
-                                0,
-                                MAX_RESPONSE_TEXT
-                            )
-                        );
-                    }
+                    processResponse(
+                        url,
+                        text,
+                        "FETCH"
+                    );
 
                 } catch (error) {
 
                     log(
-                        "⚠️ ERRO FETCH",
+                        "❌ ERRO AO LER FETCH",
                         String(error)
                     );
                 }
@@ -895,30 +371,23 @@
         };
 
     // =========================================================
-    // XMLHttpRequest
+    // XHR
     // =========================================================
 
-    const XHR =
+    const OriginalXHR =
         window.XMLHttpRequest;
 
     const originalOpen =
-        XHR.prototype.open;
+        OriginalXHR.prototype.open;
 
     const originalSend =
-        XHR.prototype.send;
+        OriginalXHR.prototype.send;
 
-    XHR.prototype.open =
-        function(
-            method,
-            url,
-            ...rest
-        ) {
+    OriginalXHR.prototype.open =
+        function(method, url, ...rest) {
 
-            this.__khanDebugURL =
+            this.__assessmentURL =
                 String(url);
-
-            this.__khanDebugMethod =
-                String(method);
 
             return originalOpen.call(
                 this,
@@ -928,69 +397,34 @@
             );
         };
 
-    XHR.prototype.send =
+    OriginalXHR.prototype.send =
         function(body) {
 
-            const xhr =
-                this;
+            const xhr = this;
 
             xhr.addEventListener(
                 "load",
                 function() {
 
+                    const url =
+                        xhr.__assessmentURL || "";
+
+                    if (!isTarget(url)) {
+                        return;
+                    }
+
                     try {
 
-                        const url =
-                            xhr.__khanDebugURL ||
-                            "";
-
-                        if (
-                            !isInteresting(
-                                url,
-                                body
-                            )
-                        ) {
-                            return;
-                        }
-
-                        let text = "";
-
-                        try {
-
-                            text =
-                                xhr.responseText;
-
-                        } catch {
-
-                            return;
-                        }
-
-                        try {
-
-                            const json =
-                                JSON.parse(text);
-
-                            inspectJSON(
-                                url,
-                                json,
-                                "XMLHttpRequest"
-                            );
-
-                        } catch {
-
-                            log(
-                                "📄 XHR NÃO JSON",
-                                text.slice(
-                                    0,
-                                    MAX_RESPONSE_TEXT
-                                )
-                            );
-                        }
+                        processResponse(
+                            url,
+                            xhr.responseText,
+                            "XHR"
+                        );
 
                     } catch (error) {
 
                         log(
-                            "⚠️ ERRO XHR",
+                            "❌ ERRO XHR",
                             String(error)
                         );
                     }
@@ -1004,50 +438,187 @@
         };
 
     // =========================================================
-    // PERFORMANCE OBSERVER
+    // MINIMIZAR
     // =========================================================
 
-    try {
+    let minimized = false;
 
-        const observer =
-            new PerformanceObserver(
-                list => {
+    minimize.onclick = () => {
 
-                    for (
-                        const entry
-                        of list.getEntries()
-                    ) {
+        minimized = !minimized;
 
-                        if (
-                            entry.name &&
-                            isInteresting(
-                                entry.name
-                            )
-                        ) {
+        if (minimized) {
 
-                            log(
-                                "🌐 RECURSO DETECTADO",
-                                entry.name
-                            );
-                        }
-                    }
-                }
+            output.style.display = "none";
+            footer.style.display = "none";
+
+            panel.style.width = "145px";
+            panel.style.height = "38px";
+
+            minimize.textContent = "+";
+
+        } else {
+
+            output.style.display = "block";
+            footer.style.display = "flex";
+
+            panel.style.width = "280px";
+            panel.style.height = "220px";
+
+            minimize.textContent = "—";
+        }
+    };
+
+    // =========================================================
+    // COPIAR
+    // =========================================================
+
+    copy.onclick = async () => {
+
+        try {
+
+            await navigator.clipboard.writeText(
+                output.value
             );
 
-        observer.observe({
-            type: "resource",
-            buffered: true
-        });
+            copy.textContent = "✅ Copiado";
 
-    } catch {}
+            setTimeout(() => {
+                copy.textContent = "📋 Copiar";
+            }, 1500);
+
+        } catch {
+
+            output.focus();
+            output.select();
+
+            try {
+                document.execCommand("copy");
+            } catch {}
+        }
+    };
 
     // =========================================================
-    // FINAL
+    // LIMPAR
+    // =========================================================
+
+    clear.onclick = () => {
+
+        logs = [];
+
+        log(
+            "🧹 LIMPO",
+            "Aguardando getAssessmentItemById..."
+        );
+    };
+
+    // =========================================================
+    // FECHAR
+    // =========================================================
+
+    close.onclick = () => {
+
+        panel.remove();
+
+        try {
+            delete window[FLAG];
+        } catch {}
+    };
+
+    // =========================================================
+    // ARRASTAR
+    // =========================================================
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startTop = 70;
+    let startRight = 10;
+
+    header.addEventListener(
+        "touchstart",
+        e => {
+
+            if (
+                e.target.tagName === "BUTTON"
+            ) {
+                return;
+            }
+
+            const touch =
+                e.touches[0];
+
+            const rect =
+                panel.getBoundingClientRect();
+
+            dragging = true;
+
+            startX =
+                touch.clientX;
+
+            startY =
+                touch.clientY;
+
+            startTop =
+                rect.top;
+
+            startRight =
+                window.innerWidth -
+                rect.right;
+
+        },
+        { passive:true }
+    );
+
+    document.addEventListener(
+        "touchmove",
+        e => {
+
+            if (!dragging) return;
+
+            const touch =
+                e.touches[0];
+
+            const dx =
+                touch.clientX - startX;
+
+            const dy =
+                touch.clientY - startY;
+
+            panel.style.right =
+                `${Math.max(
+                    5,
+                    startRight - dx
+                )}px`;
+
+            panel.style.top =
+                `${Math.max(
+                    5,
+                    startTop + dy
+                )}px`;
+        },
+        { passive:true }
+    );
+
+    document.addEventListener(
+        "touchend",
+        () => {
+            dragging = false;
+        }
+    );
+
+    // =========================================================
+    // PRONTO
     // =========================================================
 
     log(
-        "🟢 MONITORAMENTO ATIVO",
-        "Agora recarregue a atividade e abra uma questão."
+        "🚀 DEBUGGER V3",
+        "Monitorando SOMENTE getAssessmentItemById."
+    );
+
+    log(
+        "📱 IPHONE",
+        "Recarregue a atividade depois de executar o script."
     );
 
 })();
