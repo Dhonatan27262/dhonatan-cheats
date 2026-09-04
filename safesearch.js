@@ -2,40 +2,58 @@
   "use strict";
 
   // ============================================================
-  // PAINEL DE ESTUDOS — CAPTURA + GPT / GEMINI
+  // ASSISTENTE DE ESTUDOS
+  // TEXTO + IMAGEM + GPT / GEMINI
+  // COMPATÍVEL COM IPHONE
   // ============================================================
 
   const STORAGE = {
-    provider: "study_ai_provider",
+    provider: "study_provider",
     openrouterKey: "study_openrouter_key",
     geminiKey: "study_gemini_key"
   };
 
-  let provider = localStorage.getItem(STORAGE.provider) || "openrouter";
-  let lastImageData = null;
+  let provider =
+    localStorage.getItem(STORAGE.provider) || "openrouter";
+
+  let capturedText = "";
+  let capturedImage = null;
   let busy = false;
 
   // ------------------------------------------------------------
-  // CONFIGURAÇÃO
+  // MODELOS
   // ------------------------------------------------------------
 
   const OPENROUTER_MODEL = "openai/gpt-4o-mini";
   const GEMINI_MODEL = "gemini-2.0-flash";
 
-  const SYSTEM_PROMPT = `
+  // ------------------------------------------------------------
+  // PROMPT
+  // ------------------------------------------------------------
+
+  const AI_INSTRUCTION = `
 Você é um assistente de estudos.
 
-Analise cuidadosamente a imagem fornecida.
+Analise cuidadosamente o conteúdo fornecido.
 
-1. Identifique a pergunta.
-2. Leia tabelas, gráficos, alternativas, números e textos presentes.
-3. Faça o raciocínio necessário.
-4. Não invente informações que não estejam visíveis.
-5. Se houver alguma informação ilegível, diga exatamente qual.
-6. Dê uma resposta objetiva.
-7. Explique brevemente como chegou à conclusão.
+Se houver uma pergunta:
+- identifique exatamente o que está sendo perguntado;
+- leia todas as alternativas;
+- considere números, tabelas, gráficos e imagens;
+- faça o raciocínio matemático ou lógico necessário;
+- não invente informações;
+- se alguma parte estiver ilegível ou faltando, informe isso.
 
-Responda em português do Brasil.
+Se houver uma imagem, analise visualmente a imagem inteira.
+
+Forneça:
+1. Interpretação da questão
+2. Raciocínio
+3. Resposta mais provável
+
+Se houver alternativas, indique qual alternativa corresponde à resposta.
+
+Responda em português do Brasil e seja objetivo.
 `;
 
   // ------------------------------------------------------------
@@ -54,12 +72,16 @@ Responda em português do Brasil.
       .replaceAll("'", "&#039;");
   }
 
-  function toast(message, duration = 2200) {
-    let el = document.getElementById("study-ai-toast");
+  function toast(text, duration = 2200) {
+
+    let el =
+      document.getElementById("study-toast");
 
     if (!el) {
+
       el = document.createElement("div");
-      el.id = "study-ai-toast";
+
+      el.id = "study-toast";
 
       Object.assign(el.style, {
         position: "fixed",
@@ -73,20 +95,21 @@ Responda em português do Brasil.
         fontFamily: "Arial,sans-serif",
         fontSize: "13px",
         zIndex: "2147483647",
-        boxShadow: "0 5px 25px rgba(0,0,0,.35)",
+        boxShadow: "0 5px 25px rgba(0,0,0,.4)",
         opacity: "0",
-        transition: "opacity .2s"
+        transition: "opacity .2s",
+        pointerEvents: "none"
       });
 
       document.body.appendChild(el);
     }
 
-    el.textContent = message;
+    el.textContent = text;
     el.style.opacity = "1";
 
-    clearTimeout(el._timer);
+    clearTimeout(el.timer);
 
-    el._timer = setTimeout(() => {
+    el.timer = setTimeout(() => {
       el.style.opacity = "0";
     }, duration);
   }
@@ -95,243 +118,458 @@ Responda em português do Brasil.
   // CSS
   // ------------------------------------------------------------
 
-  const style = document.createElement("style");
+  const style =
+    document.createElement("style");
 
   style.textContent = `
-    #study-ai-panel,
-    #study-ai-panel * {
+
+    #study-panel,
+    #study-panel * {
       box-sizing: border-box;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
     }
 
-    #study-ai-panel {
+    #study-panel {
+
       position: fixed;
-      right: 18px;
-      bottom: 85px;
+
+      right: 12px;
+      bottom: 80px;
+
       width: 300px;
-      background: rgba(18,18,22,.97);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,.12);
+      max-width: calc(100vw - 24px);
+
+      background:
+        rgba(18,18,22,.98);
+
+      color: white;
+
+      border:
+        1px solid rgba(255,255,255,.12);
+
       border-radius: 15px;
+
       z-index: 2147483646;
-      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+
+      box-shadow:
+        0 12px 40px rgba(0,0,0,.45);
+
       overflow: hidden;
     }
 
-    #study-ai-header {
+    #study-header {
+
       height: 42px;
+
       display: flex;
+
       align-items: center;
-      justify-content: space-between;
-      padding: 0 10px 0 14px;
-      background: rgba(255,255,255,.06);
-      cursor: move;
+
+      justify-content:
+        space-between;
+
+      padding:
+        0 9px 0 13px;
+
+      background:
+        rgba(255,255,255,.06);
+
       user-select: none;
+
+      cursor: move;
     }
 
-    #study-ai-title {
+    #study-title {
+
       font-size: 13px;
+
       font-weight: 700;
     }
 
-    #study-ai-header-buttons {
+    #study-head-buttons {
+
       display: flex;
+
       gap: 4px;
     }
 
-    .study-mini-btn {
+    .study-head-btn {
+
       width: 27px;
       height: 27px;
+
       border: 0;
+
       border-radius: 7px;
-      background: rgba(255,255,255,.09);
-      color: #fff;
+
+      background:
+        rgba(255,255,255,.09);
+
+      color: white;
+
       cursor: pointer;
-      font-size: 15px;
     }
 
-    .study-mini-btn:hover {
-      background: rgba(255,255,255,.18);
+    .study-head-btn:hover {
+
+      background:
+        rgba(255,255,255,.18);
     }
 
-    #study-ai-body {
+    #study-body {
+
       padding: 11px;
     }
 
     .study-label {
+
       display: block;
-      margin-bottom: 5px;
-      color: #bbb;
+
+      color: #aaa;
+
       font-size: 11px;
+
+      margin-bottom: 5px;
     }
 
     #study-provider {
+
       width: 100%;
+
       height: 34px;
+
+      background: #24242a;
+
+      color: white;
+
       border: 1px solid #444;
+
       border-radius: 8px;
-      background: #25252b;
-      color: #fff;
-      padding: 0 9px;
-      outline: none;
+
+      padding: 0 8px;
+
       margin-bottom: 9px;
-    }
 
-    .study-input {
-      width: 100%;
-      height: 34px;
-      border: 1px solid #444;
-      border-radius: 8px;
-      background: #202025;
-      color: #fff;
-      padding: 0 9px;
       outline: none;
-      margin-bottom: 8px;
-      font-size: 12px;
     }
 
-    .study-input:focus {
-      border-color: #777;
+    #study-key {
+
+      width: 100%;
+
+      height: 34px;
+
+      background: #202025;
+
+      color: white;
+
+      border: 1px solid #444;
+
+      border-radius: 8px;
+
+      padding: 0 9px;
+
+      font-size: 11px;
+
+      margin-bottom: 8px;
+
+      outline: none;
     }
 
     .study-button {
+
       width: 100%;
+
       min-height: 37px;
+
       border: 0;
+
       border-radius: 9px;
+
       color: white;
-      cursor: pointer;
-      font-weight: 700;
+
       font-size: 12px;
+
+      font-weight: 700;
+
+      cursor: pointer;
+
       margin-top: 6px;
     }
 
-    #study-capture {
-      background: #33343b;
+    #study-text-button {
+
+      background: #34353c;
+    }
+
+    #study-image-button {
+
+      background: #34353c;
     }
 
     #study-analyze {
+
       background: #5b55e8;
     }
 
     #study-analyze:disabled {
-      opacity: .45;
+
+      opacity: .4;
+
       cursor: not-allowed;
     }
 
-    #study-result {
-      margin-top: 10px;
-      max-height: 180px;
-      overflow-y: auto;
-      padding: 10px;
-      border-radius: 9px;
-      background: rgba(255,255,255,.055);
+    #study-captured-text {
+
+      width: 100%;
+
+      min-height: 80px;
+      max-height: 150px;
+
+      resize: vertical;
+
+      margin-top: 9px;
+
+      padding: 8px;
+
+      background: #151519;
+
       color: #ddd;
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      display: none;
+
+      border: 1px solid #38383e;
+
+      border-radius: 8px;
+
+      font-size: 11px;
+
+      line-height: 1.4;
+
+      outline: none;
     }
 
     #study-preview {
-      width: 100%;
-      max-height: 130px;
-      object-fit: contain;
-      margin-top: 9px;
-      border-radius: 8px;
+
       display: none;
+
+      width: 100%;
+
+      max-height: 140px;
+
+      object-fit: contain;
+
       background: #000;
+
+      border-radius: 8px;
+
+      margin-top: 9px;
+    }
+
+    #study-result {
+
+      display: none;
+
+      margin-top: 9px;
+
+      padding: 10px;
+
+      max-height: 210px;
+
+      overflow-y: auto;
+
+      background:
+        rgba(255,255,255,.055);
+
+      border-radius: 9px;
+
+      color: #ddd;
+
+      font-size: 12px;
+
+      line-height: 1.5;
+
+      white-space: pre-wrap;
+    }
+
+    #study-status {
+
+      text-align: center;
+
+      color: #888;
+
+      font-size: 10px;
+
+      margin-top: 7px;
     }
 
     #study-api-link {
+
       display: block;
+
       text-align: center;
-      color: #999;
-      font-size: 10px;
+
       margin-top: 9px;
+
+      color: #999;
+
+      font-size: 10px;
+
       text-decoration: none;
     }
 
     #study-api-link:hover {
-      color: #fff;
-    }
 
-    #study-status {
-      margin-top: 7px;
-      text-align: center;
-      color: #888;
-      font-size: 10px;
-    }
-
-    #study-ai-minimized {
-      position: fixed;
-      right: 18px;
-      bottom: 85px;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,.15);
-      background: #17171b;
       color: white;
-      z-index: 2147483646;
-      cursor: pointer;
-      display: none;
-      box-shadow: 0 7px 25px rgba(0,0,0,.35);
-      font-size: 18px;
     }
+
+    #study-minimized {
+
+      display: none;
+
+      position: fixed;
+
+      right: 14px;
+
+      bottom: 80px;
+
+      width: 46px;
+      height: 46px;
+
+      border-radius: 50%;
+
+      border: 1px solid
+        rgba(255,255,255,.15);
+
+      background: #17171b;
+
+      color: white;
+
+      z-index: 2147483646;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 7px 25px rgba(0,0,0,.4);
+    }
+
+    #study-file {
+
+      display: none;
+    }
+
   `;
 
   document.head.appendChild(style);
 
   // ------------------------------------------------------------
-  // INTERFACE
+  // HTML
   // ------------------------------------------------------------
 
-  const panel = document.createElement("div");
-  panel.id = "study-ai-panel";
+  const panel =
+    document.createElement("div");
+
+  panel.id = "study-panel";
 
   panel.innerHTML = `
-    <div id="study-ai-header">
-      <div id="study-ai-title">📚 Assistente de Estudos</div>
 
-      <div id="study-ai-header-buttons">
-        <button class="study-mini-btn" id="study-minimize">−</button>
-        <button class="study-mini-btn" id="study-close">×</button>
+    <div id="study-header">
+
+      <div id="study-title">
+        📚 Assistente de Estudos
       </div>
+
+      <div id="study-head-buttons">
+
+        <button
+          class="study-head-btn"
+          id="study-minimize"
+        >
+          −
+        </button>
+
+        <button
+          class="study-head-btn"
+          id="study-close"
+        >
+          ×
+        </button>
+
+      </div>
+
     </div>
 
-    <div id="study-ai-body">
+    <div id="study-body">
 
-      <label class="study-label">Modelo</label>
+      <label class="study-label">
+        Modelo de IA
+      </label>
 
       <select id="study-provider">
-        <option value="openrouter">GPT — OpenRouter</option>
-        <option value="gemini">Gemini</option>
+
+        <option value="openrouter">
+          GPT — OpenRouter
+        </option>
+
+        <option value="gemini">
+          Gemini
+        </option>
+
       </select>
 
-      <label class="study-label" id="study-key-label">
+      <label
+        class="study-label"
+        id="study-key-label"
+      >
         Chave OpenRouter
       </label>
 
       <input
-        id="study-api-key"
-        class="study-input"
+        id="study-key"
         type="password"
         placeholder="Cole sua chave aqui"
-      />
+      >
 
-      <button id="study-capture" class="study-button">
-        📸 Capturar tela
+      <button
+        id="study-text-button"
+        class="study-button"
+      >
+        📝 Puxar pergunta e texto
       </button>
 
-      <img id="study-preview">
+      <input
+        id="study-file"
+        type="file"
+        accept="image/*"
+      >
 
-      <button id="study-analyze" class="study-button" disabled>
-        🤖 Analisar imagem
+      <button
+        id="study-image-button"
+        class="study-button"
+      >
+        🖼️ Escolher imagem
+      </button>
+
+      <textarea
+        id="study-captured-text"
+        placeholder="O texto capturado aparecerá aqui..."
+      ></textarea>
+
+      <img
+        id="study-preview"
+      >
+
+      <button
+        id="study-analyze"
+        class="study-button"
+        disabled
+      >
+        🤖 Analisar com IA
       </button>
 
       <div id="study-status">
-        Nenhuma captura realizada
+        Pronto
       </div>
 
       <div id="study-result"></div>
@@ -350,60 +588,114 @@ Responda em português do Brasil.
 
   document.body.appendChild(panel);
 
-  const minimized = document.createElement("button");
-  minimized.id = "study-ai-minimized";
-  minimized.textContent = "📚";
-  minimized.title = "Abrir assistente";
-  document.body.appendChild(minimized);
+  const minimized =
+    document.createElement("button");
+
+  minimized.id =
+    "study-minimized";
+
+  minimized.textContent =
+    "📚";
+
+  minimized.title =
+    "Abrir assistente";
+
+  document.body.appendChild(
+    minimized
+  );
+
+  // ------------------------------------------------------------
+  // ELEMENTOS
+  // ------------------------------------------------------------
 
   const providerSelect =
-    document.getElementById("study-provider");
+    document.getElementById(
+      "study-provider"
+    );
 
   const keyInput =
-    document.getElementById("study-api-key");
+    document.getElementById(
+      "study-key"
+    );
 
   const keyLabel =
-    document.getElementById("study-key-label");
+    document.getElementById(
+      "study-key-label"
+    );
 
-  const captureButton =
-    document.getElementById("study-capture");
+  const textButton =
+    document.getElementById(
+      "study-text-button"
+    );
 
-  const analyzeButton =
-    document.getElementById("study-analyze");
+  const imageButton =
+    document.getElementById(
+      "study-image-button"
+    );
+
+  const fileInput =
+    document.getElementById(
+      "study-file"
+    );
+
+  const capturedTextBox =
+    document.getElementById(
+      "study-captured-text"
+    );
 
   const preview =
-    document.getElementById("study-preview");
+    document.getElementById(
+      "study-preview"
+    );
 
-  const result =
-    document.getElementById("study-result");
+  const analyzeButton =
+    document.getElementById(
+      "study-analyze"
+    );
 
   const status =
-    document.getElementById("study-status");
+    document.getElementById(
+      "study-status"
+    );
+
+  const result =
+    document.getElementById(
+      "study-result"
+    );
 
   const apiLink =
-    document.getElementById("study-api-link");
+    document.getElementById(
+      "study-api-link"
+    );
 
   // ------------------------------------------------------------
-  // CONFIGURAÇÃO DO PROVIDER
+  // PROVIDER
   // ------------------------------------------------------------
 
-  function updateProviderUI() {
-    provider = providerSelect.value;
+  function updateProvider() {
+
+    provider =
+      providerSelect.value;
 
     localStorage.setItem(
       STORAGE.provider,
       provider
     );
 
-    if (provider === "gemini") {
+    if (
+      provider === "gemini"
+    ) {
 
-      keyLabel.textContent = "Chave Gemini";
+      keyLabel.textContent =
+        "Chave Gemini";
 
       keyInput.value =
-        localStorage.getItem(STORAGE.geminiKey) || "";
+        localStorage.getItem(
+          STORAGE.geminiKey
+        ) || "";
 
       keyInput.placeholder =
-        "Cole sua chave Gemini aqui";
+        "Cole sua chave Gemini";
 
       apiLink.href =
         "https://aistudio.google.com/apikey";
@@ -414,221 +706,294 @@ Responda em português do Brasil.
         "Chave OpenRouter";
 
       keyInput.value =
-        localStorage.getItem(STORAGE.openrouterKey) || "";
+        localStorage.getItem(
+          STORAGE.openrouterKey
+        ) || "";
 
       keyInput.placeholder =
-        "Cole sua chave OpenRouter aqui";
+        "Cole sua chave OpenRouter";
 
       apiLink.href =
         "https://openrouter.ai/settings/keys";
     }
   }
 
-  providerSelect.value = provider;
+  providerSelect.value =
+    provider;
 
-  updateProviderUI();
+  updateProvider();
 
   providerSelect.addEventListener(
     "change",
-    updateProviderUI
+    updateProvider
   );
 
-  keyInput.addEventListener("input", () => {
+  keyInput.addEventListener(
+    "input",
+    () => {
 
-    if (provider === "gemini") {
-      localStorage.setItem(
-        STORAGE.geminiKey,
-        keyInput.value.trim()
-      );
-    } else {
-      localStorage.setItem(
-        STORAGE.openrouterKey,
-        keyInput.value.trim()
-      );
-    }
+      const value =
+        keyInput.value.trim();
 
-  });
+      if (
+        provider === "gemini"
+      ) {
 
-  // ------------------------------------------------------------
-  // MINIMIZAR
-  // ------------------------------------------------------------
-
-  document
-    .getElementById("study-minimize")
-    .onclick = () => {
-
-      panel.style.display = "none";
-      minimized.style.display = "block";
-
-    };
-
-  minimized.onclick = () => {
-
-    minimized.style.display = "none";
-    panel.style.display = "block";
-
-  };
-
-  document
-    .getElementById("study-close")
-    .onclick = () => {
-
-      panel.remove();
-      minimized.remove();
-      style.remove();
-
-    };
-
-  // ------------------------------------------------------------
-  // CAPTURA DE TELA
-  // ------------------------------------------------------------
-
-  async function captureScreen() {
-
-    if (!navigator.mediaDevices ||
-        !navigator.mediaDevices.getDisplayMedia) {
-
-      toast(
-        "Seu navegador não permite captura de tela."
-      );
-
-      return;
-
-    }
-
-    try {
-
-      status.textContent =
-        "Aguardando seleção da tela...";
-
-      const stream =
-        await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            cursor: "never"
-          },
-          audio: false
-        });
-
-      const video =
-        document.createElement("video");
-
-      video.srcObject = stream;
-
-      video.muted = true;
-
-      await video.play();
-
-      await sleep(500);
-
-      const canvas =
-        document.createElement("canvas");
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      const ctx =
-        canvas.getContext("2d");
-
-      ctx.drawImage(
-        video,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-
-      stream
-        .getTracks()
-        .forEach(track => track.stop());
-
-      lastImageData =
-        canvas.toDataURL(
-          "image/jpeg",
-          0.85
+        localStorage.setItem(
+          STORAGE.geminiKey,
+          value
         );
 
-      preview.src = lastImageData;
-      preview.style.display = "block";
+      } else {
 
-      analyzeButton.disabled = false;
+        localStorage.setItem(
+          STORAGE.openrouterKey,
+          value
+        );
+      }
+    }
+  );
+
+  // ------------------------------------------------------------
+  // CAPTURAR TEXTO VISÍVEL
+  // ------------------------------------------------------------
+
+  textButton.onclick =
+    () => {
+
+      /*
+       * Captura somente texto que está
+       * atualmente no DOM da página.
+       */
+
+      const selection =
+        window.getSelection()
+          ?.toString()
+          ?.trim();
+
+      let text = "";
+
+      if (selection) {
+
+        text = selection;
+
+      } else {
+
+        /*
+         * Primeiro tenta encontrar
+         * elementos que normalmente
+         * representam o conteúdo principal.
+         */
+
+        const candidates = [
+          "main",
+          "[role='main']",
+          "article"
+        ];
+
+        let container = null;
+
+        for (
+          const selector of candidates
+        ) {
+
+          const found =
+            document.querySelector(
+              selector
+            );
+
+          if (found) {
+
+            container = found;
+            break;
+          }
+        }
+
+        if (!container) {
+
+          container =
+            document.body;
+        }
+
+        text =
+          container.innerText
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+      }
+
+      if (!text) {
+
+        toast(
+          "Nenhum texto encontrado."
+        );
+
+        return;
+      }
+
+      /*
+       * Limita o tamanho para evitar
+       * enviar páginas inteiras.
+       */
+
+      const MAX_TEXT = 12000;
+
+      capturedText =
+        text.slice(0, MAX_TEXT);
+
+      capturedTextBox.value =
+        capturedText;
 
       status.textContent =
-        "Captura pronta para análise.";
+        "Texto capturado.";
 
-      toast("📸 Captura realizada.");
-
-    } catch (error) {
-
-      console.error(error);
-
-      status.textContent =
-        "Captura cancelada.";
+      analyzeButton.disabled =
+        false;
 
       toast(
-        "Não foi possível capturar a tela."
+        "📝 Texto capturado."
       );
+    };
+
+  // ------------------------------------------------------------
+  // ESCOLHER IMAGEM
+  // ------------------------------------------------------------
+
+  imageButton.onclick =
+    () => {
+
+      fileInput.click();
+
+    };
+
+  fileInput.addEventListener(
+    "change",
+    event => {
+
+      const file =
+        event.target.files?.[0];
+
+      if (!file) return;
+
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+
+        toast(
+          "Selecione uma imagem."
+        );
+
+        return;
+      }
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        () => {
+
+          capturedImage =
+            reader.result;
+
+          preview.src =
+            capturedImage;
+
+          preview.style.display =
+            "block";
+
+          analyzeButton.disabled =
+            false;
+
+          status.textContent =
+            "Imagem pronta.";
+
+          toast(
+            "🖼️ Imagem carregada."
+          );
+        };
+
+      reader.onerror =
+        () => {
+
+          toast(
+            "Erro ao carregar imagem."
+          );
+        };
+
+      reader.readAsDataURL(file);
 
     }
-  }
-
-  captureButton.onclick =
-    captureScreen;
+  );
 
   // ------------------------------------------------------------
-  // GPT / OPENROUTER
+  // OPENROUTER / GPT
   // ------------------------------------------------------------
 
-  async function analyzeWithOpenRouter(
-    imageData,
+  async function analyzeOpenRouter(
+    text,
+    image,
     apiKey
   ) {
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
+    const content = [];
 
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
+    content.push({
+      type: "text",
+      text:
+        `${AI_INSTRUCTION}\n\n` +
+        `CONTEÚDO TEXTUAL:\n${text || "(nenhum texto fornecido)"}`
+    });
 
-        body: JSON.stringify({
+    if (image) {
 
-          model: OPENROUTER_MODEL,
+      content.push({
 
-          messages: [
-            {
-              role: "system",
-              content: SYSTEM_PROMPT
-            },
+        type: "image_url",
 
-            {
-              role: "user",
+        image_url: {
+          url: image
+        }
 
-              content: [
-                {
-                  type: "text",
-                  text:
-                    "Analise cuidadosamente esta captura de tela."
-                },
+      });
+    }
 
-                {
-                  type: "image_url",
+    const response =
+      await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
 
-                  image_url: {
-                    url: imageData
-                  }
-                }
-              ]
-            }
-          ],
+          method: "POST",
 
-          temperature: 0.1
+          headers: {
 
-        })
-      }
-    );
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${apiKey}`
+
+          },
+
+          body: JSON.stringify({
+
+            model:
+              OPENROUTER_MODEL,
+
+            messages: [
+
+              {
+                role: "user",
+                content
+              }
+
+            ],
+
+            temperature: 0.1
+
+          })
+        }
+      );
 
     const data =
       await response.json();
@@ -637,14 +1002,14 @@ Responda em português do Brasil.
 
       throw new Error(
         data?.error?.message ||
-        `Erro HTTP ${response.status}`
+        `HTTP ${response.status}`
       );
-
     }
 
     return (
-      data?.choices?.[0]?.message?.content ||
-      "O modelo não retornou uma resposta."
+      data?.choices?.[0]
+        ?.message?.content ||
+      "Sem resposta."
     );
   }
 
@@ -652,62 +1017,73 @@ Responda em português do Brasil.
   // GEMINI
   // ------------------------------------------------------------
 
-  async function analyzeWithGemini(
-    imageData,
+  async function analyzeGemini(
+    text,
+    image,
     apiKey
   ) {
 
-    const base64 =
-      imageData.split(",")[1];
+    const parts = [];
 
-    const url =
+    parts.push({
+      text:
+        `${AI_INSTRUCTION}\n\n` +
+        `CONTEÚDO TEXTUAL:\n${text || "(nenhum texto fornecido)"}`
+    });
+
+    if (image) {
+
+      const base64 =
+        image.split(",")[1];
+
+      parts.push({
+
+        inline_data: {
+
+          mime_type:
+            "image/jpeg",
+
+          data:
+            base64
+        }
+
+      });
+    }
+
+    const endpoint =
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const response =
-      await fetch(url, {
+      await fetch(
+        endpoint,
+        {
 
-        method: "POST",
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-
-          systemInstruction: {
-            parts: [
-              {
-                text: SYSTEM_PROMPT
-              }
-            ]
+          headers: {
+            "Content-Type":
+              "application/json"
           },
 
-          contents: [
-            {
-              parts: [
+          body: JSON.stringify({
 
-                {
-                  text:
-                    "Analise cuidadosamente esta captura de tela."
-                },
+            contents: [
 
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: base64
-                  }
-                }
+              {
+                parts
+              }
 
-              ]
+            ],
+
+            generationConfig: {
+
+              temperature: 0.1
+
             }
-          ],
 
-          generationConfig: {
-            temperature: 0.1
-          }
-
-        })
-      });
+          })
+        }
+      );
 
     const data =
       await response.json();
@@ -716,17 +1092,18 @@ Responda em português do Brasil.
 
       throw new Error(
         data?.error?.message ||
-        `Erro HTTP ${response.status}`
+        `HTTP ${response.status}`
       );
-
     }
 
     return (
       data?.candidates?.[0]
         ?.content?.parts
-        ?.map(p => p.text || "")
+        ?.map(part =>
+          part.text || ""
+        )
         .join("") ||
-      "O modelo não retornou uma resposta."
+      "Sem resposta."
     );
   }
 
@@ -739,14 +1116,22 @@ Responda em português do Brasil.
 
       if (busy) return;
 
-      if (!lastImageData) {
+      const text =
+        capturedTextBox.value.trim();
+
+      capturedText =
+        text;
+
+      if (
+        !text &&
+        !capturedImage
+      ) {
 
         toast(
-          "Faça uma captura primeiro."
+          "Capture um texto ou escolha uma imagem."
         );
 
         return;
-
       }
 
       const apiKey =
@@ -755,26 +1140,27 @@ Responda em português do Brasil.
       if (!apiKey) {
 
         toast(
-          "Informe a chave da API primeiro."
+          "Informe a chave da API."
         );
 
         keyInput.focus();
 
         return;
-
       }
 
       busy = true;
 
-      analyzeButton.disabled = true;
+      analyzeButton.disabled =
+        true;
 
       analyzeButton.textContent =
         "⏳ Analisando...";
 
-      result.style.display = "block";
+      result.style.display =
+        "block";
 
       result.textContent =
-        "Analisando a imagem...";
+        "Analisando...";
 
       status.textContent =
         provider === "gemini"
@@ -785,22 +1171,25 @@ Responda em português do Brasil.
 
         let answer;
 
-        if (provider === "gemini") {
+        if (
+          provider === "gemini"
+        ) {
 
           answer =
-            await analyzeWithGemini(
-              lastImageData,
+            await analyzeGemini(
+              text,
+              capturedImage,
               apiKey
             );
 
         } else {
 
           answer =
-            await analyzeWithOpenRouter(
-              lastImageData,
+            await analyzeOpenRouter(
+              text,
+              capturedImage,
               apiKey
             );
-
         }
 
         result.textContent =
@@ -810,8 +1199,7 @@ Responda em português do Brasil.
           "Análise concluída.";
 
         toast(
-          "✅ Análise concluída.",
-          2000
+          "✅ Análise concluída."
         );
 
       } catch (error) {
@@ -819,15 +1207,14 @@ Responda em português do Brasil.
         console.error(error);
 
         result.textContent =
-          "Erro ao analisar:\n\n" +
+          "Erro:\n\n" +
           error.message;
 
         status.textContent =
-          "Erro na análise.";
+          "Erro na API.";
 
         toast(
-          "❌ Erro na API.",
-          2500
+          "❌ Erro ao consultar a IA."
         );
 
       } finally {
@@ -838,9 +1225,50 @@ Responda em português do Brasil.
           false;
 
         analyzeButton.textContent =
-          "🤖 Analisar imagem";
-
+          "🤖 Analisar com IA";
       }
+    };
+
+  // ------------------------------------------------------------
+  // MINIMIZAR
+  // ------------------------------------------------------------
+
+  document
+    .getElementById(
+      "study-minimize"
+    )
+    .onclick = () => {
+
+      panel.style.display =
+        "none";
+
+      minimized.style.display =
+        "block";
+    };
+
+  minimized.onclick =
+    () => {
+
+      minimized.style.display =
+        "none";
+
+      panel.style.display =
+        "block";
+    };
+
+  // ------------------------------------------------------------
+  // FECHAR
+  // ------------------------------------------------------------
+
+  document
+    .getElementById(
+      "study-close"
+    )
+    .onclick = () => {
+
+      panel.remove();
+      minimized.remove();
+      style.remove();
 
     };
 
@@ -850,68 +1278,77 @@ Responda em português do Brasil.
 
   const header =
     document.getElementById(
-      "study-ai-header"
+      "study-header"
     );
 
   let dragging = false;
+
   let startX = 0;
   let startY = 0;
-  let startRight = 0;
-  let startBottom = 0;
+
+  let originalRight = 0;
+  let originalBottom = 0;
 
   header.addEventListener(
     "pointerdown",
-    e => {
+    event => {
 
       if (
-        e.target.closest("button")
-      ) return;
+        event.target.closest("button")
+      ) {
+        return;
+      }
 
       dragging = true;
 
       const rect =
         panel.getBoundingClientRect();
 
-      startX = e.clientX;
-      startY = e.clientY;
+      startX =
+        event.clientX;
 
-      startRight =
-        window.innerWidth - rect.right;
+      startY =
+        event.clientY;
 
-      startBottom =
-        window.innerHeight - rect.bottom;
+      originalRight =
+        window.innerWidth -
+        rect.right;
+
+      originalBottom =
+        window.innerHeight -
+        rect.bottom;
 
       header.setPointerCapture(
-        e.pointerId
+        event.pointerId
       );
-
     }
   );
 
   header.addEventListener(
     "pointermove",
-    e => {
+    event => {
 
       if (!dragging) return;
 
       const dx =
-        e.clientX - startX;
+        event.clientX -
+        startX;
 
       const dy =
-        e.clientY - startY;
+        event.clientY -
+        startY;
 
       panel.style.right =
         `${Math.max(
           5,
-          startRight - dx
+          originalRight - dx
         )}px`;
 
       panel.style.bottom =
         `${Math.max(
           5,
-          startBottom - dy
+          originalBottom - dy
         )}px`;
-
     }
   );
 
@@ -925,14 +1362,14 @@ Responda em português do Brasil.
   );
 
   // ------------------------------------------------------------
-  // INICIALIZAÇÃO
+  // INÍCIO
   // ------------------------------------------------------------
 
   status.textContent =
-    "Pronto para capturar.";
+    "Pronto para estudar.";
 
   toast(
-    "📚 Assistente de estudos iniciado.",
+    "📚 Assistente iniciado.",
     1800
   );
 
