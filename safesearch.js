@@ -1,624 +1,435 @@
 (() => {
-    "use strict";
+  "use strict";
 
-    const FLAG = "__KHAN_ASSESSMENT_DEBUG_V3__";
+  if (window.__studyAssistantOpenRouter) return;
+  window.__studyAssistantOpenRouter = true;
 
-    if (window[FLAG]) return;
-    window[FLAG] = true;
+  const STORAGE_KEY = "study_openrouter_key";
 
-    // =========================================================
-    // PAINEL PEQUENO
-    // =========================================================
+  // =========================
+  // ESTADO
+  // =========================
 
-    const panel = document.createElement("div");
+  let capturedText = "";
+  let resultTimer = null;
 
-    panel.style.cssText = `
+  // =========================
+  // PAINEL
+  // =========================
+
+  const panel = document.createElement("div");
+
+  panel.style.cssText = `
+    position:fixed;
+    right:10px;
+    bottom:80px;
+    width:270px;
+    z-index:2147483647;
+    background:#111;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:12px;
+    padding:10px;
+    font-family:Arial,sans-serif;
+    box-shadow:0 5px 25px rgba(0,0,0,.5);
+  `;
+
+  panel.innerHTML = `
+    <div style="
+      font-size:12px;
+      font-weight:bold;
+      margin-bottom:8px;
+      display:flex;
+      justify-content:space-between;
+    ">
+      <span>📚 Assistente de estudos</span>
+      <button id="sa-close" style="
+        background:none;
+        border:0;
+        color:#aaa;
+        font-size:18px;
+      ">×</button>
+    </div>
+
+    <input
+      id="sa-api"
+      type="password"
+      placeholder="🔑 Chave OpenRouter"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        padding:8px;
+        margin-bottom:7px;
+        border-radius:7px;
+        border:1px solid #444;
+        background:#222;
+        color:white;
+        font-size:11px;
+      "
+    >
+
+    <select id="sa-model" style="
+      width:100%;
+      padding:7px;
+      margin-bottom:7px;
+      border-radius:7px;
+      border:1px solid #444;
+      background:#222;
+      color:white;
+      font-size:11px;
+    ">
+      <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+      <option value="google/gemini-2.0-flash-001">Gemini Flash</option>
+      <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+    </select>
+
+    <button id="sa-capture" style="
+      width:100%;
+      padding:8px;
+      margin-bottom:6px;
+      border:0;
+      border-radius:7px;
+      background:#333;
+      color:white;
+      font-weight:bold;
+      font-size:11px;
+    ">
+      📋 Capturar questão
+    </button>
+
+    <button id="sa-analyze" style="
+      width:100%;
+      padding:8px;
+      border:0;
+      border-radius:7px;
+      background:#5865f2;
+      color:white;
+      font-weight:bold;
+      font-size:11px;
+    ">
+      🤖 Analisar questão
+    </button>
+
+    <div id="sa-status" style="
+      margin-top:7px;
+      color:#aaa;
+      font-size:10px;
+    ">
+      Pronto.
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  const apiInput = panel.querySelector("#sa-api");
+  const modelInput = panel.querySelector("#sa-model");
+  const status = panel.querySelector("#sa-status");
+
+  apiInput.value =
+    localStorage.getItem(STORAGE_KEY) || "";
+
+  // =========================
+  // CAPTURAR TEXTO VISÍVEL
+  // =========================
+
+  function captureQuestion() {
+
+    const selectors = [
+      '[data-testid="exercise-question"]',
+      '[data-testid="exercise-content"]',
+      '[data-testid="question-content"]',
+      '[class*="question"]',
+      '[class*="exercise"]'
+    ];
+
+    let elements = [];
+
+    for (const selector of selectors) {
+      try {
+        elements.push(
+          ...document.querySelectorAll(selector)
+        );
+      } catch {}
+    }
+
+    // Remove duplicados
+    elements = [...new Set(elements)];
+
+    let text = elements
+      .filter(el => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
+      .map(el => el.innerText || "")
+      .filter(Boolean)
+      .join("\n\n");
+
+    // Fallback: texto visível da página
+    if (!text.trim()) {
+      text = document.body.innerText || "";
+    }
+
+    // Limita o tamanho enviado
+    text = text.trim().slice(0, 12000);
+
+    capturedText = text;
+
+    if (!capturedText) {
+      status.textContent =
+        "⚠️ Nenhum texto visível encontrado.";
+      return;
+    }
+
+    status.textContent =
+      `✅ Capturado: ${capturedText.length} caracteres.`;
+
+    showResult(
+      "📋 QUESTÃO CAPTURADA\n\n" +
+      capturedText,
+      5000
+    );
+  }
+
+  // =========================
+  // CAIXA DE RESULTADO
+  // =========================
+
+  function showResult(text, duration = 3000) {
+
+    let box = document.getElementById(
+      "study-assistant-result"
+    );
+
+    if (!box) {
+
+      box = document.createElement("div");
+
+      box.id =
+        "study-assistant-result";
+
+      box.style.cssText = `
         position:fixed;
-        top:70px;
-        right:10px;
-        width:280px;
-        height:220px;
+        left:50%;
+        bottom:20px;
+        transform:translateX(-50%);
+        max-width:85vw;
+        max-height:55vh;
+        overflow:auto;
         z-index:2147483647;
-        background:#0b0b0b;
+        background:#111;
         color:white;
         border:1px solid #555;
         border-radius:12px;
-        display:flex;
-        flex-direction:column;
-        overflow:hidden;
-        box-shadow:0 5px 25px rgba(0,0,0,.6);
-        font-family:monospace;
-    `;
-
-    const header = document.createElement("div");
-
-    header.style.cssText = `
-        height:34px;
-        min-height:34px;
-        padding:0 8px;
-        background:#202020;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
+        padding:12px;
         font-family:Arial,sans-serif;
-        font-size:11px;
-        font-weight:bold;
-        touch-action:none;
-    `;
+        font-size:13px;
+        line-height:1.4;
+        white-space:pre-wrap;
+        box-shadow:0 5px 30px rgba(0,0,0,.6);
+      `;
 
-    header.innerHTML = `
-        <span>🔎 ASSESSMENT DEBUG</span>
-        <span style="color:#00ff88">●</span>
-    `;
-
-    const controls = document.createElement("div");
-
-    const minimize = document.createElement("button");
-    minimize.textContent = "—";
-
-    const close = document.createElement("button");
-    close.textContent = "×";
-
-    for (const b of [minimize, close]) {
-        b.style.cssText = `
-            width:25px;
-            height:25px;
-            margin-left:4px;
-            border:0;
-            border-radius:6px;
-            background:#333;
-            color:white;
-            font-size:16px;
-        `;
+      document.body.appendChild(box);
     }
 
-    controls.append(minimize, close);
-    header.appendChild(controls);
+    box.textContent = text;
+    box.style.display = "block";
 
-    const output = document.createElement("textarea");
+    clearTimeout(resultTimer);
 
-    output.readOnly = true;
+    if (duration > 0) {
+      resultTimer = setTimeout(() => {
+        box.style.display = "none";
+      }, duration);
+    }
+  }
 
-    output.style.cssText = `
-        flex:1;
-        min-height:0;
-        width:100%;
-        box-sizing:border-box;
-        resize:none;
-        border:0;
-        outline:0;
-        padding:7px;
-        background:#050505;
-        color:#00ff88;
-        font-family:monospace;
-        font-size:9px;
-        line-height:1.35;
-    `;
+  // =========================
+  // OPENROUTER
+  // =========================
 
-    const footer = document.createElement("div");
+  async function analyzeQuestion() {
 
-    footer.style.cssText = `
-        display:flex;
-        gap:4px;
-        padding:5px;
-        background:#181818;
-    `;
+    const key =
+      apiInput.value.trim();
 
-    const copy = document.createElement("button");
-    copy.textContent = "📋 Copiar";
-
-    const clear = document.createElement("button");
-    clear.textContent = "🗑 Limpar";
-
-    for (const b of [copy, clear]) {
-        b.style.cssText = `
-            flex:1;
-            padding:6px;
-            border:0;
-            border-radius:6px;
-            background:#303030;
-            color:white;
-            font-size:10px;
-            font-weight:bold;
-        `;
+    if (!key) {
+      status.textContent =
+        "⚠️ Coloque sua chave OpenRouter.";
+      return;
     }
 
-    footer.append(copy, clear);
+    if (!capturedText) {
+      captureQuestion();
 
-    panel.append(header, output, footer);
+      if (!capturedText) return;
+    }
 
-    document.documentElement.appendChild(panel);
+    localStorage.setItem(
+      STORAGE_KEY,
+      key
+    );
 
-    // =========================================================
-    // LOG
-    // =========================================================
+    status.textContent =
+      "⏳ Analisando...";
 
-    let logs = [];
+    try {
 
-    function log(title, value = "") {
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
 
-        let text;
+          headers: {
+            "Content-Type":
+              "application/json",
 
-        try {
-            text =
-                typeof value === "string"
-                    ? value
-                    : JSON.stringify(value, null, 2);
-        } catch {
-            text = String(value);
+            "Authorization":
+              `Bearer ${key}`
+          },
+
+          body: JSON.stringify({
+            model:
+              modelInput.value,
+
+            messages: [
+              {
+                role: "system",
+                content:
+                  `Você é um tutor de estudos.
+Analise a questão fornecida pelo estudante.
+Explique o raciocínio de forma clara.
+Se houver alternativas, analise cada uma.
+Não invente informações que não estejam presentes.
+Apresente a conclusão de forma objetiva.`
+              },
+              {
+                role: "user",
+                content:
+                  `Resolva/analyse esta questão:
+
+${capturedText}`
+              }
+            ],
+
+            temperature: 0.1
+          })
         }
+      );
 
-        logs.push(
-            `[${new Date().toLocaleTimeString()}] ${title}\n${text}`
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error?.message ||
+          `HTTP ${response.status}`
         );
+      }
 
-        if (logs.length > 80) {
-            logs = logs.slice(-80);
-        }
+      const answer =
+        data?.choices?.[0]?.message?.content;
 
-        output.value = logs.join("\n\n");
-        output.scrollTop = output.scrollHeight;
-    }
-
-    // =========================================================
-    // SOMENTE O ENDPOINT DA QUESTÃO
-    // =========================================================
-
-    function isTarget(url) {
-
-        return String(url || "")
-            .includes("getAssessmentItemById");
-    }
-
-    // =========================================================
-    // RESUMO DA ESTRUTURA
-    // =========================================================
-
-    function inspect(value, path = "", depth = 0) {
-
-        if (depth > 7) return;
-
-        if (
-            value === null ||
-            typeof value !== "object"
-        ) {
-            return;
-        }
-
-        let keys;
-
-        try {
-            keys = Object.keys(value);
-        } catch {
-            return;
-        }
-
-        for (const key of keys) {
-
-            const current =
-                path
-                    ? `${path}.${key}`
-                    : key;
-
-            log(
-                "🔑 CAMPO",
-                current
-            );
-
-            try {
-                inspect(
-                    value[key],
-                    current,
-                    depth + 1
-                );
-            } catch {}
-        }
-    }
-
-    function processResponse(
-        url,
-        text,
-        source
-    ) {
-
-        log(
-            "🎯 getAssessmentItemById DETECTADO",
-            source
+      if (!answer) {
+        throw new Error(
+          "O modelo não retornou texto."
         );
+      }
 
-        log(
-            "🌐 URL",
-            url
-        );
+      status.textContent =
+        "✅ Análise concluída.";
 
-        if (!text) {
+      showResult(
+        "🤖 ANÁLISE\n\n" +
+        answer,
+        0
+      );
 
-            log(
-                "⚠️ RESPOSTA VAZIA",
-                ""
-            );
+    } catch (error) {
 
-            return;
-        }
+      console.error(error);
 
-        try {
+      status.textContent =
+        "❌ Erro.";
 
-            const json =
-                JSON.parse(text);
-
-            log(
-                "✅ JSON RECEBIDO",
-                "A resposta é JSON."
-            );
-
-            // Mostra os caminhos encontrados
-            inspect(json);
-
-            // Mostra uma versão limitada do JSON
-            let raw =
-                JSON.stringify(
-                    json,
-                    null,
-                    2
-                );
-
-            if (raw.length > 12000) {
-                raw =
-                    raw.slice(0, 12000) +
-                    "\n\n...[CORTE DE SEGURANÇA]...";
-            }
-
-            log(
-                "📦 RESPOSTA JSON",
-                raw
-            );
-
-        } catch {
-
-            log(
-                "📄 RESPOSTA NÃO JSON",
-                text.slice(0, 5000)
-            );
-        }
+      showResult(
+        "❌ ERRO\n\n" +
+        error.message,
+        5000
+      );
     }
-
-    // =========================================================
-    // FETCH
-    // =========================================================
-
-    const originalFetch =
-        window.fetch;
-
-    window.fetch =
-        async function(...args) {
-
-            let url = "";
-            let requestBody = "";
-
-            try {
-
-                const request = args[0];
-
-                if (
-                    request instanceof Request
-                ) {
-
-                    url = request.url;
-
-                } else {
-
-                    url = String(request);
-                }
-
-            } catch {}
-
-            try {
-
-                const request = args[0];
-                const init = args[1];
-
-                if (
-                    request instanceof Request
-                ) {
-
-                    requestBody =
-                        await request
-                            .clone()
-                            .text();
-
-                } else if (
-                    init?.body
-                ) {
-
-                    requestBody =
-                        String(init.body);
-                }
-
-            } catch {}
-
-            const response =
-                await originalFetch.apply(
-                    this,
-                    args
-                );
-
-            if (isTarget(url)) {
-
-                try {
-
-                    const clone =
-                        response.clone();
-
-                    const text =
-                        await clone.text();
-
-                    processResponse(
-                        url,
-                        text,
-                        "FETCH"
-                    );
-
-                } catch (error) {
-
-                    log(
-                        "❌ ERRO AO LER FETCH",
-                        String(error)
-                    );
-                }
-            }
-
-            return response;
-        };
-
-    // =========================================================
-    // XHR
-    // =========================================================
-
-    const OriginalXHR =
-        window.XMLHttpRequest;
-
-    const originalOpen =
-        OriginalXHR.prototype.open;
-
-    const originalSend =
-        OriginalXHR.prototype.send;
-
-    OriginalXHR.prototype.open =
-        function(method, url, ...rest) {
-
-            this.__assessmentURL =
-                String(url);
-
-            return originalOpen.call(
-                this,
-                method,
-                url,
-                ...rest
-            );
-        };
-
-    OriginalXHR.prototype.send =
-        function(body) {
-
-            const xhr = this;
-
-            xhr.addEventListener(
-                "load",
-                function() {
-
-                    const url =
-                        xhr.__assessmentURL || "";
-
-                    if (!isTarget(url)) {
-                        return;
-                    }
-
-                    try {
-
-                        processResponse(
-                            url,
-                            xhr.responseText,
-                            "XHR"
-                        );
-
-                    } catch (error) {
-
-                        log(
-                            "❌ ERRO XHR",
-                            String(error)
-                        );
-                    }
-                }
-            );
-
-            return originalSend.call(
-                this,
-                body
-            );
-        };
-
-    // =========================================================
-    // MINIMIZAR
-    // =========================================================
-
-    let minimized = false;
-
-    minimize.onclick = () => {
-
-        minimized = !minimized;
-
-        if (minimized) {
-
-            output.style.display = "none";
-            footer.style.display = "none";
-
-            panel.style.width = "145px";
-            panel.style.height = "38px";
-
-            minimize.textContent = "+";
-
-        } else {
-
-            output.style.display = "block";
-            footer.style.display = "flex";
-
-            panel.style.width = "280px";
-            panel.style.height = "220px";
-
-            minimize.textContent = "—";
-        }
-    };
-
-    // =========================================================
-    // COPIAR
-    // =========================================================
-
-    copy.onclick = async () => {
-
-        try {
-
-            await navigator.clipboard.writeText(
-                output.value
-            );
-
-            copy.textContent = "✅ Copiado";
-
-            setTimeout(() => {
-                copy.textContent = "📋 Copiar";
-            }, 1500);
-
-        } catch {
-
-            output.focus();
-            output.select();
-
-            try {
-                document.execCommand("copy");
-            } catch {}
-        }
-    };
-
-    // =========================================================
-    // LIMPAR
-    // =========================================================
-
-    clear.onclick = () => {
-
-        logs = [];
-
-        log(
-            "🧹 LIMPO",
-            "Aguardando getAssessmentItemById..."
-        );
-    };
-
-    // =========================================================
-    // FECHAR
-    // =========================================================
-
-    close.onclick = () => {
-
-        panel.remove();
-
-        try {
-            delete window[FLAG];
-        } catch {}
-    };
-
-    // =========================================================
-    // ARRASTAR
-    // =========================================================
-
-    let dragging = false;
-    let startX = 0;
-    let startY = 0;
-    let startTop = 70;
-    let startRight = 10;
-
-    header.addEventListener(
-        "touchstart",
-        e => {
-
-            if (
-                e.target.tagName === "BUTTON"
-            ) {
-                return;
-            }
-
-            const touch =
-                e.touches[0];
-
-            const rect =
-                panel.getBoundingClientRect();
-
-            dragging = true;
-
-            startX =
-                touch.clientX;
-
-            startY =
-                touch.clientY;
-
-            startTop =
-                rect.top;
-
-            startRight =
-                window.innerWidth -
-                rect.right;
-
-        },
-        { passive:true }
-    );
-
-    document.addEventListener(
-        "touchmove",
-        e => {
-
-            if (!dragging) return;
-
-            const touch =
-                e.touches[0];
-
-            const dx =
-                touch.clientX - startX;
-
-            const dy =
-                touch.clientY - startY;
-
-            panel.style.right =
-                `${Math.max(
-                    5,
-                    startRight - dx
-                )}px`;
-
-            panel.style.top =
-                `${Math.max(
-                    5,
-                    startTop + dy
-                )}px`;
-        },
-        { passive:true }
-    );
-
-    document.addEventListener(
-        "touchend",
-        () => {
-            dragging = false;
-        }
-    );
-
-    // =========================================================
-    // PRONTO
-    // =========================================================
-
-    log(
-        "🚀 DEBUGGER V3",
-        "Monitorando SOMENTE getAssessmentItemById."
-    );
-
-    log(
-        "📱 IPHONE",
-        "Recarregue a atividade depois de executar o script."
-    );
+  }
+
+  // =========================
+  // EVENTOS
+  // =========================
+
+  panel.querySelector(
+    "#sa-capture"
+  ).addEventListener(
+    "click",
+    captureQuestion
+  );
+
+  panel.querySelector(
+    "#sa-analyze"
+  ).addEventListener(
+    "click",
+    analyzeQuestion
+  );
+
+  panel.querySelector(
+    "#sa-close"
+  ).addEventListener(
+    "click",
+    () => {
+      panel.remove();
+      document
+        .getElementById(
+          "study-assistant-result"
+        )
+        ?.remove();
+
+      window.__studyAssistantOpenRouter =
+        false;
+    }
+  );
+
+  // =========================
+  // BOTÃO FLUTUANTE
+  // =========================
+
+  const floating = document.createElement("button");
+
+  floating.textContent =
+    "📚";
+
+  floating.style.cssText = `
+    position:fixed;
+    right:10px;
+    bottom:20px;
+    width:44px;
+    height:44px;
+    border:0;
+    border-radius:50%;
+    z-index:2147483646;
+    background:#5865f2;
+    color:white;
+    font-size:19px;
+    box-shadow:0 4px 15px rgba(0,0,0,.4);
+  `;
+
+  document.body.appendChild(floating);
+
+  floating.onclick = () => {
+
+    const visible =
+      panel.style.display !== "none";
+
+    panel.style.display =
+      visible ? "none" : "block";
+  };
+
+  status.textContent =
+    "Pronto. Capture uma questão para começar.";
 
 })();
