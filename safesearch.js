@@ -1390,7 +1390,7 @@ function showWelcomeToasts() {
     aplicarEstiloTexto(textoBaixo, '17px');
 
     const textoaviso = document.createElement('div');
-    textoaviso.textContent = 'Entre em nosso grupo de WhatsApp e siga nossa página no Instagram através dos botões abaixo para ficar por dentro das novidades do painel';
+    textoaviso.textContent = 'Entre em nosso grupo de WhatsApp 🔑 e siga nossa página no Instagram através dos botões abaixo para ficar por dentro das novidades do painel';
 
     aplicarEstiloTexto(textoaviso, '19px', 'bold');
     textoaviso.style.padding = '14px 18px';
