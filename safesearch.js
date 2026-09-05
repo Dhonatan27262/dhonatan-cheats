@@ -630,7 +630,7 @@ function showWelcomeToasts() {
 
     toastShort('⌛ Carregando Script Khan Academy...');
 
-    const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/script2050.js' + '?' + Date.now();
+    const primaryURL = 'https://raw.githubusercontent.com/Dhonatan27262/dhonatan-cheats/main/cheats.js' + '?' + Date.now();
 
     const sleep = ms => new Promise(res => setTimeout(res, ms));
     const looksLikeHtmlError = txt => {
