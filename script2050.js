@@ -1,911 +1,2174 @@
-let loadedPlugins = [];
-let videoExploitEnabled = true;
-let autoClickEnabled = true;
-let autoClickPaused = false;
-let correctAnswerSystemEnabled = true;
+(() => {
+  "use strict";
 
-console.clear();
-const noop = () => {};
-console.warn = console.error = window.debug = noop;
+  // ============================================================
+  // ASSISTENTE DE ESTUDOS
+  // TEXTO + IMAGEM + GPT / GEMINI
+  // IPHONE / USERSCRIPT
+  // MENU INTEIRO ARRASTÁVEL
+  // ============================================================
 
-const splashScreen = document.createElement('splashScreen');
+  const STORAGE = {
+    provider: "study_provider",
+    openrouterKey: "study_openrouter_key",
+    geminiKey: "study_gemini_key",
+    panelLeft: "study_panel_left",
+    panelTop: "study_panel_top"
+  };
 
-class EventEmitter {
-  constructor() { this.events = {}; }
-  on(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      (this.events[t] = this.events[t] || []).push(e);
-    });
+  let provider =
+    localStorage.getItem(STORAGE.provider) || "openrouter";
+
+  let capturedText = "";
+  let capturedImage = null;
+  let busy = false;
+
+  // ============================================================
+  // MODELOS
+  // ============================================================
+
+  const OPENROUTER_MODEL =
+    "openai/gpt-4o-mini";
+
+  const GEMINI_MODEL =
+    "gemini-2.0-flash";
+
+  // ============================================================
+  // INSTRUÇÃO PARA A IA
+  // ============================================================
+
+  const AI_INSTRUCTION = `
+Você é um assistente de estudos.
+
+ATENÇÃO:
+O conteúdo recebido pode conter elementos extras da página, como
+menus, botões, cabeçalhos, rodapés, navegação, textos de interface
+e informações que não pertencem à questão.
+
+Sua tarefa é identificar e analisar SOMENTE a questão de estudo.
+
+PRIORIDADE ABSOLUTA:
+
+1. Enunciado da questão.
+2. Todas as alternativas/respostas visíveis.
+3. Números, expressões matemáticas, tabelas e gráficos.
+4. Informações visuais relacionadas diretamente à questão.
+
+IGNORE:
+
+- menus da página;
+- cabeçalhos;
+- rodapés;
+- botões;
+- navegação;
+- informações administrativas;
+- textos que não façam parte da questão.
+
+Se houver texto capturado, organize o conteúdo antes de analisá-lo.
+
+Se houver uma imagem:
+
+- examine a imagem inteira;
+- leia textos presentes nela;
+- observe gráficos;
+- observe tabelas;
+- observe diagramas;
+- observe valores;
+- relacione a imagem ao enunciado.
+
+Se houver alternativas, compare TODAS antes de responder.
+
+Faça o raciocínio matemático ou lógico necessário.
+
+Não invente informações.
+
+Se alguma informação estiver ilegível, ausente ou insuficiente,
+informe exatamente o que está faltando.
+
+Responda em português do Brasil.
+
+FORMATO:
+
+QUESTÃO IDENTIFICADA:
+[resumo curto]
+
+DADOS IMPORTANTES:
+[números, textos, alternativas e informações visuais]
+
+ANÁLISE:
+[raciocínio objetivo]
+
+RESPOSTA:
+[resposta correspondente, quando for possível determinar]
+
+CONFIANÇA:
+[Alta / Média / Baixa]
+
+Se não for possível identificar uma questão válida, responda:
+
+"Não consegui identificar uma questão válida no conteúdo capturado."
+`;
+
+  // ============================================================
+  // UTILIDADES
+  // ============================================================
+
+  function limparTexto(texto) {
+
+    return String(texto || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
-  off(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
-    });
+
+  function elementoVisivel(el) {
+
+    if (!el) return false;
+
+    const style =
+      getComputedStyle(el);
+
+    const rect =
+      el.getBoundingClientRect();
+
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      parseFloat(style.opacity || "1") > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
   }
-  emit(t, ...e) {
-    this.events[t]?.forEach(h => h(...e));
-  }
-  once(t, e) {
-    const s = (...i) => {
-      e(...i);
-      this.off(t, s);
-    };
-    this.on(t, s);
-  }
-}
 
-const plppdo = new EventEmitter();
+  function toast(text, duration = 2200) {
 
-new MutationObserver(mutationsList =>
-  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
-).observe(document.body, { childList: true, subtree: true });
+    let el =
+      document.getElementById(
+        "study-toast"
+      );
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const findAndClickBySelector = selector => document.querySelector(selector)?.click();
+    if (!el) {
 
-function sendToast(text, duration = 5000, gravity = 'bottom') {
-  Toastify({
-    text,
-    duration,
-    gravity,
-    position: "center",
-    stopOnFocus: true,
-    style: { background: "#000000" }
-  }).showToast();
-}
+      el =
+        document.createElement("div");
 
-async function showSplashScreen() {
-  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">MLKKK</span><span style="color:#ff1717;"> MAU O PROPRIO</span>';
-  document.body.appendChild(splashScreen);
-  setTimeout(() => splashScreen.style.opacity = '1', 10);
-}
+      el.id =
+        "study-toast";
 
-async function hideSplashScreen() {
-  splashScreen.style.opacity = '0';
-  setTimeout(() => splashScreen.remove(), 1000);
-}
+      Object.assign(
+        el.style,
+        {
+          position: "fixed",
+          left: "50%",
+          bottom: "25px",
+          transform:
+            "translateX(-50%)",
 
-async function loadScript(url, label) {
-  const response = await fetch(url);
-  const script = await response.text();
-  loadedPlugins.push(label);
-  eval(script);
-}
+          background: "#111",
+          color: "#fff",
 
-async function loadCss(url) {
-  return new Promise(resolve => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = url;
-    link.onload = resolve;
-    document.head.appendChild(link);
-  });
-}
+          padding:
+            "10px 16px",
 
-function createFloatingMenu() {
-  const container = document.createElement('div');
-  container.id = 'santos-floating-menu';
-  container.style.cssText = `
-    position: fixed;
-    bottom: 100px;
-    right: 20px;
-    z-index: 10000;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    user-select: none;
-  `;
+          borderRadius:
+            "10px",
 
-  const mainButton = document.createElement('button');
-  mainButton.id = 'santos-main-btn';
-  mainButton.innerHTML = 'PainelV2';
-  
-  mainButton.style.cssText = `
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    font-weight: bold;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    min-width: 130px;
-    outline: none;
-    user-select: none;
-  `;
-  
-  const optionsMenu = document.createElement('div');
-  optionsMenu.id = 'santos-options-menu';
-  optionsMenu.style.cssText = `
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    padding: 15px;
-    margin-top: 10px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    width: 180px;
-    border: 1px solid rgba(255,255,255,0.1);
-    user-select: none;
-  `;
-  
-  const themeOption = document.createElement('div');
-  themeOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  themeOption.innerHTML = `
-    <span>Tema</span>
-    <div id="theme-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: #4CAF50;
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: 22px;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  
-  optionsMenu.appendChild(themeOption);
-  
-  const exploitOption = document.createElement('div');
-  exploitOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  exploitOption.innerHTML = `
-    <span>Exploit Vídeo</span>
-    <div id="exploit-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${videoExploitEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${videoExploitEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(exploitOption);
-  
-  const correctAnswerOption = document.createElement('div');
-  correctAnswerOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  correctAnswerOption.innerHTML = `
-    <span>Sistema de Respostas</span>
-    <div id="correct-answer-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${correctAnswerSystemEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${correctAnswerSystemEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(correctAnswerOption);
-  
-  const autoClickOption = document.createElement('div');
-  autoClickOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  autoClickOption.innerHTML = `
-    <span>Automação Cliques</span>
-    <div id="auto-click-toggle-switch" style="
-      width: 40px;
-      height: 20px;
-      background: ${autoClickEnabled ? '#4CAF50' : '#ccc'};
-      border-radius: 10px;
-      position: relative;
-      cursor: pointer;
-    ">
-      <div style="
-        position: absolute;
-        top: 2px;
-        left: ${autoClickEnabled ? '22px' : '2px'};
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-radius: 50%;
-        transition: left 0.2s;
-      "></div>
-    </div>
-  `;
-  optionsMenu.appendChild(autoClickOption);
-  
-  const speedControl = document.createElement('div');
-  speedControl.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: white;
-    font-size: 14px;
-    user-select: none;
-  `;
-  
-  const savedSpeed = localStorage.getItem('santosSpeed') || '1.5';
-  
-  speedControl.innerHTML = `
-    <div style="display: flex; justify-content: space-between;">
-      <span>Velocidade</span>
-      <span id="speed-value">${savedSpeed}s</span>
-    </div>
-    <input type="range" min="1" max="60" step="0.5" value="${savedSpeed}" 
-           id="speed-slider" style="width: 100%;" ${autoClickEnabled ? '' : 'disabled'}>
-  `;
-  
-  optionsMenu.appendChild(speedControl);
-  
-  const hideMenuOption = document.createElement('div');
-  hideMenuOption.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
-    background: rgba(255, 100, 100, 0.2);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: #ff6b6b;
-    font-size: 14px;
-    user-select: none;
-    margin-top: 5px;
-  `;
-  hideMenuOption.innerHTML = `<span>Esconder Menu</span>`;
-  optionsMenu.appendChild(hideMenuOption);
-  
-  const futureOptions = document.createElement('div');
-  futureOptions.id = 'santos-future-options';
-  futureOptions.style.cssText = `
-    color: #aaa;
-    font-size: 12px;
-    text-align: center;
-    padding: 10px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    margin-top: 10px;
-    user-select: none;
-  `;
-  futureOptions.textContent = 'Mais opções em breve...';
-  optionsMenu.appendChild(futureOptions);
-  
-  container.appendChild(mainButton);
-  container.appendChild(optionsMenu);
-  document.body.appendChild(container);
-  
-  let isDarkMode = true;
-  
-  function updateThemeSwitch() {
-    const switchInner = themeOption.querySelector('#theme-toggle-switch > div');
-    if (isDarkMode) {
-      switchInner.style.left = '22px';
-      themeOption.querySelector('#theme-toggle-switch').style.background = '#4CAF50';
-    } else {
-      switchInner.style.left = '2px';
-      themeOption.querySelector('#theme-toggle-switch').style.background = '#ccc';
+          fontFamily:
+            "Arial,sans-serif",
+
+          fontSize:
+            "13px",
+
+          zIndex:
+            "2147483647",
+
+          boxShadow:
+            "0 5px 25px rgba(0,0,0,.4)",
+
+          opacity: "0",
+
+          transition:
+            "opacity .2s",
+
+          pointerEvents:
+            "none"
+        }
+      );
+
+      document.body.appendChild(el);
     }
+
+    el.textContent =
+      text;
+
+    el.style.opacity =
+      "1";
+
+    clearTimeout(el.timer);
+
+    el.timer =
+      setTimeout(() => {
+
+        el.style.opacity =
+          "0";
+
+      }, duration);
   }
-  
-  themeOption.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    
-    if (isDarkMode) {
-      DarkReader.enable();
-      sendToast("🌙｜Tema escuro ativado", 1500);
-    } else {
-      DarkReader.disable();
-      sendToast("☀️｜Tema claro ativado", 1500);
+
+  // ============================================================
+  // CSS
+  // ============================================================
+
+  const style =
+    document.createElement("style");
+
+  style.textContent = `
+
+    #study-panel,
+    #study-panel * {
+      box-sizing: border-box;
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
     }
-    
-    updateThemeSwitch();
-  });
-  
-  exploitOption.addEventListener('click', () => {
-    videoExploitEnabled = !videoExploitEnabled;
-    
-    const exploitSwitch = exploitOption.querySelector('#exploit-toggle-switch');
-    const exploitSwitchInner = exploitSwitch.querySelector('div');
-    
-    if (videoExploitEnabled) {
-      exploitSwitch.style.background = '#4CAF50';
-      exploitSwitchInner.style.left = '22px';
-      sendToast("✅｜Exploit de vídeo ATIVADO", 1500);
-    } else {
-      exploitSwitch.style.background = '#ccc';
-      exploitSwitchInner.style.left = '2px';
-      sendToast("❌｜Exploit de vídeo DESATIVADO", 1500);
-    }
-  });
-  
-  autoClickOption.addEventListener('click', () => {
-    autoClickEnabled = !autoClickEnabled;
-    
-    const autoClickSwitch = autoClickOption.querySelector('#auto-click-toggle-switch');
-    const autoClickSwitchInner = autoClickSwitch.querySelector('div');
-    const speedSlider = document.getElementById('speed-slider');
-    
-    if (autoClickEnabled) {
-      autoClickSwitch.style.background = '#4CAF50';
-      autoClickSwitchInner.style.left = '22px';
-      if (speedSlider) speedSlider.disabled = false;
-      sendToast("🤖｜Automação de cliques ATIVADA", 1500);
-    } else {
-      autoClickSwitch.style.background = '#ccc';
-      autoClickSwitchInner.style.left = '2px';
-      if (speedSlider) speedSlider.disabled = true;
-      sendToast("🖱️｜Automação de cliques DESATIVADA", 1500);
-    }
-  });
-  
-  correctAnswerOption.addEventListener('click', () => {
-    correctAnswerSystemEnabled = !correctAnswerSystemEnabled;
-    
-    const correctAnswerSwitch = correctAnswerOption.querySelector('#correct-answer-toggle-switch');
-    const correctAnswerSwitchInner = correctAnswerSwitch.querySelector('div');
-    
-    if (correctAnswerSystemEnabled) {
-      correctAnswerSwitch.style.background = '#4CAF50';
-      correctAnswerSwitchInner.style.left = '22px';
-      sendToast("✅｜Sistema de respostas ATIVADO", 1500);
-    } else {
-      correctAnswerSwitch.style.background = '#ccc';
-      correctAnswerSwitchInner.style.left = '2px';
-      sendToast("❌｜Sistema de respostas DESATIVADO", 1500);
-    }
-  });
-  
-  let isMenuOpen = false;
-  
-  function closeMenu() {
-    if (!isMenuOpen) return;
-    
-    isMenuOpen = false;
-    optionsMenu.style.display = 'none';
-    mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    
-    autoClickPaused = false;
-    sendToast("▶️｜Automação retomada", 1000);
-  }
-  
-  function openMenu() {
-    if (isMenuOpen) return;
-    
-    isMenuOpen = true;
-    optionsMenu.style.display = 'flex';
-    mainButton.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.5)';
-    
-    autoClickPaused = true;
-    sendToast("⏸️｜Automação pausada enquanto o menu está aberto", 1500);
-  }
-  
-  function toggleMenu() {
-    if (isMenuOpen) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  }
-  
-  mainButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
-  
-  document.addEventListener('click', (e) => {
-    if (!container.contains(e.target) && isMenuOpen) {
-      closeMenu();
-    }
-  });
-  
-  hideMenuOption.addEventListener('click', () => {
-    closeMenu();
-    
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
-    
-    const reactivateBtn = document.createElement('div');
-    reactivateBtn.id = 'santos-reactivate-btn';
-    reactivateBtn.style.cssText = `
+
+    #study-panel {
+
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      background: rgba(102, 126, 234, 0.2);
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 10000;
-      transition: background 0.3s;
+
+      right: 12px;
+      bottom: 80px;
+
+      width: 300px;
+
+      max-width:
+        calc(100vw - 24px);
+
+      max-height:
+        calc(100vh - 20px);
+
+      background:
+        rgba(18,18,22,.98);
+
+      color: white;
+
+      border:
+        1px solid
+        rgba(255,255,255,.12);
+
+      border-radius:
+        15px;
+
+      z-index:
+        2147483646;
+
+      box-shadow:
+        0 12px 40px
+        rgba(0,0,0,.45);
+
+      overflow:
+        hidden;
+
+      touch-action:
+        none;
+    }
+
+    #study-header {
+
+      height: 42px;
+
       display: flex;
+
       align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: rgba(255,255,255,0.5);
-    `;
-    reactivateBtn.innerHTML = '☰';
-    document.body.appendChild(reactivateBtn);
-    
-    reactivateBtn.addEventListener('mouseenter', () => {
-      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.5)';
-      reactivateBtn.style.color = 'rgba(255,255,255,0.9)';
-    });
-    
-    reactivateBtn.addEventListener('mouseleave', () => {
-      reactivateBtn.style.background = 'rgba(102, 126, 234, 0.2)';
-      reactivateBtn.style.color = 'rgba(255,255,255,0.5)';
-    });
-    
-    reactivateBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.style.opacity = '1';
-      container.style.pointerEvents = 'auto';
-      reactivateBtn.remove();
-    });
-  });
-  
-  let isDragging = false;
-  let startX, startY;
-  let initialX, initialY;
-  let xOffset = 0, yOffset = 0;
-  const DRAG_THRESHOLD = 5;
-  
-  mainButton.addEventListener('mousedown', startDrag);
-  mainButton.addEventListener('touchstart', startDrag, { passive: false });
-  
-  function startDrag(e) {
-    e.stopPropagation();
-    
-    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-    
-    startX = clientX;
-    startY = clientY;
-    initialX = clientX - xOffset;
-    initialY = clientY - yOffset;
-    
-    isDragging = false;
-    
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('touchmove', handleDragMove, { passive: false });
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-    document.addEventListener('mouseleave', endDrag);
-  }
-  
-  function handleDragMove(e) {
-    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-    
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (!isDragging && distance > DRAG_THRESHOLD) {
-      isDragging = true;
-      if (isMenuOpen) closeMenu();
+
+      justify-content:
+        space-between;
+
+      padding:
+        0 9px 0 13px;
+
+      background:
+        rgba(255,255,255,.06);
+
+      user-select:
+        none;
+
+      -webkit-user-select:
+        none;
+
+      touch-action:
+        none;
+
+      cursor:
+        move;
+
+      flex-shrink:
+        0;
     }
-    
-    if (isDragging) {
-      const currentX = clientX - initialX;
-      const currentY = clientY - initialY;
-      
-      xOffset = currentX;
-      yOffset = currentY;
-      
-      setTranslate(currentX, currentY, container);
+
+    #study-title {
+
+      font-size:
+        13px;
+
+      font-weight:
+        700;
+
+      pointer-events:
+        none;
+    }
+
+    #study-head-buttons {
+
+      display:
+        flex;
+
+      gap:
+        4px;
+
+      touch-action:
+        manipulation;
+    }
+
+    .study-head-btn {
+
+      width:
+        27px;
+
+      height:
+        27px;
+
+      border:
+        0;
+
+      border-radius:
+        7px;
+
+      background:
+        rgba(255,255,255,.09);
+
+      color:
+        white;
+
+      cursor:
+        pointer;
+
+      font-size:
+        15px;
+
+      touch-action:
+        manipulation;
+    }
+
+    .study-head-btn:hover {
+
+      background:
+        rgba(255,255,255,.18);
+    }
+
+    #study-body {
+
+      padding:
+        11px;
+
+      max-height:
+        calc(100vh - 62px);
+
+      overflow-y:
+        auto;
+
+      -webkit-overflow-scrolling:
+        touch;
+
+      touch-action:
+        pan-y;
+    }
+
+    .study-label {
+
+      display:
+        block;
+
+      color:
+        #aaa;
+
+      font-size:
+        11px;
+
+      margin-bottom:
+        5px;
+    }
+
+    #study-provider {
+
+      width:
+        100%;
+
+      height:
+        34px;
+
+      background:
+        #24242a;
+
+      color:
+        white;
+
+      border:
+        1px solid #444;
+
+      border-radius:
+        8px;
+
+      padding:
+        0 8px;
+
+      margin-bottom:
+        9px;
+
+      outline:
+        none;
+
+      touch-action:
+        manipulation;
+    }
+
+    #study-key {
+
+      width:
+        100%;
+
+      height:
+        34px;
+
+      background:
+        #202025;
+
+      color:
+        white;
+
+      border:
+        1px solid #444;
+
+      border-radius:
+        8px;
+
+      padding:
+        0 9px;
+
+      font-size:
+        11px;
+
+      margin-bottom:
+        8px;
+
+      outline:
+        none;
+
+      touch-action:
+        manipulation;
+    }
+
+    .study-button {
+
+      width:
+        100%;
+
+      min-height:
+        37px;
+
+      border:
+        0;
+
+      border-radius:
+        9px;
+
+      color:
+        white;
+
+      font-size:
+        12px;
+
+      font-weight:
+        700;
+
+      cursor:
+        pointer;
+
+      margin-top:
+        6px;
+
+      touch-action:
+        manipulation;
+    }
+
+    #study-text-button {
+
+      background:
+        #34353c;
+    }
+
+    #study-image-button {
+
+      background:
+        #34353c;
+    }
+
+    #study-analyze {
+
+      background:
+        #5b55e8;
+    }
+
+    #study-analyze:disabled {
+
+      opacity:
+        .4;
+
+      cursor:
+        not-allowed;
+    }
+
+    #study-captured-text {
+
+      width:
+        100%;
+
+      min-height:
+        80px;
+
+      max-height:
+        150px;
+
+      resize:
+        vertical;
+
+      margin-top:
+        9px;
+
+      padding:
+        8px;
+
+      background:
+        #151519;
+
+      color:
+        #ddd;
+
+      border:
+        1px solid #38383e;
+
+      border-radius:
+        8px;
+
+      font-size:
+        11px;
+
+      line-height:
+        1.4;
+
+      outline:
+        none;
+
+      touch-action:
+        auto;
+    }
+
+    #study-preview {
+
+      display:
+        none;
+
+      width:
+        100%;
+
+      max-height:
+        140px;
+
+      object-fit:
+        contain;
+
+      background:
+        #000;
+
+      border-radius:
+        8px;
+
+      margin-top:
+        9px;
+
+      touch-action:
+        none;
+    }
+
+    #study-result {
+
+      display:
+        none;
+
+      margin-top:
+        9px;
+
+      padding:
+        10px;
+
+      max-height:
+        210px;
+
+      overflow-y:
+        auto;
+
+      background:
+        rgba(255,255,255,.055);
+
+      border-radius:
+        9px;
+
+      color:
+        #ddd;
+
+      font-size:
+        12px;
+
+      line-height:
+        1.5;
+
+      white-space:
+        pre-wrap;
+
+      -webkit-overflow-scrolling:
+        touch;
+
+      touch-action:
+        pan-y;
+    }
+
+    #study-status {
+
+      text-align:
+        center;
+
+      color:
+        #888;
+
+      font-size:
+        10px;
+
+      margin-top:
+        7px;
+    }
+
+    #study-api-link {
+
+      display:
+        block;
+
+      text-align:
+        center;
+
+      margin-top:
+        9px;
+
+      color:
+        #999;
+
+      font-size:
+        10px;
+
+      text-decoration:
+        none;
+
+      touch-action:
+        manipulation;
+    }
+
+    #study-api-link:hover {
+
+      color:
+        white;
+    }
+
+    #study-minimized {
+
+      display:
+        none;
+
+      position:
+        fixed;
+
+      right:
+        14px;
+
+      bottom:
+        80px;
+
+      width:
+        46px;
+
+      height:
+        46px;
+
+      border-radius:
+        50%;
+
+      border:
+        1px solid
+        rgba(255,255,255,.15);
+
+      background:
+        #17171b;
+
+      color:
+        white;
+
+      z-index:
+        2147483646;
+
+      cursor:
+        pointer;
+
+      box-shadow:
+        0 7px 25px
+        rgba(0,0,0,.4);
+
+      touch-action:
+        manipulation;
+
+      user-select:
+        none;
+
+      -webkit-user-select:
+        none;
+    }
+
+    #study-file {
+
+      display:
+        none;
+    }
+
+  `;
+
+  document.head.appendChild(style);
+
+  // ============================================================
+  // HTML
+  // ============================================================
+
+  const panel =
+    document.createElement("div");
+
+  panel.id =
+    "study-panel";
+
+  panel.innerHTML = `
+
+    <div id="study-header">
+
+      <div id="study-title">
+        📚 Assistente de Estudos
+      </div>
+
+      <div id="study-head-buttons">
+
+        <button
+          class="study-head-btn"
+          id="study-minimize"
+          type="button"
+        >
+          −
+        </button>
+
+        <button
+          class="study-head-btn"
+          id="study-close"
+          type="button"
+        >
+          ×
+        </button>
+
+      </div>
+
+    </div>
+
+    <div id="study-body">
+
+      <label class="study-label">
+        Modelo de IA
+      </label>
+
+      <select id="study-provider">
+
+        <option value="openrouter">
+          GPT — OpenRouter
+        </option>
+
+        <option value="gemini">
+          Gemini
+        </option>
+
+      </select>
+
+      <label
+        class="study-label"
+        id="study-key-label"
+      >
+        Chave OpenRouter
+      </label>
+
+      <input
+        id="study-key"
+        type="password"
+        placeholder="Cole sua chave aqui"
+      >
+
+      <button
+        id="study-text-button"
+        class="study-button"
+        type="button"
+      >
+        📝 Puxar pergunta e texto
+      </button>
+
+      <input
+        id="study-file"
+        type="file"
+        accept="image/*"
+      >
+
+      <button
+        id="study-image-button"
+        class="study-button"
+        type="button"
+      >
+        🖼️ Escolher imagem
+      </button>
+
+      <textarea
+        id="study-captured-text"
+        placeholder="O conteúdo capturado aparecerá aqui..."
+      ></textarea>
+
+      <img
+        id="study-preview"
+        alt="Imagem capturada"
+      >
+
+      <button
+        id="study-analyze"
+        class="study-button"
+        type="button"
+        disabled
+      >
+        🤖 Analisar com IA
+      </button>
+
+      <div id="study-status">
+        Pronto
+      </div>
+
+      <div id="study-result"></div>
+
+      <a
+        id="study-api-link"
+        href="https://openrouter.ai/settings/keys"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Obter chave de API
+      </a>
+
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // ============================================================
+  // BOTÃO MINIMIZADO
+  // ============================================================
+
+  const minimized =
+    document.createElement("button");
+
+  minimized.id =
+    "study-minimized";
+
+  minimized.textContent =
+    "📚";
+
+  minimized.title =
+    "Abrir assistente";
+
+  minimized.type =
+    "button";
+
+  document.body.appendChild(
+    minimized
+  );
+
+  // ============================================================
+  // ELEMENTOS
+  // ============================================================
+
+  const providerSelect =
+    document.getElementById(
+      "study-provider"
+    );
+
+  const keyInput =
+    document.getElementById(
+      "study-key"
+    );
+
+  const keyLabel =
+    document.getElementById(
+      "study-key-label"
+    );
+
+  const textButton =
+    document.getElementById(
+      "study-text-button"
+    );
+
+  const imageButton =
+    document.getElementById(
+      "study-image-button"
+    );
+
+  const fileInput =
+    document.getElementById(
+      "study-file"
+    );
+
+  const capturedTextBox =
+    document.getElementById(
+      "study-captured-text"
+    );
+
+  const preview =
+    document.getElementById(
+      "study-preview"
+    );
+
+  const analyzeButton =
+    document.getElementById(
+      "study-analyze"
+    );
+
+  const status =
+    document.getElementById(
+      "study-status"
+    );
+
+  const result =
+    document.getElementById(
+      "study-result"
+    );
+
+  const apiLink =
+    document.getElementById(
+      "study-api-link"
+    );
+
+  // ============================================================
+  // PROVIDER
+  // ============================================================
+
+  function updateProvider() {
+
+    provider =
+      providerSelect.value;
+
+    localStorage.setItem(
+      STORAGE.provider,
+      provider
+    );
+
+    if (
+      provider === "gemini"
+    ) {
+
+      keyLabel.textContent =
+        "Chave Gemini";
+
+      keyInput.value =
+        localStorage.getItem(
+          STORAGE.geminiKey
+        ) || "";
+
+      keyInput.placeholder =
+        "Cole sua chave Gemini";
+
+      apiLink.href =
+        "https://aistudio.google.com/apikey";
+
+    } else {
+
+      keyLabel.textContent =
+        "Chave OpenRouter";
+
+      keyInput.value =
+        localStorage.getItem(
+          STORAGE.openrouterKey
+        ) || "";
+
+      keyInput.placeholder =
+        "Cole sua chave OpenRouter";
+
+      apiLink.href =
+        "https://openrouter.ai/settings/keys";
     }
   }
-  
-  function endDrag(e) {
-    if (isDragging) {
-      localStorage.setItem('santosMenuPosition', JSON.stringify({
-        x: xOffset,
-        y: yOffset
-      }));
-    }
-    
-    document.removeEventListener('mousemove', handleDragMove);
-    document.removeEventListener('touchmove', handleDragMove);
-    document.removeEventListener('mouseup', endDrag);
-    document.removeEventListener('touchend', endDrag);
-    document.removeEventListener('mouseleave', endDrag);
-    
-    isDragging = false;
-  }
-  
-  function setTranslate(xPos, yPos, el) {
-    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-  }
-  
-  const savedPosition = localStorage.getItem('santosMenuPosition');
-  if (savedPosition) {
-    const { x, y } = JSON.parse(savedPosition);
-    xOffset = x;
-    yOffset = y;
-    setTranslate(x, y, container);
-  }
-  
-  mainButton.addEventListener('mouseenter', () => {
-    mainButton.style.transform = 'scale(1.05)';
-    mainButton.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
-  });
-  
-  mainButton.addEventListener('mouseleave', () => {
-    mainButton.style.transform = 'scale(1)';
-    if (!isMenuOpen) {
-      mainButton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    }
-  });
-  
-  const speedSlider = document.getElementById('speed-slider');
-  const speedValue = document.getElementById('speed-value');
-  
-  if (speedSlider && speedValue) {
-    speedSlider.disabled = !autoClickEnabled;
-    
-    speedSlider.addEventListener('input', () => {
-      const value = speedSlider.value;
-      speedValue.textContent = value + 's';
-      localStorage.setItem('santosSpeed', value);
-      sendToast(`⚡｜Velocidade: ${value}s`, 1500);
-    });
-  }
-  
-  updateThemeSwitch();
-}
 
-// ========== PARTE SUBSTITUÍDA: SISTEMA DE RESPOSTAS E AUTOMAÇÃO ==========
+  providerSelect.value =
+    provider;
 
-function setupMain() {
-  const originalFetch = window.fetch;
-  const correctAnswers = new Map();
+  updateProvider();
 
-  // Helper para frações
-  const toFraction = (d) => {
-      if (d === 0 || d === 1) return String(d);
-      const decimals = (String(d).split('.')[1] || '').length;
-      let num = Math.round(d * Math.pow(10, decimals)), den = Math.pow(10, decimals);
-      const gcd = (a, b) => { while (b) [a, b] = [b, a % b]; return a; };
-      const div = gcd(Math.abs(num), Math.abs(den));
-      return den / div === 1 ? String(num / div) : `${num / div}/${den / div}`;
-  };
+  providerSelect.addEventListener(
+    "change",
+    updateProvider
+  );
 
-  // Funções de automação de cliques
-  const tryClick = (sel) => document.querySelector(sel)?.click();
+  keyInput.addEventListener(
+    "input",
+    () => {
 
-  const clickButtonWithText = (text) => {
-    const allButtons = document.querySelectorAll("button");
-    for (const button of allButtons) {
-      if (button.textContent && button.textContent.trim() === text) {
-        button.click();
-        sendToast(`🚀｜Botão "${text}" clicado automaticamente!`, 1500);
-        return true;
+      const value =
+        keyInput.value.trim();
+
+      if (
+        provider === "gemini"
+      ) {
+
+        localStorage.setItem(
+          STORAGE.geminiKey,
+          value
+        );
+
+      } else {
+
+        localStorage.setItem(
+          STORAGE.openrouterKey,
+          value
+        );
       }
-      const spans = button.querySelectorAll("span");
-      for (const span of spans) {
-        if (span.textContent && span.textContent.trim() === text) {
-          button.click();
-          sendToast(`🚀｜Botão "${text}" clicado automaticamente!`, 1500);
-          return true;
-        }
-      }
     }
-    return false;
-  };
+  );
 
-  // Interceptação de fetch
-  window.fetch = async function (resource, init) {
-    let content;
-    const url = resource instanceof Request ? resource.url : resource;
+  // ============================================================
+  // CAPTURA DA QUESTÃO
+  // ============================================================
 
-    if (resource instanceof Request) {
-      content = await resource.clone().text();
-    } else if (init?.body) {
-      content = init.body;
-    }
+  function obterCentroDaQuestao() {
 
-    // VIDEO EXPLOIT
-    if (videoExploitEnabled && content?.includes('"operationName":"updateUserVideoProgress"')) {
-      try {
-        const parsed = JSON.parse(content);
-        const input = parsed.variables?.input;
-        if (input) {
-          input.secondsWatched = input.durationSeconds;
-          input.lastSecondWatched = input.durationSeconds;
-          content = JSON.stringify(parsed);
-          if (resource instanceof Request) {
-            resource = new Request(resource, { body: content });
-          } else {
-            init.body = content;
+    const seletores = [
+
+      "[data-testid*='exercise']",
+
+      "[data-testid*='question']",
+
+      "[data-testid*='problem']",
+
+      "[data-testid*='assessment']",
+
+      "[class*='exercise']",
+
+      "[class*='question']",
+
+      "[class*='problem']",
+
+      "[class*='assessment']",
+
+      "main",
+
+      "[role='main']"
+    ];
+
+    const candidatos = [];
+
+    for (
+      const seletor of seletores
+    ) {
+
+      document
+        .querySelectorAll(seletor)
+        .forEach(el => {
+
+          if (
+            !elementoVisivel(el)
+          ) {
+            return;
           }
-          sendToast("🔄｜Vídeo exploitado.", 1000);
-        }
-      } catch (e) {}
+
+          const rect =
+            el.getBoundingClientRect();
+
+          const centroX =
+            rect.left +
+            rect.width / 2;
+
+          const centroY =
+            rect.top +
+            rect.height / 2;
+
+          const distanciaX =
+            Math.abs(
+              centroX -
+              window.innerWidth / 2
+            );
+
+          const distanciaY =
+            Math.abs(
+              centroY -
+              window.innerHeight / 2
+            );
+
+          const area =
+            rect.width *
+            rect.height;
+
+          candidatos.push({
+
+            el,
+
+            distancia:
+              distanciaX +
+              distanciaY,
+
+            area
+          });
+
+        });
     }
 
-    // SISTEMA DE RESPOSTAS CORRETAS
-    if (correctAnswerSystemEnabled && url.includes('attemptProblem') && content) {
-        try {
-            let bodyObj = JSON.parse(content);
-            const itemId = bodyObj.variables?.input?.assessmentItemId;
-            const answers = correctAnswers.get(itemId);
+    const unicos = [];
 
-            if (answers?.length > 0) {
-                const attemptContent = [], userInput = {};
-                let attemptState = bodyObj.variables.input.attemptState ? JSON.parse(bodyObj.variables.input.attemptState) : null;
+    for (
+      const item of candidatos
+    ) {
 
-                answers.forEach(a => {
-                    if (a.type === 'radio') {
-                        attemptContent.push({ selectedChoiceIds: [a.choiceId] });
-                        userInput[a.widgetKey] = { selectedChoiceIds: [a.choiceId] };
-                    }
-                    else if (a.type === 'numeric') {
-                        attemptContent.push({ currentValue: a.value });
-                        userInput[a.widgetKey] = { currentValue: a.value };
-                        if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].currentValue = a.value;
-                    }
-                    else if (a.type === 'expression') {
-                        attemptContent.push(a.value);
-                        userInput[a.widgetKey] = a.value;
-                        if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].value = a.value;
-                    }
-                    else if (a.type === 'grapher') {
-                        const graph = { type: a.graphType, coords: a.coords, asymptote: a.asymptote || null };
-                        attemptContent.push(graph);
-                        userInput[a.widgetKey] = graph;
-                        if (attemptState?.[a.widgetKey]) attemptState[a.widgetKey].plot = graph;
-                    }
-                });
+      if (
+        !unicos.some(
+          x =>
+            x.el === item.el
+        )
+      ) {
 
-                bodyObj.variables.input.attemptContent = JSON.stringify([attemptContent, []]);
-                bodyObj.variables.input.userInput = JSON.stringify(userInput);
-                if (attemptState) bodyObj.variables.input.attemptState = JSON.stringify(attemptState);
-
-                content = JSON.stringify(bodyObj);
-                if (resource instanceof Request) resource = new Request(resource, { body: content });
-                else init.body = content;
-
-                sendToast(`✨ ${answers.length} resposta(s) aplicada(s).`, 750);
-            }
-        } catch (e) { console.error(e); }
+        unicos.push(item);
+      }
     }
 
-    const response = await originalFetch.apply(this, arguments);
+    unicos.sort(
+      (a, b) => {
 
-    // GET ASSESSMENT - MODIFICAÇÃO DE QUESTÕES
-    if (correctAnswerSystemEnabled && url.includes('getAssessmentItem')) {
-      try {
-        const clone = response.clone();
-        const text = await clone.text();
-        const parsed = JSON.parse(text);
+        const scoreA =
+          a.distancia -
+          Math.min(
+            a.area / 5000,
+            100
+          );
 
-        let item = null;
-        if (parsed?.data) {
-            for (const key in parsed.data) {
-                if (parsed.data[key]?.item) {
-                    item = parsed.data[key].item;
-                    break;
-                }
-            }
-        }
+        const scoreB =
+          b.distancia -
+          Math.min(
+            b.area / 5000,
+            100
+          );
 
-        const itemDataRaw = item?.itemData;
-        if (itemDataRaw) {
-            let itemData = JSON.parse(itemDataRaw);
-            const answers = [];
+        return scoreA - scoreB;
+      }
+    );
 
-            for (const [key, w] of Object.entries(itemData.question.widgets || {})) {
-                if (w.type === 'radio' && w.options?.choices) {
-                    const choices = w.options.choices.map((c, i) => ({ ...c, id: c.id || `radio-choice-${i}` }));
-                    const correct = choices.find(c => c.correct);
-                    if (correct) answers.push({ type: 'radio', choiceId: correct.id, widgetKey: key });
-                }
-                else if (w.type === 'numeric-input' && w.options?.answers) {
-                    const correct = w.options.answers.find(a => a.status === 'correct');
-                    if (correct) {
-                        const val = correct.answerForms?.some(f => f === 'proper' || f === 'improper')
-                            ? toFraction(correct.value) : String(correct.value);
-                        answers.push({ type: 'numeric', value: val, widgetKey: key });
-                    }
-                }
-                else if (w.type === 'expression' && w.options?.answerForms) {
-                    const correct = w.options.answerForms.find(f => f.considered === 'correct' || f.form === true);
-                    if (correct) answers.push({ type: 'expression', value: correct.value, widgetKey: key });
-                }
-                else if (w.type === 'grapher' && w.options?.correct) {
-                    const c = w.options.correct;
-                    if (c.type && c.coords) answers.push({
-                        type: 'grapher', graphType: c.type, coords: c.coords,
-                        asymptote: c.asymptote || null, widgetKey: key
-                    });
-                }
-            }
+    for (
+      const candidato of unicos
+    ) {
 
-            if (answers.length > 0) {
-                correctAnswers.set(item.id, answers);
-            }
+      const texto =
+        limparTexto(
+          candidato.el.innerText
+        );
 
-            // MODIFICAÇÃO VISUAL DA QUESTÃO
-            if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-                itemData.answerArea = {
-                    calculator: false,
-                    chi2Table: false,
-                    periodicTable: false,
-                    tTable: false,
-                    zTable: false,
-                };
+      if (
+        texto.length >= 20 &&
+        texto.length <= 15000
+      ) {
 
-                itemData.question.content = "Assinale abaixo Criador: Mlk Mau " + `[[☃ radio 1]]`;
-
-                itemData.question.widgets = {
-                  "radio 1": {
-                    type: "radio", alignment: "default", static: false, graded: true,
-                    options: {
-                        choices: [
-                            { content: "correta", correct: true, id: "correct-choice" },
-                            { content: "", correct: false, id: "incorrect-choice" }
-                        ],
-                        randomize: false, multipleSelect: false, displayCount: null, deselectEnabled: false
-                    },
-                    version: { major: 1, minor: 0 }
-                  },
-                };
-
-                const modifiedData = { ...parsed };
-                if (modifiedData.data) {
-                    for (const key in modifiedData.data) {
-                        if (modifiedData.data[key]?.item?.itemData) {
-                            modifiedData.data[key].item.itemData = JSON.stringify(itemData);
-                            break;
-                        }
-                    }
-                }
-
-                sendToast("🔓 Questão exploitada.", 750);
-                return new Response(JSON.stringify(modifiedData), {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: response.headers,
-                });
-            }
-        }
-      } catch (e) { console.error(e); }
+        return candidato.el;
+      }
     }
 
-    return response;
-  };
+    return null;
+  }
 
-  // LOOP DE AUTOMAÇÃO DE CLIQUES
-  (async () => {
-    window.khanwareDominates = true;
+  function capturarQuestao() {
 
-    while (window.khanwareDominates) {
-      if (!autoClickEnabled || autoClickPaused) {
-        await delay(2000);
-        continue;
+    const selecao =
+      window.getSelection()
+        ?.toString()
+        ?.trim();
+
+    if (selecao) {
+
+      return limparTexto(
+        selecao
+      );
+    }
+
+    const container =
+      obterCentroDaQuestao();
+
+    if (!container) {
+
+      return "";
+    }
+
+    const clone =
+      container.cloneNode(
+        true
+      );
+
+    const remover = [
+
+      "script",
+      "style",
+      "noscript",
+      "button",
+      "nav",
+      "header",
+      "footer",
+
+      "[role='navigation']",
+
+      "[aria-hidden='true']"
+    ];
+
+    clone
+      .querySelectorAll(
+        remover.join(",")
+      )
+      .forEach(
+        el =>
+          el.remove()
+      );
+
+    let texto =
+      limparTexto(
+        clone.innerText
+      );
+
+    texto =
+      texto
+        .split("\n")
+        .map(
+          linha =>
+            linha.trim()
+        )
+        .filter(Boolean)
+        .join("\n");
+
+    return texto.slice(
+      0,
+      15000
+    );
+  }
+
+  // ============================================================
+  // BOTÃO CAPTURAR TEXTO
+  // ============================================================
+
+  textButton.onclick =
+    () => {
+
+      const texto =
+        capturarQuestao();
+
+      if (!texto) {
+
+        toast(
+          "Nenhum conteúdo da questão encontrado."
+        );
+
+        status.textContent =
+          "Não foi possível localizar a questão.";
+
+        return;
       }
 
-      clickButtonWithText("Vamos lá");
-      clickButtonWithText("Mostrar resumo");
-      tryClick(`button[aria-label^="("]`);
-      tryClick(`[data-testid="exercise-check-answer"]`);
-      tryClick(`[data-testid="exercise-next-question"]`);
+      capturedText =
+        texto;
 
-      const speed = parseFloat(localStorage.getItem('santosSpeed')) || 1.5;
-      await delay(speed * 1000);
+      capturedTextBox.value =
+        texto;
+
+      analyzeButton.disabled =
+        false;
+
+      status.textContent =
+        `Questão capturada (${texto.length} caracteres).`;
+
+      toast(
+        "📝 Questão capturada."
+      );
+
+      console.log(
+        "[Assistente] Conteúdo capturado:",
+        texto
+      );
+    };
+
+  // ============================================================
+  // IMAGEM
+  // ============================================================
+
+  imageButton.onclick =
+    () => {
+
+      fileInput.click();
+
+    };
+
+  fileInput.addEventListener(
+    "change",
+    event => {
+
+      const file =
+        event.target.files?.[0];
+
+      if (!file) return;
+
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+
+        toast(
+          "Selecione uma imagem."
+        );
+
+        return;
+      }
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        () => {
+
+          capturedImage =
+            reader.result;
+
+          preview.src =
+            capturedImage;
+
+          preview.style.display =
+            "block";
+
+          analyzeButton.disabled =
+            false;
+
+          status.textContent =
+            "Imagem pronta.";
+
+          toast(
+            "🖼️ Imagem carregada."
+          );
+        };
+
+      reader.onerror =
+        () => {
+
+          toast(
+            "Erro ao carregar imagem."
+          );
+        };
+
+      reader.readAsDataURL(
+        file
+      );
     }
-  })();
-}
+  );
 
-// ========== FIM DA PARTE SUBSTITUÍDA ==========
+  // ============================================================
+  // OPENROUTER
+  // ============================================================
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
-  window.location.href = "https://pt.khanacademy.org/";
-} else {
-  (async function init() {
-    await showSplashScreen();
+  async function analyzeOpenRouter(
+    text,
+    image,
+    apiKey
+  ) {
 
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(() => {
-        DarkReader.setFetchMethod(window.fetch);
-        DarkReader.enable();
-      }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
+    const content = [];
 
-    await delay(2000);
-    await hideSplashScreen();
+    content.push({
 
-    createFloatingMenu();
-    setupMain();
-    
-    sendToast("Carregando...!");
-    setTimeout(() => {
-        sendToast("Carregado", 2500);
-    }, 1000);
-    setTimeout(() => {
-        sendToast("KHAN MENU INICIADO", 2500);
-    }, 3500);
-    
-    console.clear();
-  })();
-}
+      type: "text",
+
+      text:
+        `${AI_INSTRUCTION}
+
+CONTEÚDO TEXTUAL CAPTURADO:
+
+${text ||
+"(nenhum texto fornecido)"}
+
+Analise somente o conteúdo relacionado
+à questão e ignore elementos de interface.`
+    });
+
+    if (image) {
+
+      content.push({
+
+        type:
+          "image_url",
+
+        image_url: {
+
+          url:
+            image
+        }
+      });
+    }
+
+    const response =
+      await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${apiKey}`
+          },
+
+          body:
+            JSON.stringify({
+
+              model:
+                OPENROUTER_MODEL,
+
+              messages: [
+
+                {
+
+                  role:
+                    "user",
+
+                  content:
+                    content
+                }
+              ],
+
+              temperature:
+                0.1
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error?.message ||
+        `HTTP ${response.status}`
+      );
+    }
+
+    return (
+      data?.choices?.[0]
+        ?.message?.content ||
+      "Sem resposta."
+    );
+  }
+
+  // ============================================================
+  // GEMINI
+  // ============================================================
+
+  async function analyzeGemini(
+    text,
+    image,
+    apiKey
+  ) {
+
+    const parts = [];
+
+    parts.push({
+
+      text:
+        `${AI_INSTRUCTION}
+
+CONTEÚDO TEXTUAL CAPTURADO:
+
+${text ||
+"(nenhum texto fornecido)"}
+
+Analise somente o conteúdo relacionado
+à questão e ignore elementos de interface.`
+    });
+
+    if (image) {
+
+      const base64 =
+        image.split(",")[1];
+
+      const mime =
+        image
+          .match(
+            /^data:(image\/[^;]+);/
+          )
+          ?. [1] ||
+        "image/jpeg";
+
+      parts.push({
+
+        inline_data: {
+
+          mime_type:
+            mime,
+
+          data:
+            base64
+        }
+      });
+    }
+
+    const endpoint =
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const response =
+      await fetch(
+        endpoint,
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              contents: [
+
+                {
+                  parts
+                }
+              ],
+
+              generationConfig: {
+
+                temperature:
+                  0.1
+              }
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error?.message ||
+        `HTTP ${response.status}`
+      );
+    }
+
+    return (
+      data?.candidates?.[0]
+        ?.content?.parts
+        ?.map(
+          part =>
+            part.text || ""
+        )
+        .join("") ||
+      "Sem resposta."
+    );
+  }
+
+  // ============================================================
+  // ANALISAR
+  // ============================================================
+
+  analyzeButton.onclick =
+    async () => {
+
+      if (busy) return;
+
+      const text =
+        capturedTextBox
+          .value
+          .trim();
+
+      capturedText =
+        text;
+
+      if (
+        !text &&
+        !capturedImage
+      ) {
+
+        toast(
+          "Capture um texto ou escolha uma imagem."
+        );
+
+        return;
+      }
+
+      const apiKey =
+        keyInput.value.trim();
+
+      if (!apiKey) {
+
+        toast(
+          "Informe a chave da API."
+        );
+
+        keyInput.focus();
+
+        return;
+      }
+
+      busy = true;
+
+      analyzeButton.disabled =
+        true;
+
+      analyzeButton.textContent =
+        "⏳ Analisando...";
+
+      result.style.display =
+        "block";
+
+      result.textContent =
+        "Analisando...";
+
+      status.textContent =
+        provider === "gemini"
+          ? "Enviando para Gemini..."
+          : "Enviando para GPT...";
+
+      try {
+
+        let answer;
+
+        if (
+          provider === "gemini"
+        ) {
+
+          answer =
+            await analyzeGemini(
+              text,
+              capturedImage,
+              apiKey
+            );
+
+        } else {
+
+          answer =
+            await analyzeOpenRouter(
+              text,
+              capturedImage,
+              apiKey
+            );
+        }
+
+        result.textContent =
+          answer;
+
+        status.textContent =
+          "Análise concluída.";
+
+        toast(
+          "✅ Análise concluída."
+        );
+
+      } catch (error) {
+
+        console.error(
+          error
+        );
+
+        result.textContent =
+          "Erro:\n\n" +
+          error.message;
+
+        status.textContent =
+          "Erro na API.";
+
+        toast(
+          "❌ Erro ao consultar a IA."
+        );
+
+      } finally {
+
+        busy = false;
+
+        analyzeButton.disabled =
+          false;
+
+        analyzeButton.textContent =
+          "🤖 Analisar com IA";
+      }
+    };
+
+  // ============================================================
+  // MINIMIZAR
+  // ============================================================
+
+  function minimizarPainel() {
+
+    panel.style.display =
+      "none";
+
+    minimized.style.display =
+      "block";
+  }
+
+  function abrirPainel() {
+
+    minimized.style.display =
+      "none";
+
+    panel.style.display =
+      "block";
+
+    ajustarPosicaoNaTela();
+  }
+
+  document
+    .getElementById(
+      "study-minimize"
+    )
+    .onclick =
+    minimizarPainel;
+
+  minimized.onclick =
+    abrirPainel;
+
+  // ============================================================
+  // TOQUE/CLIQUE FORA DO MENU
+  // MINIMIZA AUTOMATICAMENTE
+  // ============================================================
+
+  function cliqueFora(event) {
+
+    if (
+      panel.style.display ===
+      "none"
+    ) {
+      return;
+    }
+
+    const alvo =
+      event.target;
+
+    if (
+      panel.contains(alvo)
+    ) {
+      return;
+    }
+
+    if (
+      minimized.contains(alvo)
+    ) {
+      return;
+    }
+
+    minimizarPainel();
+  }
+
+  document.addEventListener(
+    "pointerdown",
+    cliqueFora,
+    true
+  );
+
+  // ============================================================
+  // FECHAR
+  // ============================================================
+
+  document
+    .getElementById(
+      "study-close"
+    )
+    .onclick =
+    () => {
+
+      panel.remove();
+
+      minimized.remove();
+
+      style.remove();
+
+      document.removeEventListener(
+        "pointerdown",
+        cliqueFora,
+        true
+      );
+    };
+
+  // ============================================================
+  // ARRASTAR MENU INTEIRO
+  // ============================================================
+
+  let dragging =
+    false;
+
+  let dragStartX =
+    0;
+
+  let dragStartY =
+    0;
+
+  let panelStartLeft =
+    0;
+
+  let panelStartTop =
+    0;
+
+  function podeArrastar(event) {
+
+    const alvo =
+      event.target;
+
+    // Esses elementos continuam funcionando
+    // normalmente e não iniciam o arraste.
+    const elementoInterativo =
+      alvo.closest(
+        "button, input, textarea, select, a"
+      );
+
+    if (
+      elementoInterativo
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  panel.addEventListener(
+    "pointerdown",
+    event => {
+
+      if (
+        !podeArrastar(event)
+      ) {
+        return;
+      }
+
+      const rect =
+        panel.getBoundingClientRect();
+
+      dragging =
+        true;
+
+      dragStartX =
+        event.clientX;
+
+      dragStartY =
+        event.clientY;
+
+      panelStartLeft =
+        rect.left;
+
+      panelStartTop =
+        rect.top;
+
+      panel.style.left =
+        `${panelStartLeft}px`;
+
+      panel.style.top =
+        `${panelStartTop}px`;
+
+      panel.style.right =
+        "auto";
+
+      panel.style.bottom =
+        "auto";
+
+      try {
+
+        panel.setPointerCapture(
+          event.pointerId
+        );
+
+      } catch (e) {}
+
+      event.preventDefault();
+    },
+    {
+      passive: false
+    }
+  );
+
+  panel.addEventListener(
+    "pointermove",
+    event => {
+
+      if (!dragging) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const dx =
+        event.clientX -
+        dragStartX;
+
+      const dy =
+        event.clientY -
+        dragStartY;
+
+      const panelWidth =
+        panel.offsetWidth;
+
+      const panelHeight =
+        panel.offsetHeight;
+
+      const maxLeft =
+        Math.max(
+          5,
+          window.innerWidth -
+          panelWidth -
+          5
+        );
+
+      const maxTop =
+        Math.max(
+          5,
+          window.innerHeight -
+          panelHeight -
+          5
+        );
+
+      const newLeft =
+        Math.min(
+          maxLeft,
+          Math.max(
+            5,
+            panelStartLeft + dx
+          )
+        );
+
+      const newTop =
+        Math.min(
+          maxTop,
+          Math.max(
+            5,
+            panelStartTop + dy
+          )
+        );
+
+      panel.style.left =
+        `${newLeft}px`;
+
+      panel.style.top =
+        `${newTop}px`;
+    },
+    {
+      passive: false
+    }
+  );
+
+  function finalizarArraste(event) {
+
+    if (!dragging) {
+      return;
+    }
+
+    dragging =
+      false;
+
+    try {
+
+      if (
+        event.pointerId !== undefined &&
+        panel.hasPointerCapture(
+          event.pointerId
+        )
+      ) {
+
+        panel.releasePointerCapture(
+          event.pointerId
+        );
+      }
+
+    } catch (e) {}
+
+    localStorage.setItem(
+      STORAGE.panelLeft,
+      panel.style.left
+    );
+
+    localStorage.setItem(
+      STORAGE.panelTop,
+      panel.style.top
+    );
+  }
+
+  panel.addEventListener(
+    "pointerup",
+    finalizarArraste
+  );
+
+  panel.addEventListener(
+    "pointercancel",
+    finalizarArraste
+  );
+
+  // ============================================================
+  // AJUSTAR POSIÇÃO NA TELA
+  // ============================================================
+
+  function ajustarPosicaoNaTela() {
+
+    if (
+      panel.style.display ===
+      "none"
+    ) {
+      return;
+    }
+
+    const rect =
+      panel.getBoundingClientRect();
+
+    const panelWidth =
+      panel.offsetWidth;
+
+    const panelHeight =
+      panel.offsetHeight;
+
+    const maxLeft =
+      Math.max(
+        5,
+        window.innerWidth -
+        panelWidth -
+        5
+      );
+
+    const maxTop =
+      Math.max(
+        5,
+        window.innerHeight -
+        panelHeight -
+        5
+      );
+
+    const left =
+      Math.min(
+        maxLeft,
+        Math.max(
+          5,
+          rect.left
+        )
+      );
+
+    const top =
+      Math.min(
+        maxTop,
+        Math.max(
+          5,
+          rect.top
+        )
+      );
+
+    panel.style.left =
+      `${left}px`;
+
+    panel.style.top =
+      `${top}px`;
+
+    panel.style.right =
+      "auto";
+
+    panel.style.bottom =
+      "auto";
+  }
+
+  // ============================================================
+  // RESTAURAR POSIÇÃO SALVA
+  // ============================================================
+
+  const savedLeft =
+    localStorage.getItem(
+      STORAGE.panelLeft
+    );
+
+  const savedTop =
+    localStorage.getItem(
+      STORAGE.panelTop
+    );
+
+  if (
+    savedLeft &&
+    savedTop
+  ) {
+
+    panel.style.left =
+      savedLeft;
+
+    panel.style.top =
+      savedTop;
+
+    panel.style.right =
+      "auto";
+
+    panel.style.bottom =
+      "auto";
+
+    requestAnimationFrame(
+      () => {
+
+        ajustarPosicaoNaTela();
+
+      }
+    );
+  }
+
+  // ============================================================
+  // CORRIGIR POSIÇÃO AO REDIMENSIONAR/GIRAR
+  // ============================================================
+
+  window.addEventListener(
+    "resize",
+    () => {
+
+      ajustarPosicaoNaTela();
+
+    }
+  );
+
+  // ============================================================
+  // INÍCIO
+  // ============================================================
+
+  status.textContent =
+    "Pronto para estudar.";
+
+  toast(
+    "📚 Assistente iniciado.",
+    1800
+  );
+
+})();
